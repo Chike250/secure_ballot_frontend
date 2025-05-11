@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useUIStore } from '@/store/useStore';
+import { useUIStore } from '@/src/store/useStore';
 
 interface FetchOptions {
   cacheTime?: number;

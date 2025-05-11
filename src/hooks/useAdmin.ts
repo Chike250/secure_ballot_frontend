@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { adminAPI } from '@/services/api';
-import { useUIStore } from '@/store/useStore';
+import { adminAPI } from '@/src/services/api';
+import { useUIStore } from '@/src/store/useStore';
 
 export const useAdmin = () => {
   const { setLoading, setError } = useUIStore();

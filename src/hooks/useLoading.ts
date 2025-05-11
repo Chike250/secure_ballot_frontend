@@ -1,4 +1,4 @@
-import { useUIStore } from '@/store/useStore';
+import { useUIStore } from '@/src/store/useStore';
 
 export const useLoading = () => {
   const { isLoading, error, setLoading, setError } = useUIStore();

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { resultsAPI } from '@/services/api';
-import { useUIStore } from '@/store/useStore';
+import { resultsAPI } from '@/src/services/api';
+import { useUIStore } from '@/src/store/useStore';
 
 export const useResults = () => {
   const { setLoading, setError } = useUIStore();

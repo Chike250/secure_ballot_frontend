@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/useStore';
-import { authAPI } from '@/services/api';
-import { useUIStore } from '@/store/useStore';
+import { useAuthStore } from '@/src/store/useStore';
+import { authAPI } from '@/src/services/api';
+import { useUIStore } from '@/src/store/useStore';
 
 export const useAuth = () => {
   const router = useRouter();
