@@ -1,8 +1,8 @@
 "use client"
 
 import { Activity, Zap, AlertTriangle } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { ChartContainer } from "@/src/components/ui/chart"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartContainer } from "@/components/ui/chart"
 import {
   ResponsiveContainer,
   LineChart,

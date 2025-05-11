@@ -32,13 +32,13 @@ import {
   Search,
   Shield,
 } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/src/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/src/components/ui/dropdown-menu"
-import { ThemeToggle } from "@/src/components/theme-toggle"
-import { AiAssistantPreview } from "@/src/components/ai-assistant-preview"
-import { BarChart, PieChart } from "@/src/components/ui/chart"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { AiAssistantPreview } from "@/components/ai-assistant-preview"
+import { BarChart, PieChart } from "@/components/ui/chart"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -46,11 +46,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/src/components/ui/dialog"
-import { Badge } from "@/src/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/src/components/ui/tooltip"
-import { ScrollArea } from "@/src/components/ui/scroll-area"
-import { Progress } from "@/src/components/ui/progress"
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Progress } from "@/components/ui/progress"
 import {
   Sidebar,
   SidebarContent,
@@ -64,10 +64,10 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/src/components/ui/sidebar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select"
-import { Input } from "@/src/components/ui/input"
-import { Slider } from "@/src/components/ui/slider"
+} from "@/components/ui/sidebar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 
 // Election types
 const ELECTION_TYPES = {

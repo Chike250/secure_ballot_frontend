@@ -5,9 +5,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Check, ArrowLeft, BadgeCheck, AlertCircle, Info, Eye, Shield, BarChart3, ChevronRight } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/src/components/ui/card"
-import { Badge } from "@/src/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -15,14 +15,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/src/components/ui/dialog"
-import { Progress } from "@/src/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
-import { Alert, AlertDescription, AlertTitle } from "@/src/components/ui/alert"
-import { RadioGroup, RadioGroupItem } from "@/src/components/ui/radio-group"
-import { Label } from "@/src/components/ui/label"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/src/components/ui/tooltip"
-import { Navbar } from "@/src/components/navbar"
+} from "@/components/ui/dialog"
+import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Navbar } from "@/components/navbar"
 
 // Election types
 const ELECTION_TYPES = {

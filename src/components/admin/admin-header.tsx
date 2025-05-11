@@ -4,8 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Bell, LogOut, Menu, Settings, User, Shield, Search } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Input } from "@/src/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +13,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/src/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/src/components/ui/sheet"
-import { ThemeToggle } from "@/src/components/theme-toggle"
+} from "@/components/ui/dropdown-menu"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Dialog,
   DialogContent,
@@ -23,9 +23,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/src/components/ui/dialog"
-import { Avatar, AvatarFallback, AvatarImage } from "@/src/components/ui/avatar"
-import { Badge } from "@/src/components/ui/badge"
+} from "@/components/ui/dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 
 export function AdminHeader() {
   const router = useRouter()

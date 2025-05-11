@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { ChevronLeft, ChevronRight, Quote, Star } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface Review {

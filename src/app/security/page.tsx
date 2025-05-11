@@ -1,4 +1,4 @@
-import { Badge } from "@/src/components/ui/badge"
+import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -13,10 +13,10 @@ import {
   Globe,
   AlertTriangle,
 } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Navbar } from "@/src/components/navbar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Navbar } from "@/components/navbar"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function SecurityPage() {
   return (

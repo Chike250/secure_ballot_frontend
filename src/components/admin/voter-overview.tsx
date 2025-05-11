@@ -1,15 +1,15 @@
 "use client"
 
 import { Users, UserCheck, UserX, Search, Filter, Download, MoreHorizontal } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
-import { Progress } from "@/src/components/ui/progress"
-import { Button } from "@/src/components/ui/button"
-import { Input } from "@/src/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table"
-import { Badge } from "@/src/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/src/components/ui/select"
-import { ChartContainer } from "@/src/components/ui/chart"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
+import { ChartContainer } from "@/components/ui/chart"
 import {
   ResponsiveContainer,
   BarChart,

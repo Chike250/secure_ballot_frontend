@@ -1,10 +1,10 @@
 "use client"
 import { Filter, Search } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Input } from "@/src/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table"
-import { Badge } from "@/src/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/src/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 
 // Mock audit log data
 const auditLogs = [

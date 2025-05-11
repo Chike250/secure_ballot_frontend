@@ -1,9 +1,9 @@
 "use client"
 
 import { AlertCircle, Bell, CheckCircle, Info } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { ScrollArea } from "@/src/components/ui/scroll-area"
-import { Button } from "@/src/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
 
 // Mock notifications data
 const notifications = [

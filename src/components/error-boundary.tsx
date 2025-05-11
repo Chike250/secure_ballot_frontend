@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { Button } from "@/src/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { AlertTriangle } from "lucide-react"
 
 interface ErrorBoundaryProps {

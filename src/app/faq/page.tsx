@@ -1,9 +1,9 @@
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Navbar } from "@/src/components/navbar"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/src/components/ui/accordion"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Navbar } from "@/components/navbar"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function FAQPage() {
   return (

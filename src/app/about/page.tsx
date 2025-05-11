@@ -1,9 +1,9 @@
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Shield, CheckCircle, Users, Building2, Award } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Navbar } from "@/src/components/navbar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Navbar } from "@/components/navbar"
 
 export default function AboutPage() {
   return (

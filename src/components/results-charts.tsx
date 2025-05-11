@@ -17,7 +17,7 @@ import {
   Line,
   ReferenceLine,
 } from "recharts"
-import { Skeleton } from "@/src/components/ui/skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface ChartProps {
   type: "pie" | "bar" | "line"

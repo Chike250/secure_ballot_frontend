@@ -1,5 +1,5 @@
 import { Shield, ShieldCheck, Lock } from "lucide-react"
-import { Badge } from "@/src/components/ui/badge"
+import { Badge } from "@/components/ui/badge"
 
 export function SecurityBadges() {
   return (

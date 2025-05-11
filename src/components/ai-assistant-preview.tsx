@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Bot, Send, X } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Input } from "@/src/components/ui/input"
-import { Badge } from "@/src/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/src/components/ui/tooltip"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 export function AiAssistantPreview() {

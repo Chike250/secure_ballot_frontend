@@ -26,19 +26,19 @@ import {
   ShieldCheck,
   Globe,
 } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/src/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/src/components/ui/dropdown-menu"
-import { ThemeToggle } from "@/src/components/theme-toggle"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/src/components/ui/tooltip"
-import { Badge } from "@/src/components/ui/badge"
-import { Switch } from "@/src/components/ui/switch"
-import { Label } from "@/src/components/ui/label"
-import { Slider } from "@/src/components/ui/slider"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
-import { ScrollArea } from "@/src/components/ui/scroll-area"
-import { Progress } from "@/src/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Progress } from "@/components/ui/progress"
 import {
   Sidebar,
   SidebarContent,
@@ -52,9 +52,9 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/src/components/ui/sidebar"
-import { ElectionCharts } from "@/src/components/election-charts"
-import { ElectoralMap } from "@/src/components/electoral-map"
+} from "@/components/ui/sidebar"
+import { ElectionCharts } from "@/components/election-charts"
+import { ElectoralMap } from "@/components/electoral-map"
 
 // Election types
 const ELECTION_TYPES = {

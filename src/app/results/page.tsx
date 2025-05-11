@@ -18,17 +18,17 @@ import {
   Share2,
   RefreshCw,
 } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/src/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/src/components/ui/dropdown-menu"
-import { ThemeToggle } from "@/src/components/theme-toggle"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/src/components/ui/tooltip"
-import { Badge } from "@/src/components/ui/badge"
-import { Switch } from "@/src/components/ui/switch"
-import { Label } from "@/src/components/ui/label"
-import { Slider } from "@/src/components/ui/slider"
-import { ElectionCharts } from "@/src/components/election-charts"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
+import { ElectionCharts } from "@/components/election-charts"
 import {
   Sidebar,
   SidebarContent,
@@ -42,7 +42,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/src/components/ui/sidebar"
+} from "@/components/ui/sidebar"
 
 // Election types
 const ELECTION_TYPES = {

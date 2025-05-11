@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Globe } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -10,9 +10,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/src/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/src/components/ui/radio-group"
-import { Label } from "@/src/components/ui/label"
+} from "@/components/ui/dialog"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 import { useLanguage, languages, type LanguageCode } from "@/lib/i18n/LanguageContext"
 
 export function LanguageModal() {

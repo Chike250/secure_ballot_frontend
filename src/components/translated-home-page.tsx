@@ -2,14 +2,14 @@
 
 import Link from "next/link"
 import { ArrowRight, BarChart3, ShieldCheck } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { CountdownTimer } from "@/src/components/countdown-timer"
-import { SecurityBadges } from "@/src/components/security-badges"
-import { ElectionCards } from "@/src/components/election-cards"
-import { HeroImage } from "@/src/components/hero-image"
-import { ReviewCarousel } from "@/src/components/review-carousel"
+import { Button } from "@/components/ui/button"
+import { CountdownTimer } from "@/components/countdown-timer"
+import { SecurityBadges } from "@/components/security-badges"
+import { ElectionCards } from "@/components/election-cards"
+import { HeroImage } from "@/components/hero-image"
+import { ReviewCarousel } from "@/components/review-carousel"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-import { RealTimeMonitoring } from "@/src/components/real-time-monitoring"
+import { RealTimeMonitoring } from "@/components/real-time-monitoring"
 
 export function TranslatedHomePage() {
   const { t } = useLanguage()

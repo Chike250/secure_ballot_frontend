@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Navbar } from "@/src/components/navbar"
+import { Button } from "@/components/ui/button"
+import { Navbar } from "@/components/navbar"
 
 export default function PrivacyPolicyPage() {
   return (

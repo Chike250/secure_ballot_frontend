@@ -1,11 +1,11 @@
 "use client"
 
 import { Shield, ShieldAlert, ShieldCheck, Lock, Key } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Progress } from "@/src/components/ui/progress"
-import { Button } from "@/src/components/ui/button"
-import { Switch } from "@/src/components/ui/switch"
-import { Label } from "@/src/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 export function SecurityPanel() {
   return (

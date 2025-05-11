@@ -5,12 +5,12 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Input } from "@/src/components/ui/input"
-import { Label } from "@/src/components/ui/label"
-import { SecurityBadges } from "@/src/components/security-badges"
-import { UserIdNotification } from "@/src/components/user-id-notification"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { SecurityBadges } from "@/components/security-badges"
+import { UserIdNotification } from "@/components/user-id-notification"
 
 interface ValidationState {
   isValid: boolean

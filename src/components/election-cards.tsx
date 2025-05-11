@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { Users, Building2, LandPlot, GraduationCap } from "lucide-react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Button } from "@/src/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { memo } from "react"
 

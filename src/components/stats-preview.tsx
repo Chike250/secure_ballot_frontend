@@ -1,9 +1,9 @@
 "use client"
 
 import { BarChart3, PieChart, Users, Map } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
-import { BarChart, LineChart, PieChart as Chart } from "@/src/components/ui/chart"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BarChart, LineChart, PieChart as Chart } from "@/components/ui/chart"
 
 export function StatsPreview() {
   // Sample data for charts

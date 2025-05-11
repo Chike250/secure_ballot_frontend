@@ -19,19 +19,19 @@ import {
   Laptop,
   LogOut,
 } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Label } from "@/src/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/src/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select"
-import { Separator } from "@/src/components/ui/separator"
-import { Switch } from "@/src/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
-import { Alert, AlertDescription, AlertTitle } from "@/src/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTheme } from "next-themes"
 import { useLanguage, languages, type LanguageCode } from "@/lib/i18n/LanguageContext"
 import { useToast } from "@/src/hooks/use-toast"
-import { Badge } from "@/src/components/ui/badge"
+import { Badge } from "@/components/ui/badge"
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()

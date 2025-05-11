@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Play, Pause } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
+import { Button } from "@/components/ui/button"
 
 export function HeroVideo() {
   const [isPlaying, setIsPlaying] = useState(false)

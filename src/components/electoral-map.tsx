@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { Skeleton } from "@/src/components/ui/skeleton"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/src/components/ui/tooltip"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface ElectoralMapProps {
   data: any[]

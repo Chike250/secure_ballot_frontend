@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { RefreshCw, Signal, Database, Shield, Activity, BarChart3 } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-import { Card, CardContent } from "@/src/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useLanguage } from "@/lib/i18n/LanguageContext"

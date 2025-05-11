@@ -3,14 +3,14 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Camera, Mail, Phone, MapPin, Calendar, Save } from "lucide-react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Button } from "@/src/components/ui/button"
-import { Input } from "@/src/components/ui/input"
-import { Textarea } from "@/src/components/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "@/src/components/ui/avatar"
-import { Separator } from "@/src/components/ui/separator"
-import { Badge } from "@/src/components/ui/badge"
-import { AdminHeader } from "@/src/components/admin/admin-header"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { AdminHeader } from "@/components/admin/admin-header"
 
 export default function AdminProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
