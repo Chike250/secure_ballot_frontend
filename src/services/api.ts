@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useAuthStore } from '@/src/store/useStore';
+import { useAuthStore } from '@/store/useStore';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
