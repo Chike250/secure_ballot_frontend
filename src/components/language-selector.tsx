@@ -5,7 +5,7 @@ import { Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useLanguage, languages, type LanguageCode } from "@/lib/i18n/LanguageContext"
-import { useToast } from "@/src/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 interface LanguageSelectorProps {
   variant?: "default" | "outline" | "ghost" | "link"

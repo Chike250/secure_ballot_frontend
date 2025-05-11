@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTheme } from "next-themes"
 import { useLanguage, languages, type LanguageCode } from "@/lib/i18n/LanguageContext"
-import { useToast } from "@/src/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 export default function SettingsPage() {

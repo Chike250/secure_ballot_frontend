@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { voterAPI } from '@/src/services/api';
-import { useUIStore } from '@/src/store/useStore';
+import { voterAPI } from '@/services/api';
+import { useUIStore } from '@/store/useStore';
 
 export const useVoter = () => {
   const { setLoading, setError } = useUIStore();

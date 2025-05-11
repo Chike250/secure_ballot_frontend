@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { useElectionStore } from '@/src/store/useStore';
-import { electionAPI } from '@/src/services/api';
-import { useUIStore } from '@/src/store/useStore';
+import { useElectionStore } from '@/store/useStore';
+import { electionAPI } from '@/services/api';
+import { useUIStore } from '@/store/useStore';
 
 export const useElections = () => {
   const { setCurrentElection, setElections, currentElection, elections } = useElectionStore();

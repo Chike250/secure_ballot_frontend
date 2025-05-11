@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Navbar } from "@/components/navbar"
-import { useToast } from "@/src/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ContactPage() {
   const { toast } = useToast()
