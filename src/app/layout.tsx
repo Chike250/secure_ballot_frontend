@@ -25,10 +25,10 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <StoreProvider>
-            <LanguageProvider>
-              {children}
-              <Toaster />
-            </LanguageProvider>
+          <LanguageProvider>
+            {children}
+            <Toaster />
+          </LanguageProvider>
           </StoreProvider>
         </ThemeProvider>
       </body>

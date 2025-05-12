@@ -121,6 +121,11 @@ export const voterAPI = {
     return response.data;
   },
 
+  getEligibility: async (electionId: string) => {
+    const response = await api.get(`/voter/eligibility/${electionId}`);
+    return response.data;
+  },
+
   verifyVote: async (receiptCode: string) => {
     const response = await api.get(`/voter/verify-vote/${receiptCode}`);
     return response.data;

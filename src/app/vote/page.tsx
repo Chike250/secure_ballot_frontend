@@ -23,6 +23,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Navbar } from "@/components/navbar"
+import { useAuthStore, useUIStore } from "@/store/useStore"
+import { useVote } from "@/hooks/useVote"
+import { useElectionData } from "@/hooks/useElectionData"
 
 // Election types
 const ELECTION_TYPES = {
@@ -32,305 +35,109 @@ const ELECTION_TYPES = {
   senatorial: "Senatorial Election",
 }
 
-// Candidate data by election type
-const candidatesByElection = {
-  presidential: [
-    {
-      id: 1,
-      name: "Bola Ahmed Tinubu",
-      party: "APC",
-      votes: 8500000,
-      percentage: 35,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#64748b",
-      bio: "Former Governor of Lagos State and National Leader of the APC",
-      manifesto: "Economic growth, security, and infrastructure development",
-    },
-    {
-      id: 2,
-      name: "Atiku Abubakar",
-      party: "PDP",
-      votes: 6900000,
-      percentage: 28,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#ef4444",
-      bio: "Former Vice President of Nigeria and business tycoon",
-      manifesto: "Job creation, education reform, and national unity",
-    },
-    {
-      id: 3,
-      name: "Peter Obi",
-      party: "LP",
-      votes: 6100000,
-      percentage: 25,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#22c55e",
-      bio: "Former Governor of Anambra State and businessman",
-      manifesto: "Economic restructuring, anti-corruption, and youth empowerment",
-    },
-    {
-      id: 4,
-      name: "Rabiu Kwankwaso",
-      party: "NNPP",
-      votes: 1500000,
-      percentage: 7,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#3b82f6",
-      bio: "Former Governor of Kano State and Senator",
-      manifesto: "Educational development, healthcare reform, and northern development",
-    },
-    {
-      id: 5,
-      name: "Others",
-      party: "Various",
-      votes: 1000000,
-      percentage: 5,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#a855f7",
-      bio: "Various candidates from smaller political parties",
-      manifesto: "Various policy positions",
-    },
-  ],
-  gubernatorial: [
-    {
-      id: 1,
-      name: "Babajide Sanwo-Olu",
-      party: "APC",
-      votes: 950000,
-      percentage: 42,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#64748b",
-      bio: "Current Governor of Lagos State",
-      manifesto: "Urban development, transportation, and economic growth",
-    },
-    {
-      id: 2,
-      name: "Olajide Adediran (Jandor)",
-      party: "PDP",
-      votes: 580000,
-      percentage: 26,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#ef4444",
-      bio: "Businessman and PDP Lagos leader",
-      manifesto: "Infrastructure development and economic diversification",
-    },
-    {
-      id: 3,
-      name: "Gbadebo Rhodes-Vivour",
-      party: "LP",
-      votes: 520000,
-      percentage: 23,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#22c55e",
-      bio: "Architect and social activist",
-      manifesto: "Social justice, environmental sustainability, and youth inclusion",
-    },
-    {
-      id: 4,
-      name: "Others",
-      party: "Various",
-      votes: 200000,
-      percentage: 9,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#a855f7",
-      bio: "Various candidates from smaller political parties",
-      manifesto: "Various policy positions",
-    },
-  ],
-  "house-of-reps": [
-    {
-      id: 1,
-      name: "Akin Alabi",
-      party: "APC",
-      votes: 45000,
-      percentage: 38,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#64748b",
-      bio: "Businessman and sports betting pioneer",
-      manifesto: "Youth empowerment, digital economy, and constituency projects",
-    },
-    {
-      id: 2,
-      name: "Tolulope Akande-Sadipe",
-      party: "PDP",
-      votes: 38000,
-      percentage: 32,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#ef4444",
-      bio: "Business executive and development expert",
-      manifesto: "Rural development, women empowerment, and education",
-    },
-    {
-      id: 3,
-      name: "Shina Peller",
-      party: "LP",
-      votes: 25000,
-      percentage: 21,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#22c55e",
-      bio: "Entrepreneur and entertainment mogul",
-      manifesto: "Creative economy, youth development, and innovation",
-    },
-    {
-      id: 4,
-      name: "Others",
-      party: "Various",
-      votes: 10000,
-      percentage: 9,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#a855f7",
-      bio: "Various candidates from smaller political parties",
-      manifesto: "Various policy positions",
-    },
-  ],
-  senatorial: [
-    {
-      id: 1,
-      name: "Oluremi Tinubu",
-      party: "APC",
-      votes: 280000,
-      percentage: 40,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#64748b",
-      bio: "Former First Lady of Lagos State and incumbent Senator",
-      manifesto: "Women empowerment, social welfare, and education",
-    },
-    {
-      id: 2,
-      name: "Dino Melaye",
-      party: "PDP",
-      votes: 210000,
-      percentage: 30,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#ef4444",
-      bio: "Former Senator and political activist",
-      manifesto: "Accountability, legislative reforms, and constituency development",
-    },
-    {
-      id: 3,
-      name: "Shehu Sani",
-      party: "LP",
-      votes: 175000,
-      percentage: 25,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#22c55e",
-      bio: "Human rights activist and former Senator",
-      manifesto: "Human rights, social justice, and northern development",
-    },
-    {
-      id: 4,
-      name: "Others",
-      party: "Various",
-      votes: 35000,
-      percentage: 5,
-      image: "/placeholder.svg?height=100&width=100",
-      color: "#a855f7",
-      bio: "Various candidates from smaller political parties",
-      manifesto: "Various policy positions",
-    },
-  ],
-}
-
-// Voting record structure
-type VotingRecord = Record<string, number>
-
 export default function VotePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const electionType = searchParams.get("type") || "presidential"
-  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null)
-  const [votedElections, setVotedElections] = useState<VotingRecord>({})
+  const { isAuthenticated, user } = useAuthStore()
+  const { isLoading, error, setError } = useUIStore()
+
+  const initialElectionType = searchParams.get("type") || "presidential"
+  const [electionType, setElectionType] = useState(initialElectionType)
+
+  const {
+    votingStatus,
+    eligibility,
+    votedElections,
+    loadElectionData: loadVotePrereqs,
+    castVote,
+  } = useVote()
+
+  const {
+    currentElectionTypeKey,
+    elections: electionList,
+    currentElectionDetails: electionDetails,
+    candidates,
+    electionResults,
+    fetchElectionDetailsAndCandidates,
+    fetchResults,
+    ELECTION_TYPES_MAP
+  } = useElectionData(initialElectionType)
+
+  const [selectedCandidate, setSelectedCandidate] = useState<number | string | null>(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<"card" | "list">("card")
-  const [candidates, setCandidates] = useState(candidatesByElection[electionType as keyof typeof candidatesByElection])
   const [showPartyInfo, setShowPartyInfo] = useState(false)
   const [activeTab, setActiveTab] = useState("vote")
 
-  // Load voting records from localStorage
   useEffect(() => {
-    const savedVotes = localStorage.getItem("votedElections")
-    if (savedVotes) {
-      setVotedElections(JSON.parse(savedVotes))
+    if (!isAuthenticated) {
+      router.push("/login?from=/vote")
     }
-  }, [])
+  }, [isAuthenticated, router])
 
-  // Update candidates when election type changes
   useEffect(() => {
-    setCandidates(candidatesByElection[electionType as keyof typeof candidatesByElection])
-  }, [electionType])
+    if (isAuthenticated && electionType) {
+      loadVotePrereqs(electionType)
+      fetchElectionDetailsAndCandidates(electionType)
+      setSelectedCandidate(null)
+      if (activeTab === 'results') {
+        fetchResults(electionType)
+      }
+    }
+  }, [electionType, isAuthenticated, loadVotePrereqs, fetchElectionDetailsAndCandidates, fetchResults, activeTab])
 
-  // Handle candidate selection
-  const handleCandidateSelect = (candidateId: number) => {
-    if (votedElections[electionType]) {
-      setError("You have already voted in this election. You cannot vote twice.")
+  useEffect(() => {
+    if (activeTab === 'results' && electionType) {
+      fetchResults(electionType)
+    }
+  }, [activeTab, electionType, fetchResults])
+
+  const handleCandidateSelect = (candidateId: number | string) => {
+    if (votingStatus?.hasVoted) {
+      setError("You have already voted in this election.")
       return
     }
+    if (!eligibility?.isEligible) {
+      setError(eligibility?.reason || "You are not eligible to vote in this election.")
+      return
+    }
+
     setSelectedCandidate(candidateId)
+    setShowConfirmDialog(true)
     setError(null)
   }
 
-  // Open confirmation dialog
-  const handleConfirmVote = () => {
+  const handleConfirmVote = async () => {
     if (!selectedCandidate) {
-      setError("Please select a candidate before confirming your vote.")
+      setError("No candidate selected.")
       return
     }
-    setShowConfirmDialog(true)
-  }
+    setShowConfirmDialog(false)
+    
+    const success = await castVote(electionType, selectedCandidate)
 
-  // Submit vote
-  const submitVote = async () => {
-    if (!selectedCandidate) return
-
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      // Simulate API call with a delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Update vote counts in local state
-      const updatedCandidates = candidates.map((candidate) => {
-        if (candidate.id === selectedCandidate) {
-          const newVotes = candidate.votes + 1
-          const totalVotes = candidates.reduce((sum, c) => sum + c.votes, 0) + 1
-          return {
-            ...candidate,
-            votes: newVotes,
-            percentage: Math.round((newVotes / totalVotes) * 100),
-          }
-        }
-        return candidate
-      })
-
-      // Update state
-      setCandidates(updatedCandidates)
-
-      // Save vote to localStorage
-      const updatedVotes = { ...votedElections, [electionType]: selectedCandidate }
-      setVotedElections(updatedVotes)
-      localStorage.setItem("votedElections", JSON.stringify(updatedVotes))
-
-      // Close confirmation dialog and show success dialog
-      setShowConfirmDialog(false)
+    if (success) {
       setShowSuccessDialog(true)
-    } catch (err) {
-      setError("An error occurred while submitting your vote. Please try again.")
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
-  // Navigate to a different election type
   const changeElectionType = (type: string) => {
-    router.push(`/vote?type=${type}`)
+    setElectionType(type)
+    router.push(`/vote?type=${type}`, { scroll: false })
   }
 
-  // Check if already voted
-  const hasVoted = Boolean(votedElections[electionType])
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading or redirecting...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -345,11 +152,11 @@ export default function VotePage() {
               </Link>
             </Button>
             <h1 className="text-3xl font-bold tracking-tight">
-              {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]}
+              {electionDetails?.electionName || ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] || "Election"}
             </h1>
             <p className="text-muted-foreground">Cast your vote securely and confidentially</p>
           </div>
-          {hasVoted && (
+          {votingStatus?.hasVoted && (
             <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1.5">
               <BadgeCheck className="h-4 w-4 text-green-500" />
               <span>Vote Already Cast</span>
@@ -357,7 +164,6 @@ export default function VotePage() {
           )}
         </div>
 
-        {/* Security Information Banner */}
         <Alert className="mb-6">
           <Shield className="h-4 w-4" />
           <AlertTitle>Secure Voting Environment</AlertTitle>
@@ -366,7 +172,6 @@ export default function VotePage() {
           </AlertDescription>
         </Alert>
 
-        {/* Error Message */}
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
@@ -375,14 +180,13 @@ export default function VotePage() {
           </Alert>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
           <TabsList>
             <TabsTrigger value="vote">Vote</TabsTrigger>
             <TabsTrigger value="results">Live Results</TabsTrigger>
           </TabsList>
 
           <TabsContent value="vote" className="mt-4">
-            {/* Vote Tabs Content */}
             <div className="mb-4 flex flex-wrap gap-3">
               {Object.entries(ELECTION_TYPES).map(([type, title]) => (
                 <Button
@@ -391,6 +195,7 @@ export default function VotePage() {
                   size="sm"
                   onClick={() => changeElectionType(type)}
                   className="flex items-center gap-2"
+                  disabled={isLoading && electionType === type}
                 >
                   <span>{title.split(" ")[0]}</span>
                   {votedElections[type] && <BadgeCheck className="h-4 w-4 text-green-500" />}
@@ -419,15 +224,33 @@ export default function VotePage() {
             </div>
 
             {viewMode === "card" ? (
-              // Card View
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {candidates.map((candidate) => (
+                {isLoading ? (
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <Card key={index} className="animate-pulse">
+                        <div className="h-32 bg-muted rounded-t-lg"></div>
+                        <CardHeader className="pb-2">
+                          <div className="h-5 w-3/4 bg-muted rounded mb-2"></div>
+                          <div className="h-4 w-1/2 bg-muted rounded"></div>
+                        </CardHeader>
+                        <CardContent className="pb-2 space-y-2">
+                          <div className="h-4 w-full bg-muted rounded"></div>
+                          <div className="h-4 w-full bg-muted rounded"></div>
+                        </CardContent>
+                        <CardFooter>
+                          <div className="h-8 w-full bg-muted rounded"></div>
+                        </CardFooter>
+                      </Card>
+                    ))
+                  ) : candidates.map((candidate) => (
                   <Card
                     key={candidate.id}
                     className={`overflow-hidden transition-all duration-300 hover:shadow-lg ${
                       selectedCandidate === candidate.id ? "ring-2 ring-primary" : ""
-                    } ${hasVoted ? "opacity-80" : "cursor-pointer"}`}
-                    onClick={() => !hasVoted && handleCandidateSelect(candidate.id)}
+                    } ${
+                      votingStatus?.hasVoted ? "opacity-80" : "cursor-pointer"
+                    }`}
+                    onClick={() => !votingStatus?.hasVoted && handleCandidateSelect(candidate.id)}
                   >
                     <div className="relative h-32 bg-muted">
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -496,8 +319,8 @@ export default function VotePage() {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        {hasVoted ? (
-                          votedElections[electionType] === candidate.id ? (
+                        {votingStatus?.hasVoted ? (
+                          votingStatus?.candidateId === candidate.id ? (
                             <Badge className="bg-green-500">
                               <Check className="mr-1 h-3 w-3" /> Your Vote
                             </Badge>
@@ -514,6 +337,7 @@ export default function VotePage() {
                                   onClick={(e) => e.stopPropagation()}
                                   checked={selectedCandidate === candidate.id}
                                   onChange={() => handleCandidateSelect(candidate.id)}
+                                  disabled={!eligibility?.isEligible}
                                 />
                                 <Label htmlFor={`candidate-${candidate.id}`}>Select</Label>
                               </div>
@@ -526,7 +350,6 @@ export default function VotePage() {
                 ))}
               </div>
             ) : (
-              // List View
               <div className="rounded-lg border overflow-hidden mb-6">
                 <div className="bg-muted p-3 grid grid-cols-12 gap-2 font-medium">
                   <div className="col-span-1"></div>
@@ -536,13 +359,26 @@ export default function VotePage() {
                   <div className="col-span-2">Support</div>
                   <div className="col-span-1"></div>
                 </div>
-                {candidates.map((candidate) => (
+                {isLoading ? (
+                   Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="p-3 grid grid-cols-12 gap-2 border-t animate-pulse">
+                        <div className="col-span-1 flex items-center justify-center"><div className="h-10 w-10 bg-muted rounded-full"></div></div>
+                        <div className="col-span-3 flex flex-col justify-center space-y-1"><div className="h-4 w-3/4 bg-muted rounded"></div><div className="h-3 w-1/2 bg-muted rounded"></div></div>
+                        <div className="col-span-2 flex items-center"><div className="h-6 w-16 bg-muted rounded"></div></div>
+                        <div className="col-span-3 flex items-center"><div className="h-4 w-full bg-muted rounded"></div></div>
+                        <div className="col-span-2 flex items-center"><div className="h-4 w-full bg-muted rounded"></div></div>
+                        <div className="col-span-1 flex items-center justify-center"><div className="h-5 w-5 bg-muted rounded-full"></div></div>
+                      </div>
+                   ))
+                  ) : candidates.map((candidate) => (
                   <div
                     key={candidate.id}
                     className={`p-3 grid grid-cols-12 gap-2 border-t hover:bg-muted/30 ${
                       selectedCandidate === candidate.id ? "bg-primary/5" : ""
-                    } ${hasVoted ? "opacity-90" : "cursor-pointer"}`}
-                    onClick={() => !hasVoted && handleCandidateSelect(candidate.id)}
+                    } ${
+                      votingStatus?.hasVoted ? "opacity-90" : "cursor-pointer"
+                    }`}
+                    onClick={() => !votingStatus?.hasVoted && handleCandidateSelect(candidate.id)}
                   >
                     <div className="col-span-1 flex items-center justify-center">
                       <div className="relative h-10 w-10 rounded-full overflow-hidden">
@@ -557,7 +393,7 @@ export default function VotePage() {
                     <div className="col-span-3 flex flex-col justify-center">
                       <span className="font-medium">{candidate.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {candidate.bio.split(" ").slice(0, 3).join(" ")}...
+                        {candidate.bio?.split(" ").slice(0, 3).join(" ") || "No bio available"}...
                       </span>
                     </div>
                     <div className="col-span-2 flex items-center">
@@ -579,15 +415,15 @@ export default function VotePage() {
                     <div className="col-span-2 flex items-center">
                       <div className="w-full">
                         <div className="flex justify-between text-xs mb-1">
-                          <span>{candidate.votes.toLocaleString()}</span>
-                          <span>{candidate.percentage}%</span>
+                          <span>{(candidate.votes || 0).toLocaleString()}</span>
+                          <span>{candidate.percentage || 0}%</span>
                         </div>
-                        <Progress value={candidate.percentage} className="h-1.5" />
+                        <Progress value={candidate.percentage || 0} className="h-1.5" />
                       </div>
                     </div>
                     <div className="col-span-1 flex items-center justify-center">
-                      {hasVoted ? (
-                        votedElections[electionType] === candidate.id ? (
+                      {votingStatus?.hasVoted ? (
+                        votingStatus?.candidateId === candidate.id ? (
                           <Badge className="bg-green-500">
                             <Check className="h-3 w-3" />
                           </Badge>
@@ -600,6 +436,7 @@ export default function VotePage() {
                             onClick={(e) => e.stopPropagation()}
                             checked={selectedCandidate === candidate.id}
                             onChange={() => handleCandidateSelect(candidate.id)}
+                            disabled={!eligibility?.isEligible}
                           />
                         </RadioGroup>
                       )}
@@ -609,70 +446,87 @@ export default function VotePage() {
               </div>
             )}
 
-            {!hasVoted && (
+            {!votingStatus?.hasVoted && (
               <div className="flex justify-end">
-                <Button size="lg" disabled={!selectedCandidate || hasVoted || isSubmitting} onClick={handleConfirmVote}>
+                <Button size="lg" disabled={!selectedCandidate || !eligibility?.isEligible || isLoading} onClick={handleConfirmVote}>
                   Confirm Vote Selection
                 </Button>
               </div>
             )}
 
-            {hasVoted && (
+            {votingStatus?.hasVoted && (
               <Alert className="bg-green-500/10 border-green-500/30 text-green-600">
                 <BadgeCheck className="h-4 w-4" />
                 <AlertTitle>Thank you for voting!</AlertTitle>
                 <AlertDescription>
-                  Your vote has been securely recorded. You can vote in other election categories if you haven't
-                  already.
+                  Your vote has been securely recorded and will be counted in the final tally.
                 </AlertDescription>
               </Alert>
             )}
           </TabsContent>
 
           <TabsContent value="results" className="mt-4">
-            {/* Results Tab Content */}
             <Card>
               <CardHeader>
                 <CardTitle>Live Results</CardTitle>
                 <CardDescription>
-                  Current vote counts for {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]}
+                  Current vote counts for {electionDetails?.electionName || ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] || "Election"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {candidates.map((candidate) => (
-                    <div key={candidate.id} className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <div className="relative h-8 w-8 rounded-full overflow-hidden">
-                            <Image
-                              src={candidate.image || "/placeholder.svg"}
-                              alt={candidate.name}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <div>
-                            <span className="font-medium">{candidate.name}</span>
-                            <span className="ml-2 text-sm text-muted-foreground">({candidate.party})</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-medium">{candidate.votes.toLocaleString()} votes</span>
-                          <span className="ml-2 text-sm text-muted-foreground">({candidate.percentage}%)</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Progress value={candidate.percentage} className="h-2.5" indicatorColor={candidate.color} />
-                        {votedElections[electionType] === candidate.id && (
-                          <Badge className="bg-green-500 text-xs">
-                            <Check className="mr-1 h-3 w-3" /> Your Vote
-                          </Badge>
-                        )}
-                      </div>
+                {isLoading && !electionResults ? (
+                    <div className="space-y-4">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                            <div key={index} className="space-y-1 animate-pulse">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-8 w-8 rounded-full bg-muted"></div>
+                                        <div className="h-5 w-40 bg-muted rounded"></div>
+                                    </div>
+                                    <div className="h-5 w-24 bg-muted rounded"></div>
+                                </div>
+                                <div className="h-2.5 w-full bg-muted rounded"></div>
+                            </div>
+                        ))}
                     </div>
-                  ))}
-                </div>
+                 ) : electionResults && electionResults.candidates.length > 0 ? (
+                  <div className="space-y-4">
+                    {electionResults.candidates.map((resultCandidate) => (
+                      <div key={resultCandidate.id} className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <div className="relative h-8 w-8 rounded-full overflow-hidden">
+                              <Image
+                                src={resultCandidate.image || "/placeholder.svg"}
+                                alt={resultCandidate.name}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div>
+                              <span className="font-medium">{resultCandidate.name}</span>
+                              <span className="ml-2 text-sm text-muted-foreground">({resultCandidate.party})</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-medium">{resultCandidate.votes.toLocaleString()} votes</span>
+                            <span className="ml-2 text-sm text-muted-foreground">({resultCandidate.percentage}%)</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Progress value={resultCandidate.percentage} className="h-2.5" indicatorColor={resultCandidate.color} />
+                          {votingStatus?.hasVoted && votingStatus?.candidateId === resultCandidate.id && (
+                            <Badge className="bg-green-500 text-xs">
+                              <Check className="mr-1 h-3 w-3" /> Your Vote
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                 ) : (
+                    <p className="text-muted-foreground">No results data available for this election yet.</p>
+                 )}
               </CardContent>
               <CardFooter>
                 <Button variant="outline" asChild>
@@ -686,7 +540,6 @@ export default function VotePage() {
           </TabsContent>
         </Tabs>
 
-        {/* Voting Instructions */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>How to Vote</CardTitle>
@@ -702,7 +555,6 @@ export default function VotePage() {
           </CardContent>
         </Card>
 
-        {/* Other Elections */}
         <h2 className="text-xl font-bold mt-8 mb-4">Other Elections</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(ELECTION_TYPES)
@@ -741,7 +593,6 @@ export default function VotePage() {
         </div>
       </main>
 
-      {/* Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -750,7 +601,7 @@ export default function VotePage() {
               Please review your selection carefully. Once submitted, your vote cannot be changed.
             </DialogDescription>
           </DialogHeader>
-          {selectedCandidate && (
+          {selectedCandidate && candidates.length > 0 && (
             <div className="flex flex-col items-center justify-center p-4">
               <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary mb-4">
                 <Image
@@ -775,7 +626,7 @@ export default function VotePage() {
               </div>
               <p className="text-center text-muted-foreground mb-4">
                 You are about to cast your vote for this candidate in the{" "}
-                {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]}.
+                {electionDetails?.electionName || ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] || "Election"}.
               </p>
               <Alert variant="warning" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
@@ -788,9 +639,9 @@ export default function VotePage() {
             <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
               Go Back
             </Button>
-            <Button onClick={submitVote} disabled={isSubmitting} className="relative">
-              {isSubmitting ? "Processing..." : "Confirm and Cast Vote"}
-              {isSubmitting && (
+            <Button onClick={handleConfirmVote} disabled={isLoading} className="relative">
+              {isLoading ? "Processing..." : "Confirm and Cast Vote"}
+              {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-primary/80 rounded-md">
                   <svg
                     className="animate-spin h-5 w-5 text-primary-foreground"
@@ -819,7 +670,6 @@ export default function VotePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

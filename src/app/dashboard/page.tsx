@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -68,6 +68,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
+import { useAuthStore, useUIStore } from "@/store/useStore"
+import { useElectionData } from "@/hooks/useElectionData"
 
 // Election types
 const ELECTION_TYPES = {
@@ -327,18 +329,50 @@ const safeLocalStorage = {
 export default function DashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const electionType = searchParams.get("election") || "presidential"
+  const initialElectionTypeKey = searchParams.get("election") || "presidential"
+  
+  const { user: authUser, logout } = useAuthStore()
+  const { 
+    candidates: sourceCandidates, 
+    currentElectionTypeKey, 
+    electionResults, 
+    fetchElectionDetailsAndCandidates, 
+    ELECTION_TYPES_MAP, 
+    isLoading, 
+    error 
+  } = useElectionData(initialElectionTypeKey)
+  
+  // Restore state needed for filtering/searching
+  const [candidates, setCandidates] = useState(sourceCandidates);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statisticsFilter, setStatisticsFilter] = useState("state");
+  
+  // TODO: Replace with useVote hook later
+  const [votedElections, setVotedElections] = useState<Record<string, number>>({}); 
+  const checkVotingStatus = useCallback(async (electionId: string) => { /* Placeholder */ }, []);
+  const castVote = useCallback(async (electionId: string, candidateId: number | string): Promise<boolean> => { 
+    // Placeholder - Simulate success
+    console.log(`Placeholder castVote for ${candidateId} in ${electionId}`);
+    setVotedElections(prev => ({...prev, [electionId]: Number(candidateId)})); 
+    // Add to localStorage for profile page consistency (TEMPORARY)
+    localStorage.setItem("votedElections", JSON.stringify({ ...votedElections, [electionId]: Number(candidateId) }))
+    const votingStatus = JSON.parse(localStorage.getItem("votingStatus") || "{}")
+    const votedCandidateDetails = sourceCandidates.find(c => c.id === candidateId)
+    votingStatus[electionId] = {
+      candidateId: candidateId,
+      candidateName: votedCandidateDetails?.name,
+      candidateParty: votedCandidateDetails?.party,
+      timestamp: new Date().toISOString(),
+    }
+    localStorage.setItem("votingStatus", JSON.stringify(votingStatus))
+    return true;
+  }, [sourceCandidates, votedElections]); 
+
   const [activeTab, setActiveTab] = useState("overview")
-  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null)
   const [timeRemaining, setTimeRemaining] = useState({ days: 0, hours: 0, minutes: 0 })
-  const [votedElections, setVotedElections] = useState<Record<string, number>>({})
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [successDialogOpen, setSuccessDialogOpen] = useState(false)
-  const [candidates, setCandidates] = useState(candidatesByElection[electionType as keyof typeof candidatesByElection])
-  const [isLoading, setIsLoading] = useState(false)
-  const [statisticsFilter, setStatisticsFilter] = useState("state")
-  const [searchTerm, setSearchTerm] = useState("")
-  const hasVoted = Object.keys(votedElections).length > 0
+  const [candidateToConfirm, setCandidateToConfirm] = useState<any>(null)
 
   // Add these new state variables after the existing state declarations
   const [notifications, setNotifications] = useState([
@@ -389,7 +423,6 @@ export default function DashboardPage() {
     party: "all",
     turnout: [0, 100],
   })
-  const [filteredCandidates, setFilteredCandidates] = useState(candidates)
   const [isFiltered, setIsFiltered] = useState(false)
 
   // Calculate time remaining in the 3-week voting period
@@ -402,157 +435,89 @@ export default function DashboardPage() {
     })
   }, [])
 
-  // Load candidates when election type changes
+  // Effect to update local candidates state when source changes
   useEffect(() => {
-    setIsLoading(true)
-    setSearchTerm("")
+    setCandidates(sourceCandidates); 
+  }, [sourceCandidates]);
 
-    // Simulate API call delay
-    const timer = setTimeout(() => {
-      setCandidates(candidatesByElection[electionType as keyof typeof candidatesByElection])
-      setIsLoading(false)
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [electionType])
-
-  // Load saved votes from localStorage
+  // Fetch voting status when user or election type changes (using placeholder)
   useEffect(() => {
-    const savedVotes = safeLocalStorage.getItem("votedElections", {})
-    if (Object.keys(savedVotes).length > 0) {
-      setVotedElections(savedVotes)
+    if (authUser?.id && currentElectionTypeKey) {
+      checkVotingStatus(currentElectionTypeKey) 
+      // Load from localStorage as temporary fallback
+      const savedVotes = localStorage.getItem("votedElections");
+      if(savedVotes) setVotedElections(JSON.parse(savedVotes));
     }
-  }, [])
+  }, [authUser?.id, currentElectionTypeKey, checkVotingStatus])
 
-  // Save votes to localStorage when they change
-  useEffect(() => {
-    if (Object.keys(votedElections).length > 0) {
-      safeLocalStorage.setItem("votedElections", votedElections)
-    }
-  }, [votedElections])
-
-  // Handle candidate selection
-  const handleCandidateSelect = (candidateId: number) => {
-    if (votedElections[electionType]) {
-      return // Already voted in this election
-    }
-
-    setSelectedCandidate(candidateId)
-    setConfirmDialogOpen(true)
+  // Handle candidate selection for voting
+  const handleCandidateSelect = (candidate: any) => { 
+    if (votedElections[currentElectionTypeKey]) return;
+    setCandidateToConfirm(candidate);
+    setConfirmDialogOpen(true);
   }
 
-  // Handle search
-  const handleSearch = (term: string) => {
-    setSearchTerm(term)
+  // Confirm vote action (using placeholder castVote)
+  const confirmVoteAction = async () => {
+    if (!candidateToConfirm) return;
+    setConfirmDialogOpen(false);
+    const success = await castVote(currentElectionTypeKey, candidateToConfirm.id);
+    if (success) {
+      setSuccessDialogOpen(true);
+      fetchElectionDetailsAndCandidates(currentElectionTypeKey); // Refresh data
+    } 
+    setCandidateToConfirm(null);
+  }
 
+  // Change election type using the hook
+  const changeElectionType = (typeKey: string) => {
+    setSearchTerm(""); // Clear search on type change
+    fetchElectionDetailsAndCandidates(typeKey) 
+    router.push(`/dashboard?election=${typeKey}`, { scroll: false })
+  }
+
+  // Restore search handler
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
     if (term.trim() === "") {
-      setCandidates(candidatesByElection[electionType as keyof typeof candidatesByElection])
+      setCandidates(sourceCandidates); // Reset to full list from hook
     } else {
-      const filtered = candidatesByElection[electionType as keyof typeof candidatesByElection].filter(
+      const filtered = sourceCandidates.filter(
         (candidate) =>
           candidate.name.toLowerCase().includes(term.toLowerCase()) ||
           candidate.party.toLowerCase().includes(term.toLowerCase()),
-      )
-      setCandidates(filtered)
+      );
+      setCandidates(filtered);
     }
   }
 
-  // Confirm vote
-  const confirmVote = () => {
-    setConfirmDialogOpen(false)
-    setIsLoading(true)
-
-    // Simulate API call delay
-    setTimeout(() => {
-      // Update vote count for the selected candidate
-      const updatedCandidates = candidates.map((candidate) => {
-        if (candidate.id === selectedCandidate) {
-          return {
-            ...candidate,
-            votes: candidate.votes + 1,
-            percentage: Math.round(((candidate.votes + 1) / (getTotalVotes() + 1)) * 100),
-          }
-        }
-        return candidate
-      })
-
-      setCandidates(updatedCandidates)
-      setVotedElections({ ...votedElections, [electionType]: selectedCandidate })
-
-      // Update localStorage to reflect voting status for profile page
-      const votingStatus = safeLocalStorage.getItem("votingStatus", {})
-      votingStatus[electionType] = {
-        candidateId: selectedCandidate,
-        candidateName: candidates.find((c) => c.id === selectedCandidate)?.name,
-        candidateParty: candidates.find((c) => c.id === selectedCandidate)?.party,
-        timestamp: new Date().toISOString(),
-      }
-      safeLocalStorage.setItem("votingStatus", votingStatus)
-
-      setIsLoading(false)
-      setSuccessDialogOpen(true)
-    }, 1500)
-  }
-
-  // Calculate total votes
+  // Calculate total votes from the currently displayed (potentially filtered) candidates
   const getTotalVotes = () => {
-    return (isFiltered ? filteredCandidates : candidates).reduce((sum, candidate) => sum + candidate.votes, 0)
+    return candidates.reduce((sum, candidate) => sum + candidate.votes, 0)
   }
 
-  // Generate chart data
-  const barChartData = (isFiltered ? filteredCandidates : candidates).map((c) => ({ name: c.party, votes: c.votes }))
-  const pieChartData = (isFiltered ? filteredCandidates : candidates).map((c) => ({
-    name: c.party,
-    value: c.percentage,
-  }))
+  // Generate chart data from displayed candidates
+  const barChartData = candidates.map((c) => ({ name: c.party, votes: c.votes }))
+  const pieChartData = candidates.map((c) => ({ name: c.party, value: c.percentage }))
   const stateData = states.map((s) => ({ name: s.name, turnout: s.turnout }))
 
-  // Handle election type change
-  const changeElectionType = (type: string) => {
-    router.push(`/dashboard?election=${type}`)
-  }
-
-  // Handle filter value changes
-  const handleFilterChange = (type: string, value: any) => {
-    setFilterValues((prev) => ({
-      ...prev,
-      [type]: value,
-    }))
-  }
-
-  // Apply filters to the election results
+  // Filtering logic
   const applyFilters = () => {
-    // This is a simplified filter implementation
-    // In a real app, you would apply more complex filtering logic
-
-    let filtered = [...candidatesByElection[electionType as keyof typeof candidatesByElection]]
-
-    // Filter by party if not "all"
+    let filtered = [...sourceCandidates] // Start with source candidates for filtering
     if (filterValues.party !== "all") {
       filtered = filtered.filter((candidate) => candidate.party.toLowerCase() === filterValues.party.toLowerCase())
     }
-
-    // Filter by percentage range
     filtered = filtered.filter(
       (candidate) => candidate.percentage >= filterValues.turnout[0] && candidate.percentage <= filterValues.turnout[1],
     )
-
-    setFilteredCandidates(filtered)
+    setCandidates(filtered) // Update the displayed candidates
     setIsFiltered(true)
-
-    // Show a toast or notification that filters were applied
-    alert("Filters applied successfully!")
+    alert("Filters applied successfully!") // Consider using a toast notification
   }
 
-  // Reset filters
   const resetFilters = () => {
-    setFilterValues({
-      timePeriod: "all",
-      region: "all",
-      party: "all",
-      turnout: [0, 100],
-    })
-    setFilteredCandidates(candidatesByElection[electionType as keyof typeof candidatesByElection])
+    setFilterValues({ timePeriod: "all", region: "all", party: "all", turnout: [0, 100] })
+    setCandidates(sourceCandidates) // Reset to source candidates
     setIsFiltered(false)
   }
 
@@ -566,9 +531,26 @@ export default function DashboardPage() {
     )
   }
 
+  // Restore filter change handler
+  const handleFilterChange = (type: string, value: any) => {
+    setFilterValues((prev) => ({
+      ...prev,
+      [type]: value,
+    }))
+  }
+
+  if (isLoading && candidates.length === 0) { 
+    // Show a loading state, maybe more specific than just pulsing cards
+    return <div>Loading election data...</div>
+  }
+  
+  if (error) {
+     return <div>Error loading data: {error}</div>
+  }
+
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex w-full">
         <Sidebar>
           <SidebarHeader className="flex items-center justify-between p-4">
             <Link href="/" className="flex items-center gap-2">
@@ -642,19 +624,19 @@ export default function DashboardPage() {
               <SidebarGroupLabel>Elections</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {Object.entries(ELECTION_TYPES).map(([type, title]) => (
-                    <SidebarMenuItem key={type}>
+                  {Object.entries(ELECTION_TYPES_MAP).map(([typeKey, title]) => (
+                    <SidebarMenuItem key={typeKey}>
                       <SidebarMenuButton
                         asChild
-                        isActive={electionType === type}
-                        onClick={() => changeElectionType(type)}
+                        isActive={currentElectionTypeKey === typeKey}
+                        onClick={() => changeElectionType(typeKey)}
                       >
                         <button className="flex items-center justify-between w-full">
                           <div className="flex items-center">
                             <Users className="mr-2 h-4 w-4" />
                             <span>{title.split(" ")[0]}</span>
                           </div>
-                          {votedElections[type] && (
+                          {votedElections[typeKey] && (
                             <Badge
                               variant="outline"
                               className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
@@ -678,7 +660,7 @@ export default function DashboardPage() {
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton>
                       <User />
-                      <span>Oluwaseun Adeyemi</span>
+                      <span>{authUser?.fullName || 'User Name'}</span>
                       <ChevronDown className="ml-auto h-4 w-4" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
@@ -695,11 +677,9 @@ export default function DashboardPage() {
                         <span>Settings</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Logout</span>
-                      </Link>
+                    <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -713,7 +693,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <h1 className="text-lg font-semibold md:text-xl">
-                {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]} Dashboard
+                {ELECTION_TYPES_MAP[currentElectionTypeKey]} Dashboard
               </h1>
             </div>
 
@@ -1133,14 +1113,14 @@ export default function DashboardPage() {
                   <CardHeader>
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                       <div>
-                        <CardTitle>{ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]} Candidates</CardTitle>
+                        <CardTitle>{ELECTION_TYPES_MAP[currentElectionTypeKey]} Candidates</CardTitle>
                         <CardDescription>
-                          {votedElections[electionType]
+                          {votedElections[currentElectionTypeKey]
                             ? "You have already voted in this election"
                             : "Select a candidate to cast your vote"}
                         </CardDescription>
                       </div>
-                      {votedElections[electionType] && (
+                      {votedElections[currentElectionTypeKey] && (
                         <Badge className="mt-2 md:mt-0 bg-green-500/10 text-green-500 border-green-500/20 px-3 py-1">
                           <Check className="mr-1 h-4 w-4" /> Vote Cast
                         </Badge>
@@ -1191,7 +1171,7 @@ export default function DashboardPage() {
                           className="mt-4"
                           onClick={() => {
                             setSearchTerm("")
-                            setCandidates(candidatesByElection[electionType as keyof typeof candidatesByElection])
+                            setCandidates(candidatesByElection[currentElectionTypeKey as keyof typeof candidatesByElection])
                           }}
                         >
                           Clear search
@@ -1199,17 +1179,17 @@ export default function DashboardPage() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {(isFiltered ? filteredCandidates : candidates).map((candidate) => (
+                        {candidates.map((candidate) => (
                           <div
                             key={candidate.id}
                             className={`flex items-center rounded-lg border p-4 transition-all duration-300 ${
-                              votedElections[electionType] === candidate.id
+                              votedElections[currentElectionTypeKey] === candidate.id
                                 ? "border-green-500 bg-green-500/5"
-                                : votedElections[electionType]
+                                : votedElections[currentElectionTypeKey]
                                   ? "opacity-80 hover:bg-muted/30"
                                   : "cursor-pointer hover:bg-muted/50 hover:scale-[1.01] hover:shadow-md"
                             }`}
-                            onClick={() => !votedElections[electionType] && handleCandidateSelect(candidate.id)}
+                            onClick={() => !votedElections[currentElectionTypeKey] && handleCandidateSelect(candidate)}
                           >
                             <div className="mr-4 h-16 w-16 overflow-hidden rounded-full">
                               <img
@@ -1221,7 +1201,7 @@ export default function DashboardPage() {
                             <div className="flex-1">
                               <h3 className="font-semibold flex items-center">
                                 {candidate.name}
-                                {votedElections[electionType] === candidate.id && (
+                                {votedElections[currentElectionTypeKey] === candidate.id && (
                                   <Check className="ml-2 h-4 w-4 text-green-500" />
                                 )}
                               </h3>
@@ -1261,13 +1241,13 @@ export default function DashboardPage() {
                   </CardContent>
                   <CardFooter className="flex justify-between">
                     <p className="text-sm text-muted-foreground">
-                      {votedElections[electionType]
+                      {votedElections[currentElectionTypeKey]
                         ? "Thank you for voting in this election"
                         : "Click on a candidate to cast your vote"}
                     </p>
-                    {!hasVoted && (
+                    {!votedElections[currentElectionTypeKey] && (
                       <Button asChild className="ml-auto">
-                        <Link href={`/vote?type=${electionType}`}>Vote Now</Link>
+                        <Link href={`/vote?type=${currentElectionTypeKey}`}>Vote Now</Link>
                       </Button>
                     )}
                   </CardFooter>
@@ -1292,7 +1272,7 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(isFiltered ? filteredCandidates : candidates).map((candidate) => (
+                          {candidates.map((candidate) => (
                             <tr key={candidate.id} className="border-b hover:bg-muted/30">
                               <td className="p-2 flex items-center gap-2">
                                 <div className="h-8 w-8 rounded-full overflow-hidden">
@@ -1753,33 +1733,33 @@ export default function DashboardPage() {
                     <DialogTitle>Confirm Your Vote</DialogTitle>
                     <DialogDescription>
                       You are about to cast your vote in the{" "}
-                      {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]}. This action cannot be undone.
+                      {ELECTION_TYPES_MAP[currentElectionTypeKey]}. This action cannot be undone.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex items-center space-x-4 py-4">
-                    {selectedCandidate && (
+                    {candidateToConfirm && (
                       <>
                         <div className="h-16 w-16 overflow-hidden rounded-full">
                           <img
-                            src={candidates.find((c) => c.id === selectedCandidate)?.image || "/placeholder.svg"}
+                            src={candidateToConfirm.image || "/placeholder.svg"}
                             alt="Selected candidate"
                             className="h-full w-full object-cover"
                           />
                         </div>
                         <div>
-                          <h4 className="font-medium">{candidates.find((c) => c.id === selectedCandidate)?.name}</h4>
+                          <h4 className="font-medium">{candidateToConfirm.name}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {candidates.find((c) => c.id === selectedCandidate)?.party}
+                            {candidateToConfirm.party}
                           </p>
                         </div>
                       </>
                     )}
                   </div>
                   <DialogFooter className="flex flex-col sm:flex-row sm:justify-between">
-                    <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+                    <Button variant="outline" onClick={() => { setConfirmDialogOpen(false); setCandidateToConfirm(null); }}>
                       Cancel
                     </Button>
-                    <Button onClick={confirmVote} disabled={isLoading} className="mt-2 sm:mt-0">
+                    <Button onClick={confirmVoteAction} disabled={isLoading}>
                       {isLoading ? "Processing..." : "Confirm Vote"}
                     </Button>
                   </DialogFooter>
@@ -1795,7 +1775,7 @@ export default function DashboardPage() {
                     </DialogTitle>
                     <DialogDescription>
                       Your vote has been securely recorded. Thank you for participating in the{" "}
-                      {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]}.
+                      {ELECTION_TYPES_MAP[currentElectionTypeKey]}.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex flex-col items-center justify-center py-4 space-y-4">

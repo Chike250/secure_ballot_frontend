@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Camera, Check, Shield, Key, Save } from "lucide-react"
+import { ArrowLeft, Camera, Check, Shield, Key, Save, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,48 +17,89 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ELECTION_TYPES } from "@/lib/constants"
+import { useAuthStore, useUIStore } from "@/store/useStore"
+import { useUser } from "@/hooks/useUser"
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const { user: authUser } = useAuthStore()
+  const { isLoading, error } = useUIStore()
+  const { profile, updateProfile } = useUser()
 
-  // Mock user data
-  const [userData, setUserData] = useState({
-    name: "Oluwaseun Adeyemi",
-    email: "oluwaseun.adeyemi@example.com",
-    phone: "+234 812 345 6789",
-    address: "123 Adetokunbo Ademola St, Victoria Island, Lagos",
-    nin: "12345678901",
-    vin: "AB1234567890123456",
-    dob: "1985-05-15",
-    gender: "Male",
-    state: "Lagos",
-    lga: "Eti-Osa",
-    ward: "Victoria Island",
-    pollingUnit: "VI/012/04",
-    bio: "Software engineer and civic-minded Nigerian passionate about democratic processes and technological innovation.",
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    nin: "",
+    vin: "",
+    dob: "",
+    gender: "",
+    state: "",
+    lga: "",
+    ward: "",
+    pollingUnit: "",
+    bio: "",
   })
 
-  // Remove the hardcoded voting status and replace with data from localStorage
-  const [votingStatus, setVotingStatus] = useState({})
+  useEffect(() => {
+    const initialData = {
+      name: profile?.fullName || authUser?.fullName || "",
+      email: profile?.email || authUser?.email || "",
+      phone: profile?.phoneNumber || authUser?.phoneNumber || "",
+      address: profile?.address || "",
+      nin: profile?.nin || authUser?.nin || "",
+      vin: profile?.vin || authUser?.vin || "",
+      dob: profile?.dob || "",
+      gender: profile?.gender || "",
+      state: profile?.state || "",
+      lga: profile?.lga || "",
+      ward: profile?.ward || "",
+      pollingUnit: profile?.pollingUnit || "",
+      bio: profile?.bio || "",
+    }
+    setFormData(initialData)
+  }, [profile, authUser])
 
-  // Add useEffect to load voting status from localStorage
+  const [votingStatus, setVotingStatus] = useState<Record<string, { candidateParty: string }>>({})
+
   useEffect(() => {
     const savedVotingStatus = localStorage.getItem("votingStatus")
     if (savedVotingStatus) {
-      setVotingStatus(JSON.parse(savedVotingStatus))
+      try {
+        const parsedStatus = JSON.parse(savedVotingStatus)
+        if (typeof parsedStatus === 'object' && parsedStatus !== null) {
+          setVotingStatus(parsedStatus)
+        }
+      } catch (error) {
+        console.error("Error parsing voting status from localStorage:", error)
+      }
     }
   }, [])
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target
+    setFormData(prev => ({ ...prev, [id]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate API call
-    setTimeout(() => {
+    const dataToUpdate = {
+      phoneNumber: formData.phone,
+    }
+    const success = await updateProfile(dataToUpdate)
+    if (success) {
       setIsEditing(false)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
-    }, 1000)
+    } else {
+      console.error("Update failed, error should be in UI store")
+    }
+  }
+
+  if (isLoading && !profile) {
+    return <div>Loading profile...</div>
   }
 
   return (
@@ -71,6 +112,14 @@ export default function ProfilePage() {
           </Link>
         </Button>
       </div>
+
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex flex-col md:flex-row gap-6 mb-6">
         <div className="md:w-1/3">
@@ -95,10 +144,11 @@ export default function ProfilePage() {
                     <Camera className="h-4 w-4" />
                   </Button>
                 </div>
-                <h2 className="text-xl font-bold">{userData.name}</h2>
-                <p className="text-sm text-muted-foreground mb-4">{userData.email}</p>
+                <h2 className="text-xl font-bold">{formData.name}</h2>
+                <p className="text-sm text-muted-foreground mb-4">{formData.email}</p>
                 <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 mb-4">
-                  <Check className="mr-1 h-3 w-3" /> Verified Voter
+                  <Check className="mr-1 h-3 w-3" /> 
+                  {profile?.isVerified ? "Verified Voter" : "Verification Pending"}
                 </Badge>
                 <Button variant="outline" className="w-full" onClick={() => setIsEditing(!isEditing)}>
                   {isEditing ? "Cancel Editing" : "Edit Profile"}
@@ -162,33 +212,17 @@ export default function ProfilePage() {
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="name">Full Name</Label>
-                        <Input
-                          id="name"
-                          value={userData.name}
-                          onChange={(e) => setUserData({ ...userData, name: e.target.value })}
-                          disabled={!isEditing}
-                        />
+                        <Input id="name" value={formData.name} onChange={handleInputChange} disabled={!isEditing} />
                       </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="email">Email Address</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={userData.email}
-                          onChange={(e) => setUserData({ ...userData, email: e.target.value })}
-                          disabled={!isEditing}
-                        />
+                        <Input id="email" type="email" value={formData.email} onChange={handleInputChange} disabled={!isEditing} />
                       </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          value={userData.phone}
-                          onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
-                          disabled={!isEditing}
-                        />
+                        <Input id="phone" value={formData.phone} onChange={handleInputChange} disabled={!isEditing} />
                       </div>
 
                       <div className="space-y-2">
@@ -196,8 +230,8 @@ export default function ProfilePage() {
                         <Input
                           id="dob"
                           type="date"
-                          value={userData.dob}
-                          onChange={(e) => setUserData({ ...userData, dob: e.target.value })}
+                          value={formData.dob}
+                          onChange={handleInputChange}
                           disabled={!isEditing}
                         />
                       </div>
@@ -206,8 +240,8 @@ export default function ProfilePage() {
                         <Label htmlFor="gender">Gender</Label>
                         <Input
                           id="gender"
-                          value={userData.gender}
-                          onChange={(e) => setUserData({ ...userData, gender: e.target.value })}
+                          value={formData.gender}
+                          onChange={handleInputChange}
                           disabled={!isEditing}
                         />
                       </div>
@@ -216,8 +250,8 @@ export default function ProfilePage() {
                         <Label htmlFor="address">Address</Label>
                         <Textarea
                           id="address"
-                          value={userData.address}
-                          onChange={(e) => setUserData({ ...userData, address: e.target.value })}
+                          value={formData.address}
+                          onChange={handleInputChange}
                           disabled={!isEditing}
                           rows={3}
                         />
@@ -227,8 +261,8 @@ export default function ProfilePage() {
                         <Label htmlFor="bio">Bio</Label>
                         <Textarea
                           id="bio"
-                          value={userData.bio}
-                          onChange={(e) => setUserData({ ...userData, bio: e.target.value })}
+                          value={formData.bio}
+                          onChange={handleInputChange}
                           disabled={!isEditing}
                           rows={4}
                         />
@@ -236,9 +270,8 @@ export default function ProfilePage() {
                     </div>
 
                     {isEditing && (
-                      <Button type="submit" className="mt-6">
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Changes
+                      <Button type="submit" className="mt-6" disabled={isLoading}>
+                        {isLoading ? "Saving..." : <><Save className="mr-2 h-4 w-4" /> Save Changes</>}
                       </Button>
                     )}
                   </form>
@@ -257,32 +290,32 @@ export default function ProfilePage() {
                     <div className="grid gap-6 md:grid-cols-2">
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">National ID Number (NIN)</h3>
-                        <p className="font-mono">{userData.nin}</p>
+                        <p className="font-mono">{formData.nin}</p>
                       </div>
 
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Voter ID Number (VIN)</h3>
-                        <p className="font-mono">{userData.vin}</p>
+                        <p className="font-mono">{formData.vin}</p>
                       </div>
 
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">State of Registration</h3>
-                        <p>{userData.state}</p>
+                        <p>{formData.state}</p>
                       </div>
 
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Local Government Area</h3>
-                        <p>{userData.lga}</p>
+                        <p>{formData.lga}</p>
                       </div>
 
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Ward</h3>
-                        <p>{userData.ward}</p>
+                        <p>{formData.ward}</p>
                       </div>
 
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Polling Unit</h3>
-                        <p>{userData.pollingUnit}</p>
+                        <p>{formData.pollingUnit}</p>
                       </div>
                     </div>
 
@@ -302,12 +335,12 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-medium">{userData.name}</h4>
-                            <p className="text-sm text-muted-foreground mb-2">VIN: {userData.vin}</p>
+                            <h4 className="font-medium">{formData.name}</h4>
+                            <p className="text-sm text-muted-foreground mb-2">VIN: {formData.vin}</p>
                             <p className="text-sm">
-                              {userData.state} State, {userData.lga} LGA
+                              {formData.state} State, {formData.lga} LGA
                             </p>
-                            <p className="text-sm">Polling Unit: {userData.pollingUnit}</p>
+                            <p className="text-sm">Polling Unit: {formData.pollingUnit}</p>
                           </div>
                           <Button variant="outline" size="sm">
                             Download

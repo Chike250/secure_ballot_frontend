@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import Cookies from 'js-cookie';
 
 interface User {
   id: string;
@@ -21,6 +22,18 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void;
 }
 
+const cookieStorage = {
+  getItem: (name: string) => {
+    return Cookies.get(name) || null;
+  },
+  setItem: (name: string, value: string) => {
+    Cookies.set(name, value, { expires: 5/1440 }); // 5 minutes (5/1440 days)
+  },
+  removeItem: (name: string) => {
+    Cookies.remove(name);
+  },
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -36,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => cookieStorage),
     }
   )
 );

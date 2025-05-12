@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SecurityBadges } from "@/components/security-badges"
 import { UserIdNotification } from "@/components/user-id-notification"
+import { useAuth } from "@/hooks/useAuth"
+import { useUIStore } from "@/store/useStore"
 
 interface ValidationState {
   isValid: boolean
@@ -19,55 +21,59 @@ interface ValidationState {
 
 export default function LoginPage() {
   const [step, setStep] = useState(1)
-  const [nin, setNin] = useState("")
-  const [vin, setVin] = useState("")
+  const [identifier, setIdentifier] = useState("")
+  const [password, setPassword] = useState("")
   const [otp, setOtp] = useState("")
-  const [showVin, setShowVin] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [showUserIdNotification, setShowUserIdNotification] = useState(false)
   const [userId, setUserId] = useState("")
   const [isClient, setIsClient] = useState(false)
+  const { login, verifyMFA } = useAuth()
+  const { error } = useUIStore()
 
   // Validation states
-  const [ninValidation, setNinValidation] = useState<ValidationState>({ isValid: true, message: "" })
-  const [vinValidation, setVinValidation] = useState<ValidationState>({ isValid: true, message: "" })
+  const [identifierValidation, setIdentifierValidation] = useState<ValidationState>({ isValid: true, message: "" })
+  const [passwordValidation, setPasswordValidation] = useState<ValidationState>({ isValid: true, message: "" })
   const [otpValidation, setOtpValidation] = useState<ValidationState>({ isValid: true, message: "" })
-  const [formTouched, setFormTouched] = useState({ nin: false, vin: false, otp: false })
+  const [formTouched, setFormTouched] = useState({ identifier: false, password: false, otp: false })
 
   // Set isClient to true when component mounts
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  // Validate NIN
+  // Validate identifier (NIN or VIN)
   useEffect(() => {
-    if (!formTouched.nin) return
+    if (!formTouched.identifier) return
 
-    if (nin.length === 0) {
-      setNinValidation({ isValid: false, message: "NIN is required" })
-    } else if (nin.length !== 11) {
-      setNinValidation({ isValid: false, message: "NIN must be exactly 11 digits" })
-    } else if (!/^\d+$/.test(nin)) {
-      setNinValidation({ isValid: false, message: "NIN must contain only digits" })
+    if (identifier.length === 0) {
+      setIdentifierValidation({ isValid: false, message: "Identifier is required" })
+    } else if (identifier.length === 11 && /^\d+$/.test(identifier)) {
+      // Valid NIN
+      setIdentifierValidation({ isValid: true, message: "" })
+    } else if (identifier.length === 19 && /^[A-Za-z0-9]+$/.test(identifier)) {
+      // Valid VIN
+      setIdentifierValidation({ isValid: true, message: "" })
     } else {
-      setNinValidation({ isValid: true, message: "" })
+      setIdentifierValidation({ 
+        isValid: false, 
+        message: "Please enter a valid 11-digit NIN or 19-character VIN" 
+      })
     }
-  }, [nin, formTouched.nin])
+  }, [identifier, formTouched.identifier])
 
-  // Validate VIN
+  // Validate password
   useEffect(() => {
-    if (!formTouched.vin) return
+    if (!formTouched.password) return
 
-    if (vin.length === 0) {
-      setVinValidation({ isValid: false, message: "VIN is required" })
-    } else if (vin.length !== 19) {
-      setVinValidation({ isValid: false, message: "VIN must be exactly 19 characters" })
-    } else if (!/^[A-Za-z0-9]+$/.test(vin)) {
-      setVinValidation({ isValid: false, message: "VIN must contain only letters and numbers" })
+    if (password.length === 0) {
+      setPasswordValidation({ isValid: false, message: "Password is required" })
+    } else if (password.length < 8) {
+      setPasswordValidation({ isValid: false, message: "Password must be at least 8 characters" })
     } else {
-      setVinValidation({ isValid: true, message: "" })
+      setPasswordValidation({ isValid: true, message: "" })
     }
-  }, [vin, formTouched.vin])
+  }, [password, formTouched.password])
 
   // Validate OTP
   useEffect(() => {
@@ -84,20 +90,15 @@ export default function LoginPage() {
     }
   }, [otp, formTouched.otp])
 
-  const handleNinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "")
-    if (value.length <= 11) {
-      setNin(value)
-      if (!formTouched.nin) setFormTouched({ ...formTouched, nin: true })
-    }
+  const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+    setIdentifier(value)
+    if (!formTouched.identifier) setFormTouched({ ...formTouched, identifier: true })
   }
 
-  const handleVinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase()
-    if (value.length <= 19) {
-      setVin(value)
-      if (!formTouched.vin) setFormTouched({ ...formTouched, vin: true })
-    }
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value)
+    if (!formTouched.password) setFormTouched({ ...formTouched, password: true })
   }
 
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,27 +109,28 @@ export default function LoginPage() {
     }
   }
 
-  const handleSubmitCredentials = (e: React.FormEvent) => {
+  const handleSubmitCredentials = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Force validation before submission
-    setFormTouched({ nin: true, vin: true, otp: formTouched.otp })
+    setFormTouched({ identifier: true, password: true, otp: formTouched.otp })
 
     // Only proceed if both fields are valid
-    if (!ninValidation.isValid || !vinValidation.isValid) {
+    if (!identifierValidation.isValid || !passwordValidation.isValid) {
       return
     }
 
-    setIsLoading(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      setStep(2)
-    }, 1500)
+    try {
+      await login(identifier, password)
+      // Skip OTP verification for now
+      // setStep(2) // Commented out to skip OTP step
+    } catch (error) {
+      // Error is handled by useAuth hook
+      console.error('Login error:', error)
+    }
   }
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Force validation before submission
@@ -139,32 +141,21 @@ export default function LoginPage() {
       return
     }
 
-    setIsLoading(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-
-      // Generate a unique user ID (in a real app, this would come from the server)
-      const generatedUserId = `SB${Math.floor(100000 + Math.random() * 900000)}`
-      setUserId(generatedUserId)
+    try {
+      const response = await verifyMFA(userId, otp)
       setShowUserIdNotification(true)
-
-      // Navigate to dashboard after a short delay
-      setTimeout(() => {
-        window.location.href = `/dashboard`
-      }, 1000)
-    }, 1500)
+    } catch (error) {
+      // Error is handled by useAuth hook
+      console.error('OTP verification error:', error)
+    }
   }
 
   const isLoginButtonDisabled = () => {
-    if (isLoading) return true
-    if (!formTouched.nin || !formTouched.vin) return true
-    return !ninValidation.isValid || !vinValidation.isValid || nin.length !== 11 || vin.length !== 19
+    if (!formTouched.identifier || !formTouched.password) return true
+    return !identifierValidation.isValid || !passwordValidation.isValid
   }
 
   const isOtpButtonDisabled = () => {
-    if (isLoading) return true
     if (!formTouched.otp) return true
     return !otpValidation.isValid || otp.length !== 6
   }
@@ -209,73 +200,71 @@ export default function LoginPage() {
             </div>
             <CardTitle className="text-2xl">Login to Vote</CardTitle>
             <CardDescription className="text-sm font-medium text-foreground/80">
-              {step === 1 ? "Enter your NIN and VIN to authenticate" : "Enter the OTP sent to your registered phone"}
+              {step === 1 ? "Enter your NIN or VIN and password to authenticate" : "Enter the OTP sent to your registered phone"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {step === 1 ? (
               <form onSubmit={handleSubmitCredentials} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nin" className="flex items-center justify-between">
-                    <span>National Identification Number (NIN)</span>
-                    {formTouched.nin && !ninValidation.isValid && (
+                  <Label htmlFor="identifier" className="flex items-center justify-between">
+                    <span>NIN or VIN</span>
+                    {formTouched.identifier && !identifierValidation.isValid && (
                       <span className="text-xs text-destructive">Required</span>
                     )}
                   </Label>
                   <Input
-                    id="nin"
-                    placeholder="Enter your 11-digit NIN"
-                    value={nin}
-                    onChange={handleNinChange}
-                    onBlur={() => setFormTouched({ ...formTouched, nin: true })}
+                    id="identifier"
+                    placeholder="Enter your NIN or VIN"
+                    value={identifier}
+                    onChange={handleIdentifierChange}
+                    onBlur={() => setFormTouched({ ...formTouched, identifier: true })}
                     required
-                    maxLength={11}
-                    className={formTouched.nin && !ninValidation.isValid ? "border-destructive" : ""}
+                    className={formTouched.identifier && !identifierValidation.isValid ? "border-destructive" : ""}
                   />
                   <div className="min-h-[20px] transition-all duration-200">
-                    {formTouched.nin && !ninValidation.isValid && (
+                    {formTouched.identifier && !identifierValidation.isValid && (
                       <p className="text-xs text-destructive flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1">
                         <AlertCircle className="h-3 w-3" />
-                        {ninValidation.message}
+                        {identifierValidation.message}
                       </p>
                     )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="vin" className="flex items-center justify-between">
-                    <span>Voter Identification Number (VIN)</span>
-                    {formTouched.vin && !vinValidation.isValid && (
+                  <Label htmlFor="password" className="flex items-center justify-between">
+                    <span>Password</span>
+                    {formTouched.password && !passwordValidation.isValid && (
                       <span className="text-xs text-destructive">Required</span>
                     )}
                   </Label>
                   <div className="relative">
                     <Input
-                      id="vin"
-                      type={showVin ? "text" : "password"}
-                      placeholder="Enter your 19-character VIN"
-                      value={vin}
-                      onChange={handleVinChange}
-                      onBlur={() => setFormTouched({ ...formTouched, vin: true })}
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={handlePasswordChange}
+                      onBlur={() => setFormTouched({ ...formTouched, password: true })}
                       required
-                      maxLength={19}
-                      className={formTouched.vin && !vinValidation.isValid ? "border-destructive" : ""}
+                      className={formTouched.password && !passwordValidation.isValid ? "border-destructive" : ""}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="absolute right-0 top-0"
-                      onClick={() => setShowVin(!showVin)}
+                      onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showVin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                   <div className="min-h-[20px] transition-all duration-200">
-                    {formTouched.vin && !vinValidation.isValid && (
+                    {formTouched.password && !passwordValidation.isValid && (
                       <p className="text-xs text-destructive flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1">
                         <AlertCircle className="h-3 w-3" />
-                        {vinValidation.message}
+                        {passwordValidation.message}
                       </p>
                     )}
                   </div>
@@ -287,7 +276,7 @@ export default function LoginPage() {
                     className="w-full transition-all duration-200"
                     disabled={isLoginButtonDisabled()}
                   >
-                    {isLoading ? "Verifying..." : "Continue"}
+                    Continue
                   </Button>
                 </div>
               </form>
@@ -325,7 +314,7 @@ export default function LoginPage() {
 
                 <div className="pt-2">
                   <Button type="submit" className="w-full transition-all duration-200" disabled={isOtpButtonDisabled()}>
-                    {isLoading ? "Verifying..." : "Verify & Continue"}
+                    Verify & Continue
                   </Button>
                 </div>
 
