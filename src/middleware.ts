@@ -17,7 +17,7 @@ const adminPaths = [
 ];
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('auth-storage')?.value;
+  const authCookie = request.cookies.get('auth-storage')?.value;
   const path = request.nextUrl.pathname;
 
   // Check if the path is public
@@ -29,27 +29,29 @@ export function middleware(request: NextRequest) {
   const isAdminPath = adminPaths.some((adminPath) =>
     path.startsWith(adminPath)
   );
-
+  
   // If it's a public path, allow access
   if (isPublicPath) {
     return NextResponse.next();
   }
 
-  // If there's no token and the path is not public, redirect to login
-  if (!token) {
+  // If there's no auth cookie and the path is not public, redirect to login
+  if (!authCookie) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', path);
     return NextResponse.redirect(loginUrl);
   }
 
   // If it's an admin path, check if the user is an admin
-  if (isAdminPath) {
+  if (isAdminPath && isAdminPath !== '/admin/login') {
     try {
-      const authData = JSON.parse(token);
-      if (authData.state.user?.role !== 'admin') {
+      const authData = JSON.parse(authCookie);
+      if (authData.state?.user?.role !== 'admin') {
+        // Redirect non-admin users to the regular dashboard
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     } catch (error) {
+      // If we can't parse the token, redirect to login
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }

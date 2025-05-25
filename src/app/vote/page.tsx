@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Check, ArrowLeft, BadgeCheck, AlertCircle, Info, Eye, Shield, BarChart3, ChevronRight } from "lucide-react"
+import { Check, ArrowLeft, BadgeCheck, AlertCircle, Info, Eye, Shield, BarChart3, ChevronRight, MapPin, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -26,14 +26,10 @@ import { Navbar } from "@/components/navbar"
 import { useAuthStore, useUIStore } from "@/store/useStore"
 import { useVote } from "@/hooks/useVote"
 import { useElectionData } from "@/hooks/useElectionData"
+import { useVoterProfile } from "@/hooks/useVoterProfile"
+import { Switch } from "@/components/ui/switch"
 
-// Election types
-const ELECTION_TYPES = {
-  presidential: "Presidential Election",
-  gubernatorial: "Gubernatorial Election",
-  "house-of-reps": "House of Representatives Election",
-  senatorial: "Senatorial Election",
-}
+// No need to hardcode election types, using those from the hooks
 
 export default function VotePage() {
   const router = useRouter()
@@ -63,18 +59,46 @@ export default function VotePage() {
     ELECTION_TYPES_MAP
   } = useElectionData(initialElectionType)
 
+  const {
+    getProfile,
+    getPollingUnit,
+    verifyVote,
+    userFullName,
+  } = useVoterProfile()
+
   const [selectedCandidate, setSelectedCandidate] = useState<number | string | null>(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [viewMode, setViewMode] = useState<"card" | "list">("card")
   const [showPartyInfo, setShowPartyInfo] = useState(false)
   const [activeTab, setActiveTab] = useState("vote")
+  const [voterProfile, setVoterProfile] = useState<any>(null)
+  const [pollingUnit, setPollingUnit] = useState<any>(null)
+  const [receiptCode, setReceiptCode] = useState<string>("")
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login?from=/vote")
     }
   }, [isAuthenticated, router])
+
+  useEffect(() => {
+    const loadVoterData = async () => {
+      try {
+        const profileData = await getProfile();
+        setVoterProfile(profileData);
+        
+        const unitData = await getPollingUnit();
+        setPollingUnit(unitData);
+      } catch (err) {
+        console.error("Failed to load voter data:", err);
+      }
+    };
+    
+    if (isAuthenticated) {
+      loadVoterData();
+    }
+  }, [isAuthenticated, getProfile, getPollingUnit]);
 
   useEffect(() => {
     if (isAuthenticated && electionType) {
@@ -115,9 +139,12 @@ export default function VotePage() {
     }
     setShowConfirmDialog(false)
     
-    const success = await castVote(electionType, selectedCandidate)
+    const result = await castVote(electionType, selectedCandidate)
 
-    if (success) {
+    if (result.success) {
+      if (result.receiptCode) {
+        setReceiptCode(result.receiptCode)
+      }
       setShowSuccessDialog(true)
     }
   }
@@ -129,6 +156,21 @@ export default function VotePage() {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)
+  }
+
+  const handleVerifyVote = async () => {
+    if (!receiptCode) {
+      setError("No receipt code available to verify.");
+      return;
+    }
+    
+    try {
+      const verification = await verifyVote(receiptCode);
+      alert(`Vote verified: ${verification.isValid ? 'Valid' : 'Invalid'}`);
+    } catch (err) {
+      console.error("Failed to verify vote:", err);
+      setError("Failed to verify your vote. Please try again later.");
+    }
   }
 
   if (!isAuthenticated || !user) {
@@ -152,7 +194,7 @@ export default function VotePage() {
               </Link>
             </Button>
             <h1 className="text-3xl font-bold tracking-tight">
-              {electionDetails?.electionName || ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] || "Election"}
+              {electionDetails?.electionName || ELECTION_TYPES_MAP[electionType] || "Election"}
             </h1>
             <p className="text-muted-foreground">Cast your vote securely and confidentially</p>
           </div>
@@ -163,6 +205,16 @@ export default function VotePage() {
             </Badge>
           )}
         </div>
+
+        {pollingUnit && (
+          <Alert className="mb-4">
+            <MapPin className="h-4 w-4" />
+            <AlertTitle>Your Polling Unit</AlertTitle>
+            <AlertDescription>
+              {pollingUnit.name}, {pollingUnit.ward}, {pollingUnit.lga}, {pollingUnit.state}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Alert className="mb-6">
           <Shield className="h-4 w-4" />
@@ -188,7 +240,7 @@ export default function VotePage() {
 
           <TabsContent value="vote" className="mt-4">
             <div className="mb-4 flex flex-wrap gap-3">
-              {Object.entries(ELECTION_TYPES).map(([type, title]) => (
+              {Object.entries(ELECTION_TYPES_MAP).map(([type, title]) => (
                 <Button
                   key={type}
                   variant={electionType === type ? "default" : "outline"}
@@ -197,7 +249,7 @@ export default function VotePage() {
                   className="flex items-center gap-2"
                   disabled={isLoading && electionType === type}
                 >
-                  <span>{title.split(" ")[0]}</span>
+                  <span>{String(title).split(" ")[0]}</span>
                   {votedElections[type] && <BadgeCheck className="h-4 w-4 text-green-500" />}
                 </Button>
               ))}
@@ -470,7 +522,7 @@ export default function VotePage() {
               <CardHeader>
                 <CardTitle>Live Results</CardTitle>
                 <CardDescription>
-                  Current vote counts for {electionDetails?.electionName || ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] || "Election"}
+                  Current vote counts for {electionDetails?.electionName || ELECTION_TYPES_MAP[electionType] || "Election"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -557,7 +609,7 @@ export default function VotePage() {
 
         <h2 className="text-xl font-bold mt-8 mb-4">Other Elections</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(ELECTION_TYPES)
+          {Object.entries(ELECTION_TYPES_MAP)
             .filter(([type]) => type !== electionType)
             .map(([type, title]) => (
               <Card key={type} className="hover:shadow-md transition-all duration-300">
@@ -626,7 +678,7 @@ export default function VotePage() {
               </div>
               <p className="text-center text-muted-foreground mb-4">
                 You are about to cast your vote for this candidate in the{" "}
-                {electionDetails?.electionName || ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] || "Election"}.
+                {electionDetails?.electionName || ELECTION_TYPES_MAP[electionType] || "Election"}.
               </p>
               <Alert variant="warning" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
@@ -708,11 +760,20 @@ export default function VotePage() {
                 {candidates.find((c) => c.id === selectedCandidate)?.party}
               </Badge>
             </div>
+            {receiptCode && (
+              <div className="mt-4 p-3 bg-muted rounded-md w-full">
+                <p className="text-xs text-muted-foreground mb-1">Your vote receipt code:</p>
+                <p className="font-mono text-sm break-all">{receiptCode}</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={handleVerifyVote}>
+                  Verify Vote
+                </Button>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex flex-col gap-2">
             <Button onClick={() => setShowSuccessDialog(false)}>Close</Button>
             <Button variant="outline" asChild>
-              <Link href="/results">
+              <Link href={`/results?type=${electionType}`}>
                 View Live Results
                 <BarChart3 className="ml-2 h-4 w-4" />
               </Link>

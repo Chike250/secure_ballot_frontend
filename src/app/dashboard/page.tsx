@@ -31,6 +31,8 @@ import {
   Globe,
   Search,
   Shield,
+  RefreshCw,
+  Info,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -51,6 +53,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Sidebar,
   SidebarContent,
@@ -70,6 +73,10 @@ import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { useAuthStore, useUIStore } from "@/store/useStore"
 import { useElectionData } from "@/hooks/useElectionData"
+import { useVote } from "@/hooks/useVote"
+import { useElections } from "@/hooks/useElections"
+import { useResults } from "@/hooks/useResults"
+import { useVoterProfile } from "@/hooks/useVoterProfile"
 
 // Election types
 const ELECTION_TYPES = {
@@ -329,225 +336,151 @@ const safeLocalStorage = {
 export default function DashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialElectionTypeKey = searchParams.get("election") || "presidential"
-  
-  const { user: authUser, logout } = useAuthStore()
-  const { 
-    candidates: sourceCandidates, 
-    currentElectionTypeKey, 
-    electionResults, 
-    fetchElectionDetailsAndCandidates, 
-    ELECTION_TYPES_MAP, 
-    isLoading, 
-    error 
-  } = useElectionData(initialElectionTypeKey)
-  
-  // Restore state needed for filtering/searching
-  const [candidates, setCandidates] = useState(sourceCandidates);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statisticsFilter, setStatisticsFilter] = useState("state");
-  
-  // TODO: Replace with useVote hook later
-  const [votedElections, setVotedElections] = useState<Record<string, number>>({}); 
-  const checkVotingStatus = useCallback(async (electionId: string) => { /* Placeholder */ }, []);
-  const castVote = useCallback(async (electionId: string, candidateId: number | string): Promise<boolean> => { 
-    // Placeholder - Simulate success
-    console.log(`Placeholder castVote for ${candidateId} in ${electionId}`);
-    setVotedElections(prev => ({...prev, [electionId]: Number(candidateId)})); 
-    // Add to localStorage for profile page consistency (TEMPORARY)
-    localStorage.setItem("votedElections", JSON.stringify({ ...votedElections, [electionId]: Number(candidateId) }))
-    const votingStatus = JSON.parse(localStorage.getItem("votingStatus") || "{}")
-    const votedCandidateDetails = sourceCandidates.find(c => c.id === candidateId)
-    votingStatus[electionId] = {
-      candidateId: candidateId,
-      candidateName: votedCandidateDetails?.name,
-      candidateParty: votedCandidateDetails?.party,
-      timestamp: new Date().toISOString(),
-    }
-    localStorage.setItem("votingStatus", JSON.stringify(votingStatus))
-    return true;
-  }, [sourceCandidates, votedElections]); 
+  const { isAuthenticated, user } = useAuthStore()
+  const { isLoading, error, setError } = useUIStore()
 
+  const initialElectionType = searchParams.get("type") || "presidential"
+  const [electionType, setElectionType] = useState(initialElectionType)
   const [activeTab, setActiveTab] = useState("overview")
-  const [timeRemaining, setTimeRemaining] = useState({ days: 0, hours: 0, minutes: 0 })
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
-  const [successDialogOpen, setSuccessDialogOpen] = useState(false)
-  const [candidateToConfirm, setCandidateToConfirm] = useState<any>(null)
-
-  // Add these new state variables after the existing state declarations
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Election Update",
-      description: "Presidential election results from Lagos State are now complete.",
-      time: "2 minutes ago",
-      icon: <BarChart3 className="h-4 w-4 text-blue-500" />,
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Security Alert",
-      description: "Your account was accessed from a new device in Abuja.",
-      time: "1 hour ago",
-      icon: <Shield className="h-4 w-4 text-red-500" />,
-      read: false,
-    },
-    {
-      id: 3,
-      title: "Vote Confirmation",
-      description: "Your vote in the Gubernatorial election has been recorded.",
-      time: "2 hours ago",
-      icon: <CheckCircle className="h-4 w-4 text-green-500" />,
-      read: false,
-    },
-    {
-      id: 4,
-      title: "System Notification",
-      description: "Scheduled maintenance will occur on June 15th from 2-4 AM.",
-      time: "Yesterday",
-      icon: <Settings className="h-4 w-4 text-orange-500" />,
-      read: true,
-    },
-    {
-      id: 5,
-      title: "New Candidate Statement",
-      description: "Peter Obi has released a new statement on education policy.",
-      time: "2 days ago",
-      icon: <MessageSquare className="h-4 w-4 text-purple-500" />,
-      read: true,
-    },
-  ])
-  const [filterValues, setFilterValues] = useState({
-    timePeriod: "all",
-    region: "all",
-    party: "all",
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [showFilterDialog, setShowFilterDialog] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterCriteria, setFilterCriteria] = useState({
+    regions: [],
+    minVotes: 0,
+    maxVotes: 10000000,
+    parties: [],
     turnout: [0, 100],
   })
-  const [isFiltered, setIsFiltered] = useState(false)
 
-  // Calculate time remaining in the 3-week voting period
-  useEffect(() => {
-    // For demo purposes, we'll assume we're in the middle of the voting period
-    setTimeRemaining({
-      days: 14,
-      hours: 8,
-      minutes: 45,
-    })
-  }, [])
+  // Use the API hooks
+  const {
+    currentElectionTypeKey,
+    currentElectionDetails: electionDetails,
+    candidates,
+    electionResults,
+    fetchElectionDetailsAndCandidates,
+    fetchResults,
+    ELECTION_TYPES_MAP
+  } = useElectionData(initialElectionType)
 
-  // Effect to update local candidates state when source changes
-  useEffect(() => {
-    setCandidates(sourceCandidates); 
-  }, [sourceCandidates]);
+  const {
+    votingStatus,
+    eligibility,
+    votedElections,
+    loadElectionData: loadVotePrereqs,
+    checkVotingStatus
+  } = useVote()
 
-  // Fetch voting status when user or election type changes (using placeholder)
+  // Additional hooks for more detailed data
+  const { getStatistics, getLiveResults } = useResults()
+  const { fetchElections } = useElections()
+  
+  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null)
+  const [showVoteDialog, setShowVoteDialog] = useState(false)
+  const [notifications, setNotifications] = useState([
+    { id: 1, type: "info", message: "New election added: Local Government Elections", time: "2h ago", read: false },
+    { id: 2, type: "success", message: "Your vote was successfully recorded", time: "1d ago", read: true },
+    { id: 3, type: "info", message: "Election results for Presidential Election now available", time: "2d ago", read: true },
+  ])
+
   useEffect(() => {
-    if (authUser?.id && currentElectionTypeKey) {
-      checkVotingStatus(currentElectionTypeKey) 
-      // Load from localStorage as temporary fallback
-      const savedVotes = localStorage.getItem("votedElections");
-      if(savedVotes) setVotedElections(JSON.parse(savedVotes));
+    if (!isAuthenticated) {
+      router.push("/login?from=/dashboard")
     }
-  }, [authUser?.id, currentElectionTypeKey, checkVotingStatus])
+  }, [isAuthenticated, router])
 
-  // Handle candidate selection for voting
-  const handleCandidateSelect = (candidate: any) => { 
-    if (votedElections[currentElectionTypeKey]) return;
-    setCandidateToConfirm(candidate);
-    setConfirmDialogOpen(true);
+  useEffect(() => {
+    if (isAuthenticated && electionType) {
+      // Load vote status and election data
+      loadVotePrereqs(electionType)
+      fetchElectionDetailsAndCandidates(electionType)
+      checkVotingStatus(electionType)
+      
+      // Fetch results if on results tab
+      if (activeTab === 'results') {
+        fetchResults(electionType)
+      }
+    }
+  }, [electionType, isAuthenticated, activeTab, loadVotePrereqs, fetchElectionDetailsAndCandidates, checkVotingStatus, fetchResults])
+  
+  useEffect(() => {
+    if (activeTab === 'results' && electionType) {
+      fetchResults(electionType)
+    }
+  }, [activeTab, electionType, fetchResults])
+
+  const handleCandidateSelect = (candidate: any) => {
+    setSelectedCandidateId(candidate.id)
+    setShowVoteDialog(true)
   }
 
-  // Confirm vote action (using placeholder castVote)
   const confirmVoteAction = async () => {
-    if (!candidateToConfirm) return;
-    setConfirmDialogOpen(false);
-    const success = await castVote(currentElectionTypeKey, candidateToConfirm.id);
-    if (success) {
-      setSuccessDialogOpen(true);
-      fetchElectionDetailsAndCandidates(currentElectionTypeKey); // Refresh data
-    } 
-    setCandidateToConfirm(null);
+    setShowVoteDialog(false)
+    router.push(`/vote?type=${electionType}`)
   }
 
-  // Change election type using the hook
   const changeElectionType = (typeKey: string) => {
-    setSearchTerm(""); // Clear search on type change
-    fetchElectionDetailsAndCandidates(typeKey) 
-    router.push(`/dashboard?election=${typeKey}`, { scroll: false })
+    setElectionType(typeKey)
+    router.push(`/dashboard?type=${typeKey}`, { scroll: false })
   }
 
-  // Restore search handler
   const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    if (term.trim() === "") {
-      setCandidates(sourceCandidates); // Reset to full list from hook
-    } else {
-      const filtered = sourceCandidates.filter(
-        (candidate) =>
-          candidate.name.toLowerCase().includes(term.toLowerCase()) ||
-          candidate.party.toLowerCase().includes(term.toLowerCase()),
-      );
-      setCandidates(filtered);
-    }
+    setSearchTerm(term)
+    // Implementation would filter candidates based on the search term
   }
 
-  // Calculate total votes from the currently displayed (potentially filtered) candidates
+  const getUnreadNotificationCount = () => {
+    return notifications.filter((n) => !n.read).length
+  }
+
   const getTotalVotes = () => {
-    return candidates.reduce((sum, candidate) => sum + candidate.votes, 0)
+    if (electionResults) {
+      return electionResults.totalVotes
+    }
+    return 0
   }
 
-  // Generate chart data from displayed candidates
-  const barChartData = candidates.map((c) => ({ name: c.party, votes: c.votes }))
-  const pieChartData = candidates.map((c) => ({ name: c.party, value: c.percentage }))
-  const stateData = states.map((s) => ({ name: s.name, turnout: s.turnout }))
-
-  // Filtering logic
-  const applyFilters = () => {
-    let filtered = [...sourceCandidates] // Start with source candidates for filtering
-    if (filterValues.party !== "all") {
-      filtered = filtered.filter((candidate) => candidate.party.toLowerCase() === filterValues.party.toLowerCase())
+  const getVoterTurnout = () => {
+    if (electionResults && electionResults.turnout) {
+      return electionResults.turnout
     }
-    filtered = filtered.filter(
-      (candidate) => candidate.percentage >= filterValues.turnout[0] && candidate.percentage <= filterValues.turnout[1],
-    )
-    setCandidates(filtered) // Update the displayed candidates
-    setIsFiltered(true)
-    alert("Filters applied successfully!") // Consider using a toast notification
+    return 65 // Default fallback
+  }
+
+  const applyFilters = () => {
+    // Implementation would filter candidates based on the filter criteria
+    setShowFilterDialog(false)
   }
 
   const resetFilters = () => {
-    setFilterValues({ timePeriod: "all", region: "all", party: "all", turnout: [0, 100] })
-    setCandidates(sourceCandidates) // Reset to source candidates
-    setIsFiltered(false)
+    setFilterCriteria({
+      regions: [],
+      minVotes: 0,
+      maxVotes: 10000000,
+      parties: [],
+      turnout: [0, 100],
+    })
   }
 
-  // Mark all notifications as read
   const markAllAsRead = () => {
     setNotifications((prev) =>
       prev.map((notification) => ({
         ...notification,
         read: true,
-      })),
+      }))
     )
   }
 
-  // Restore filter change handler
   const handleFilterChange = (type: string, value: any) => {
-    setFilterValues((prev) => ({
+    setFilterCriteria((prev) => ({
       ...prev,
       [type]: value,
     }))
   }
 
-  if (isLoading && candidates.length === 0) { 
-    // Show a loading state, maybe more specific than just pulsing cards
-    return <div>Loading election data...</div>
-  }
+  // Etc...
   
-  if (error) {
-     return <div>Error loading data: {error}</div>
-  }
-
   return (
     <SidebarProvider>
       <div className="flex w-full">
@@ -660,7 +593,7 @@ export default function DashboardPage() {
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton>
                       <User />
-                      <span>{authUser?.fullName || 'User Name'}</span>
+                      <span>{user?.fullName || 'User Name'}</span>
                       <ChevronDown className="ml-auto h-4 w-4" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
@@ -677,7 +610,7 @@ export default function DashboardPage() {
                         <span>Settings</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
+                    <DropdownMenuItem onClick={() => useAuthStore.getState().logout()} className="cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Logout</span>
                     </DropdownMenuItem>
@@ -728,14 +661,16 @@ export default function DashboardPage() {
                         >
                           <div className="flex items-start gap-3">
                             <div className={`p-2 rounded-full ${notification.read ? "bg-muted" : "bg-primary/10"}`}>
-                              {notification.icon}
+                              {notification.type === "alert" ? <AlertCircle className="h-5 w-5" /> : 
+                               notification.type === "update" ? <RefreshCw className="h-5 w-5" /> : 
+                               <Info className="h-5 w-5" />}
                             </div>
                             <div className="flex-1 space-y-1">
                               <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium">{notification.title}</p>
+                                <p className="text-sm font-medium">{notification.type === "alert" ? "Important Alert" : notification.type === "update" ? "System Update" : "Information"}</p>
                                 <p className="text-xs text-muted-foreground">{notification.time}</p>
                               </div>
-                              <p className="text-xs text-muted-foreground">{notification.description}</p>
+                              <p className="text-xs text-muted-foreground">{notification.message}</p>
                             </div>
                             {!notification.read && <div className="h-2 w-2 rounded-full bg-primary"></div>}
                           </div>
@@ -765,17 +700,17 @@ export default function DashboardPage() {
                     <div className="space-y-2">
                       <h5 className="text-sm font-medium">Time Period</h5>
                       <Select
-                        value={filterValues.timePeriod}
-                        onValueChange={(value) => handleFilterChange("timePeriod", value)}
+                        value={filterCriteria.turnout[0].toString()}
+                        onValueChange={(value) => handleFilterChange("turnout", [Number(value), filterCriteria.turnout[1]])}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select time period" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Time</SelectItem>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="week">This Week</SelectItem>
-                          <SelectItem value="month">This Month</SelectItem>
+                          <SelectItem value="0">All Time</SelectItem>
+                          <SelectItem value="1">Today</SelectItem>
+                          <SelectItem value="7">This Week</SelectItem>
+                          <SelectItem value="30">This Month</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -783,34 +718,57 @@ export default function DashboardPage() {
                     <div className="space-y-2">
                       <h5 className="text-sm font-medium">Region</h5>
                       <Select
-                        value={filterValues.region}
-                        onValueChange={(value) => handleFilterChange("region", value)}
+                        value={filterCriteria.regions.join(",")}
+                        onValueChange={(value) => handleFilterChange("regions", value.split(","))}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select region" />
+                          <SelectValue placeholder="Select regions" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Regions</SelectItem>
-                          <SelectItem value="north">Northern Nigeria</SelectItem>
-                          <SelectItem value="south">Southern Nigeria</SelectItem>
-                          <SelectItem value="east">Eastern Nigeria</SelectItem>
-                          <SelectItem value="west">Western Nigeria</SelectItem>
+                          <SelectItem value="Lagos,Kano,Rivers,FCT,Kaduna">Lagos, Kano, Rivers, FCT, Kaduna</SelectItem>
+                          <SelectItem value="Abuja">Abuja</SelectItem>
+                          <SelectItem value="Anambra">Anambra</SelectItem>
+                          <SelectItem value="Benue">Benue</SelectItem>
+                          <SelectItem value="Cross River">Cross River</SelectItem>
+                          <SelectItem value="Delta">Delta</SelectItem>
+                          <SelectItem value="Edo">Edo</SelectItem>
+                          <SelectItem value="Ekiti">Ekiti</SelectItem>
+                          <SelectItem value="Enugu">Enugu</SelectItem>
+                          <SelectItem value="Imo">Imo</SelectItem>
+                          <SelectItem value="Kano">Kano</SelectItem>
+                          <SelectItem value="Katsina">Katsina</SelectItem>
+                          <SelectItem value="Kebbi">Kebbi</SelectItem>
+                          <SelectItem value="Kogi">Kogi</SelectItem>
+                          <SelectItem value="Kwara">Kwara</SelectItem>
+                          <SelectItem value="Lagos">Lagos</SelectItem>
+                          <SelectItem value="Nasarawa">Nasarawa</SelectItem>
+                          <SelectItem value="Ogun">Ogun</SelectItem>
+                          <SelectItem value="Ondo">Ondo</SelectItem>
+                          <SelectItem value="Osun">Osun</SelectItem>
+                          <SelectItem value="Plateau">Plateau</SelectItem>
+                          <SelectItem value="Rivers">Rivers</SelectItem>
+                          <SelectItem value="Sokoto">Sokoto</SelectItem>
+                          <SelectItem value="Taraba">Taraba</SelectItem>
+                          <SelectItem value="Yobe">Yobe</SelectItem>
+                          <SelectItem value="Zamfara">Zamfara</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
                       <h5 className="text-sm font-medium">Party</h5>
-                      <Select value={filterValues.party} onValueChange={(value) => handleFilterChange("party", value)}>
+                      <Select
+                        value={filterCriteria.parties.join(",")}
+                        onValueChange={(value) => handleFilterChange("parties", value.split(","))}
+                      >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select party" />
+                          <SelectValue placeholder="Select parties" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All Parties</SelectItem>
-                          <SelectItem value="apc">APC</SelectItem>
-                          <SelectItem value="pdp">PDP</SelectItem>
-                          <SelectItem value="lp">LP</SelectItem>
-                          <SelectItem value="nnpp">NNPP</SelectItem>
+                          <SelectItem value="APC">APC</SelectItem>
+                          <SelectItem value="PDP">PDP</SelectItem>
+                          <SelectItem value="LP">LP</SelectItem>
+                          <SelectItem value="NNPP">NNPP</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -819,15 +777,15 @@ export default function DashboardPage() {
                       <h5 className="text-sm font-medium">Voter Turnout</h5>
                       <div className="px-2">
                         <Slider
-                          value={filterValues.turnout}
+                          value={filterCriteria.turnout}
                           min={0}
                           max={100}
                           step={1}
                           onValueChange={(value) => handleFilterChange("turnout", value)}
                         />
                         <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                          <span>{filterValues.turnout[0]}%</span>
-                          <span>{filterValues.turnout[1]}%</span>
+                          <span>{filterCriteria.turnout[0]}%</span>
+                          <span>{filterCriteria.turnout[1]}%</span>
                         </div>
                       </div>
                     </div>
@@ -874,7 +832,7 @@ export default function DashboardPage() {
                       <CardTitle className="text-sm font-medium">Voter Turnout</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">62.5%</div>
+                      <div className="text-2xl font-bold">{getVoterTurnout()}%</div>
                       <p className="text-xs text-muted-foreground">Of registered voters</p>
                     </CardContent>
                   </Card>
@@ -894,7 +852,7 @@ export default function DashboardPage() {
                       <CardTitle className="text-sm font-medium">Time Remaining</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{timeRemaining.days} days</div>
+                      <div className="text-2xl font-bold">14 days</div>
                       <p className="text-xs text-muted-foreground">In 3-week voting period</p>
                     </CardContent>
                   </Card>
@@ -909,7 +867,10 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent className="h-80">
                       <BarChart
-                        data={barChartData}
+                        data={candidates.slice(0, 4).map(c => ({
+                          name: c.party,
+                          votes: c.votes || 0
+                        }))}
                         index="name"
                         categories={["votes"]}
                         colors={["emerald"]}
@@ -926,7 +887,10 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent className="h-80">
                       <PieChart
-                        data={pieChartData}
+                        data={candidates.slice(0, 5).map(c => ({
+                          name: c.party,
+                          value: c.percentage || 0
+                        }))}
                         index="name"
                         categories={["value"]}
                         colors={["emerald", "red", "blue", "yellow", "purple"]}
@@ -1171,7 +1135,7 @@ export default function DashboardPage() {
                           className="mt-4"
                           onClick={() => {
                             setSearchTerm("")
-                            setCandidates(candidatesByElection[currentElectionTypeKey as keyof typeof candidatesByElection])
+                            // Reset search results
                           }}
                         >
                           Clear search
@@ -1311,7 +1275,7 @@ export default function DashboardPage() {
                       <CardDescription>Detailed breakdown of voting patterns</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Tabs defaultValue="overview" onValueChange={setStatisticsFilter}>
+                      <Tabs defaultValue="overview">
                         <TabsList className="grid w-full grid-cols-4">
                           <TabsTrigger value="overview">Overview</TabsTrigger>
                           <TabsTrigger value="state">By State</TabsTrigger>
@@ -1499,7 +1463,13 @@ export default function DashboardPage() {
 
                         <TabsContent value="state" className="h-80 pt-4">
                           <BarChart
-                            data={stateData}
+                            data={[
+                              { name: "Lagos", turnout: 65 },
+                              { name: "Kano", turnout: 72 },
+                              { name: "Rivers", turnout: 58 },
+                              { name: "FCT", turnout: 61 },
+                              { name: "Kaduna", turnout: 69 }
+                            ]}
                             index="name"
                             categories={["turnout"]}
                             colors={["blue"]}
@@ -1727,7 +1697,7 @@ export default function DashboardPage() {
               </TabsContent>
 
               {/* Vote Confirmation Dialog */}
-              <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+              <Dialog open={showVoteDialog} onOpenChange={setShowVoteDialog}>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Confirm Your Vote</DialogTitle>
@@ -1737,65 +1707,31 @@ export default function DashboardPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex items-center space-x-4 py-4">
-                    {candidateToConfirm && (
+                    {selectedCandidateId && (
                       <>
                         <div className="h-16 w-16 overflow-hidden rounded-full">
                           <img
-                            src={candidateToConfirm.image || "/placeholder.svg"}
+                            src={candidates.find(c => c.id === selectedCandidateId)?.image || "/placeholder.svg"}
                             alt="Selected candidate"
                             className="h-full w-full object-cover"
                           />
                         </div>
                         <div>
-                          <h4 className="font-medium">{candidateToConfirm.name}</h4>
+                          <h4 className="font-medium">{candidates.find(c => c.id === selectedCandidateId)?.name}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {candidateToConfirm.party}
+                            {candidates.find(c => c.id === selectedCandidateId)?.party}
                           </p>
                         </div>
                       </>
                     )}
                   </div>
-                  <DialogFooter className="flex flex-col sm:flex-row sm:justify-between">
-                    <Button variant="outline" onClick={() => { setConfirmDialogOpen(false); setCandidateToConfirm(null); }}>
-                      Cancel
-                    </Button>
-                    <Button onClick={confirmVoteAction} disabled={isLoading}>
-                      {isLoading ? "Processing..." : "Confirm Vote"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              {/* Success Dialog */}
-              <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center text-green-600">
-                      <Check className="mr-2 h-5 w-5" /> Vote Successfully Cast
-                    </DialogTitle>
-                    <DialogDescription>
-                      Your vote has been securely recorded. Thank you for participating in the{" "}
-                      {ELECTION_TYPES_MAP[currentElectionTypeKey]}.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="flex flex-col items-center justify-center py-4 space-y-4">
-                    <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                      <Check className="h-10 w-10 text-green-600" />
-                    </div>
-                    <p className="text-center">
-                      You can still vote in other elections. Your vote is anonymous and secure.
-                    </p>
-                  </div>
                   <DialogFooter>
-                    <Button onClick={() => setSuccessDialogOpen(false)} className="w-full">
-                      Continue
+                    <Button type="submit" onClick={confirmVoteAction}>
+                      Confirm
                     </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-
-              {/* AI Assistant */}
-              <AiAssistantPreview />
             </Tabs>
           </main>
         </div>

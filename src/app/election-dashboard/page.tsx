@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -39,6 +37,7 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Sidebar,
   SidebarContent,
@@ -55,6 +54,9 @@ import {
 } from "@/components/ui/sidebar"
 import { ElectionCharts } from "@/components/election-charts"
 import { ElectoralMap } from "@/components/electoral-map"
+import { useElectionData } from "@/hooks/useElectionData"
+import { useResults } from "@/hooks/useResults"
+import { useUIStore } from "@/store/useStore"
 
 // Election types
 const ELECTION_TYPES = {
@@ -358,106 +360,118 @@ const stateElectoralData = [
 ]
 
 export default function ElectionDashboardPage() {
-  const [electionType, setElectionType] = useState("presidential")
+  const [selectedChart, setSelectedChart] = useState("bar")
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isRealtime, setIsRealtime] = useState(true)
-  const [regionView, setRegionView] = useState("national")
-  const [timeView, setTimeView] = useState("daily")
-  const [timeRange, setTimeRange] = useState([0, 100])
-  const [candidates, setCandidates] = useState(candidatesByElection[electionType as keyof typeof candidatesByElection])
-  const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState("overview")
-  const [mapView, setMapView] = useState("winner")
-  const [mapFilter, setMapFilter] = useState("all")
+  const [selectedRegion, setSelectedRegion] = useState("all")
+  const [refreshInterval, setRefreshInterval] = useState(0) // 0 means no auto-refresh
+  const { isLoading, error, setError } = useUIStore()
 
-  // Load candidates when election type changes
+  // Use the election data hook to get election information
+  const {
+    currentElectionTypeKey,
+    candidates,
+    electionResults,
+    fetchElectionDetailsAndCandidates,
+    fetchResults,
+    ELECTION_TYPES_MAP
+  } = useElectionData("presidential") // Default to presidential election
+
+  // Use results hook for regional data
+  const { getRegionalResults, getLiveStatistics } = useResults()
+  
+  const [electionTypeKey, setElectionTypeKey] = useState<string>("presidential")
+  const [regionalData, setRegionalData] = useState<any[]>([])
+  const [liveStats, setLiveStats] = useState<any>(null)
+  const [timeData, setTimeData] = useState<any[]>([])
+
+  // Fetch election data on initial load and when election type changes
   useEffect(() => {
-    setIsLoading(true)
+    const loadElectionData = async () => {
+      try {
+        await fetchElectionDetailsAndCandidates(electionTypeKey)
+        await fetchResults(electionTypeKey)
+      } catch (err) {
+        console.error("Failed to load election data:", err)
+      }
+    }
+    
+    loadElectionData()
+  }, [electionTypeKey, fetchElectionDetailsAndCandidates, fetchResults])
 
-    // Simulate API call delay
-    const timer = setTimeout(() => {
-      setCandidates(candidatesByElection[electionType as keyof typeof candidatesByElection])
-      setIsLoading(false)
-    }, 500)
+  // Fetch regional data
+  useEffect(() => {
+    const loadRegionalData = async () => {
+      try {
+        const data = await getRegionalResults(electionTypeKey, selectedRegion !== "all" ? selectedRegion : undefined)
+        setRegionalData(data.regions || [])
+      } catch (err) {
+        console.error("Failed to load regional data:", err)
+      }
+    }
+    
+    if (electionTypeKey) {
+      loadRegionalData()
+    }
+  }, [electionTypeKey, selectedRegion, getRegionalResults])
 
-    return () => clearTimeout(timer)
-  }, [electionType])
+  // Fetch live statistics
+  useEffect(() => {
+    const loadLiveStats = async () => {
+      try {
+        const data = await getLiveStatistics()
+        setLiveStats(data)
+        
+        // Create some time-based data from the timestamp
+        if (data.hourlyTurnout) {
+          setTimeData(data.hourlyTurnout)
+        }
+      } catch (err) {
+        console.error("Failed to load live statistics:", err)
+      }
+    }
+    
+    loadLiveStats()
+    
+    // Set up auto-refresh if enabled
+    if (refreshInterval > 0) {
+      const interval = setInterval(() => {
+        loadLiveStats()
+      }, refreshInterval * 1000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [refreshInterval, getLiveStatistics])
 
-  // Handle candidate selection
-  const handleCandidateSelect = (candidateId: number) => {
-    setSelectedCandidate(selectedCandidate === candidateId ? null : candidateId)
+  const handleCandidateSelect = (candidateId: number | string) => {
+    const id = typeof candidateId === 'string' ? parseInt(candidateId, 10) : candidateId
+    setSelectedCandidate(id === selectedCandidate ? null : id)
   }
 
-  // Handle refresh
   const handleRefresh = () => {
-    setRefreshing(true)
-
-    // Simulate refresh delay
-    setTimeout(() => {
-      setRefreshing(false)
-    }, 1500)
+    fetchElectionDetailsAndCandidates(electionTypeKey)
+    fetchResults(electionTypeKey)
+    getRegionalResults(electionTypeKey, selectedRegion !== "all" ? selectedRegion : undefined)
+      .then(data => setRegionalData(data.regions || []))
+    getLiveStatistics()
+      .then(data => {
+        setLiveStats(data)
+        if (data.hourlyTurnout) {
+          setTimeData(data.hourlyTurnout)
+        }
+      })
   }
 
-  // Calculate total votes
   const getTotalVotes = () => {
-    return candidates.reduce((sum, candidate) => sum + candidate.votes, 0)
+    if (electionResults) {
+      return electionResults.totalVotes || candidates.reduce((sum, c) => sum + c.votes, 0)
+    }
+    return candidates.reduce((sum, c) => sum + c.votes, 0)
   }
 
-  // Prepare data for charts
-  const pieChartData = candidates.map((c) => ({
-    id: c.id,
-    name: c.name,
-    party: c.party,
-    value: c.percentage,
-    votes: c.votes,
-    color: c.color,
-  }))
-
-  const barChartData =
-    regionView === "national"
-      ? regionalData.map((r) => ({
-          region: r.region,
-          APC: r.apc,
-          PDP: r.pdp,
-          LP: r.lp,
-          NNPP: r.nnpp,
-          Others: r.others,
-        }))
-      : stateData.map((s) => ({
-          region: s.state,
-          APC: s.apc,
-          PDP: s.pdp,
-          LP: s.lp,
-          NNPP: s.nnpp,
-          Others: s.others,
-        }))
-
-  // Filter time data based on range
-  const startIdx = Math.floor(timeData.length * (timeRange[0] / 100))
-  const endIdx = Math.ceil(timeData.length * (timeRange[1] / 100))
-  const filteredTimeData = timeData.slice(startIdx, endIdx)
-
-  const lineChartData =
-    timeView === "daily"
-      ? filteredTimeData.map((t) => ({
-          name: t.time,
-          APC: t.apc,
-          PDP: t.pdp,
-          LP: t.lp,
-          NNPP: t.nnpp,
-          Others: t.others,
-          milestone: t.milestone,
-        }))
-      : hourlyData.map((h) => ({
-          name: h.hour,
-          votes: h.votes,
-          milestone: h.milestone,
-        }))
-
-  // Filter map data based on selection
-  const filteredMapData =
-    mapFilter === "all" ? stateElectoralData : stateElectoralData.filter((state) => state.winner === mapFilter)
+  const handleElectionTypeChange = (type: string) => {
+    setElectionTypeKey(type)
+    setSelectedCandidate(null)
+  }
 
   return (
     <SidebarProvider>
@@ -517,7 +531,7 @@ export default function ElectionDashboardPage() {
                 <SidebarMenu>
                   {Object.entries(ELECTION_TYPES).map(([type, title]) => (
                     <SidebarMenuItem key={type}>
-                      <SidebarMenuButton asChild isActive={electionType === type} onClick={() => setElectionType(type)}>
+                      <SidebarMenuButton asChild isActive={electionTypeKey === type} onClick={() => handleElectionTypeChange(type)}>
                         <button className="flex items-center justify-between w-full">
                           <div className="flex items-center">
                             <Users className="mr-2 h-4 w-4" />
@@ -570,7 +584,7 @@ export default function ElectionDashboardPage() {
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <h1 className="text-lg font-semibold md:text-xl">
-                {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]} Results
+                {ELECTION_TYPES[electionTypeKey as keyof typeof ELECTION_TYPES]} Results
               </h1>
               <Badge variant="outline" className="ml-2 bg-green-500/10 text-green-500 border-green-500/20">
                 Live
@@ -582,14 +596,14 @@ export default function ElectionDashboardPage() {
                 <Label htmlFor="realtime-toggle" className="text-sm">
                   Real-time
                 </Label>
-                <Switch id="realtime-toggle" checked={isRealtime} onCheckedChange={setIsRealtime} />
+                <Switch id="realtime-toggle" checked={refreshInterval > 0} onCheckedChange={(checked) => setRefreshInterval(checked ? 30 : 0)} />
               </div>
               <Button
                 variant="outline"
                 size="icon"
-                className={`rounded-full ${refreshing ? "animate-spin" : ""}`}
+                className={`rounded-full ${isLoading ? "animate-spin" : ""}`}
                 onClick={handleRefresh}
-                disabled={refreshing}
+                disabled={isLoading}
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
@@ -617,7 +631,7 @@ export default function ElectionDashboardPage() {
           </header>
 
           <main className="flex-1 p-4 md:p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <Tabs value="overview" className="space-y-6">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="charts">Charts</TabsTrigger>
@@ -664,8 +678,8 @@ export default function ElectionDashboardPage() {
                       <CardTitle className="text-sm font-medium">Leading Candidate</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{candidates[0].name.split(" ")[0]}</div>
-                      <p className="text-xs text-muted-foreground">{candidates[0].percentage}% of votes</p>
+                      <div className="text-2xl font-bold">{candidates.length > 0 ? candidates[0].name.split(" ")[0] : "N/A"}</div>
+                      <p className="text-xs text-muted-foreground">{candidates.length > 0 ? `${candidates[0].percentage}% of votes` : "No data"}</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -725,7 +739,14 @@ export default function ElectionDashboardPage() {
                     <CardContent className="pt-4">
                       <ElectionCharts
                         type="pie"
-                        data={pieChartData}
+                        data={candidates.map((c) => ({
+                          id: c.id,
+                          name: c.name,
+                          party: c.party,
+                          value: c.percentage,
+                          votes: c.votes,
+                          color: c.color,
+                        }))}
                         selectedCandidate={selectedCandidate}
                         onSelectCandidate={handleCandidateSelect}
                         isLoading={isLoading}
@@ -741,11 +762,12 @@ export default function ElectionDashboardPage() {
                         <CardDescription>Vote counts across regions</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Select value={regionView} onValueChange={setRegionView}>
+                        <Select value={selectedRegion} onValueChange={setSelectedRegion}>
                           <SelectTrigger className="w-[130px]">
                             <SelectValue placeholder="View" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="all">All Regions</SelectItem>
                             <SelectItem value="national">Geopolitical Zones</SelectItem>
                             <SelectItem value="state">Top States</SelectItem>
                           </SelectContent>
@@ -760,8 +782,7 @@ export default function ElectionDashboardPage() {
                             <TooltipContent>
                               <p className="max-w-xs">
                                 This bar chart shows vote distribution across{" "}
-                                {regionView === "national" ? "geopolitical zones" : "states"}. Toggle between views
-                                using the dropdown.
+                                {selectedRegion === "national" ? "geopolitical zones" : selectedRegion === "state" ? "top states" : "selected region"}.
                               </p>
                             </TooltipContent>
                           </Tooltip>
@@ -771,7 +792,7 @@ export default function ElectionDashboardPage() {
                     <CardContent className="pt-4">
                       <ElectionCharts
                         type="bar"
-                        data={barChartData}
+                        data={regionalData}
                         selectedCandidate={selectedCandidate}
                         onSelectCandidate={handleCandidateSelect}
                         isLoading={isLoading}
@@ -784,16 +805,17 @@ export default function ElectionDashboardPage() {
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <div>
                         <CardTitle>Voting Trends</CardTitle>
-                        <CardDescription>Vote progression over time</CardDescription>
+                        <CardDescription>Turnout over time</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Select value={timeView} onValueChange={setTimeView}>
+                        <Select value={selectedRegion} onValueChange={setSelectedRegion}>
                           <SelectTrigger className="w-[130px]">
                             <SelectValue placeholder="View" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="daily">Daily Trend</SelectItem>
-                            <SelectItem value="hourly">Hourly Breakdown</SelectItem>
+                            <SelectItem value="all">All Regions</SelectItem>
+                            <SelectItem value="national">National</SelectItem>
+                            <SelectItem value="state">Top States</SelectItem>
                           </SelectContent>
                         </Select>
                         <TooltipProvider>
@@ -805,7 +827,7 @@ export default function ElectionDashboardPage() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
-                                This line chart shows voting trends over time. Toggle between daily and hourly views.
+                                This line chart shows voting trends over time. Toggle between all regions, national, or top states.
                               </p>
                             </TooltipContent>
                           </Tooltip>
@@ -815,21 +837,11 @@ export default function ElectionDashboardPage() {
                     <CardContent className="pt-4">
                       <ElectionCharts
                         type="line"
-                        data={lineChartData}
+                        data={timeData}
                         selectedCandidate={selectedCandidate}
                         onSelectCandidate={handleCandidateSelect}
                         isLoading={isLoading}
                       />
-                      {timeView === "daily" && (
-                        <div className="mt-4">
-                          <Label className="text-xs mb-2 block">Time Range</Label>
-                          <Slider value={timeRange} onValueChange={setTimeRange} max={100} step={5} className="my-4" />
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Day 1</span>
-                            <span>Day 21</span>
-                          </div>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -841,14 +853,14 @@ export default function ElectionDashboardPage() {
                       <CardTitle>Electoral Map</CardTitle>
                       <CardDescription>Geographic distribution of election results</CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setActiveTab("map")}>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedRegion("all")}>
                       View Full Map
                     </Button>
                   </CardHeader>
                   <CardContent className="h-[400px]">
                     <ElectoralMap
-                      data={filteredMapData}
-                      view={mapView}
+                      data={regionalData}
+                      view={selectedRegion}
                       selectedCandidate={selectedCandidate}
                       isLoading={isLoading}
                     />
@@ -1054,12 +1066,19 @@ export default function ElectionDashboardPage() {
                             <h3 className="text-sm font-medium mb-2">Vote Share Distribution</h3>
                             <p className="text-sm text-muted-foreground mb-4">
                               This pie chart shows the percentage of votes received by each candidate in the{" "}
-                              {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]}.
+                              {ELECTION_TYPES[electionTypeKey as keyof typeof ELECTION_TYPES]}.
                             </p>
                             <div className="h-[500px]">
                               <ElectionCharts
                                 type="pie"
-                                data={pieChartData}
+                                data={candidates.map((c) => ({
+                                  id: c.id,
+                                  name: c.name,
+                                  party: c.party,
+                                  value: c.percentage,
+                                  votes: c.votes,
+                                  color: c.color,
+                                }))}
                                 selectedCandidate={selectedCandidate}
                                 onSelectCandidate={handleCandidateSelect}
                                 isLoading={isLoading}
@@ -1073,11 +1092,12 @@ export default function ElectionDashboardPage() {
                           <div className="mb-4">
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="text-sm font-medium">Regional Vote Distribution</h3>
-                              <Select value={regionView} onValueChange={setRegionView}>
+                              <Select value={selectedRegion} onValueChange={setSelectedRegion}>
                                 <SelectTrigger className="w-[180px]">
                                   <SelectValue placeholder="Select view" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                  <SelectItem value="all">All Regions</SelectItem>
                                   <SelectItem value="national">Geopolitical Zones</SelectItem>
                                   <SelectItem value="state">Top States</SelectItem>
                                 </SelectContent>
@@ -1085,12 +1105,12 @@ export default function ElectionDashboardPage() {
                             </div>
                             <p className="text-sm text-muted-foreground mb-4">
                               This bar chart shows vote distribution across{" "}
-                              {regionView === "national" ? "geopolitical zones" : "states"}.
+                              {selectedRegion === "national" ? "geopolitical zones" : selectedRegion === "state" ? "top states" : "selected region"}.
                             </p>
                             <div className="h-[500px]">
                               <ElectionCharts
                                 type="bar"
-                                data={barChartData}
+                                data={regionalData}
                                 selectedCandidate={selectedCandidate}
                                 onSelectCandidate={handleCandidateSelect}
                                 isLoading={isLoading}
@@ -1104,46 +1124,31 @@ export default function ElectionDashboardPage() {
                           <div className="mb-4">
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="text-sm font-medium">Voting Trends Over Time</h3>
-                              <Select value={timeView} onValueChange={setTimeView}>
+                              <Select value={selectedRegion} onValueChange={setSelectedRegion}>
                                 <SelectTrigger className="w-[180px]">
                                   <SelectValue placeholder="Select view" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="daily">Daily Trend</SelectItem>
-                                  <SelectItem value="hourly">Hourly Breakdown</SelectItem>
+                                  <SelectItem value="all">All Regions</SelectItem>
+                                  <SelectItem value="national">National</SelectItem>
+                                  <SelectItem value="state">Top States</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
                             <p className="text-sm text-muted-foreground mb-4">
                               This line chart shows how votes accumulated over the{" "}
-                              {timeView === "daily" ? "21-day voting period" : "election day"}.
+                              {selectedRegion === "national" ? "21-day voting period" : selectedRegion === "state" ? "election day" : "selected region"}.
                             </p>
                             <div className="h-[500px]">
                               <ElectionCharts
                                 type="line"
-                                data={lineChartData}
+                                data={timeData}
                                 selectedCandidate={selectedCandidate}
                                 onSelectCandidate={handleCandidateSelect}
                                 isLoading={isLoading}
                                 showLegend={true}
                               />
                             </div>
-                            {timeView === "daily" && (
-                              <div className="mt-4">
-                                <Label className="text-xs mb-2 block">Time Range</Label>
-                                <Slider
-                                  value={timeRange}
-                                  onValueChange={setTimeRange}
-                                  max={100}
-                                  step={5}
-                                  className="my-4"
-                                />
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                  <span>Day 1</span>
-                                  <span>Day 21</span>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </TabsContent>
                       </Tabs>
@@ -1162,26 +1167,14 @@ export default function ElectionDashboardPage() {
                         <CardDescription>Geographic distribution of election results</CardDescription>
                       </div>
                       <div className="flex items-center gap-2 mt-2 md:mt-0">
-                        <Select value={mapView} onValueChange={setMapView}>
+                        <Select value={selectedRegion} onValueChange={setSelectedRegion}>
                           <SelectTrigger className="w-[130px]">
                             <SelectValue placeholder="View" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="winner">Winning Party</SelectItem>
-                            <SelectItem value="turnout">Voter Turnout</SelectItem>
-                            <SelectItem value="margin">Victory Margin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select value={mapFilter} onValueChange={setMapFilter}>
-                          <SelectTrigger className="w-[130px]">
-                            <SelectValue placeholder="Filter" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All States</SelectItem>
-                            <SelectItem value="APC">APC States</SelectItem>
-                            <SelectItem value="PDP">PDP States</SelectItem>
-                            <SelectItem value="LP">LP States</SelectItem>
-                            <SelectItem value="NNPP">NNPP States</SelectItem>
+                            <SelectItem value="all">All Regions</SelectItem>
+                            <SelectItem value="national">Geopolitical Zones</SelectItem>
+                            <SelectItem value="state">Top States</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1189,8 +1182,8 @@ export default function ElectionDashboardPage() {
                   </CardHeader>
                   <CardContent className="h-[600px]">
                     <ElectoralMap
-                      data={filteredMapData}
-                      view={mapView}
+                      data={regionalData}
+                      view={selectedRegion}
                       selectedCandidate={selectedCandidate}
                       isLoading={isLoading}
                       interactive={true}
@@ -1200,22 +1193,12 @@ export default function ElectionDashboardPage() {
                     <div className="w-full">
                       <h3 className="text-sm font-medium mb-2">Legend</h3>
                       <div className="flex flex-wrap gap-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: "#64748b" }}></div>
-                          <span className="text-sm">APC</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: "#ef4444" }}></div>
-                          <span className="text-sm">PDP</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: "#22c55e" }}></div>
-                          <span className="text-sm">LP</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: "#3b82f6" }}></div>
-                          <span className="text-sm">NNPP</span>
-                        </div>
+                        {candidates.map((candidate) => (
+                          <div key={candidate.id} className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: candidate.color }}></div>
+                            <span className="text-sm">{candidate.party}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </CardFooter>

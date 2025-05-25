@@ -81,15 +81,15 @@ export function useVote() {
     }
   }, [token, setLoading, setError]);
 
-  const castVote = useCallback(async (electionId: string, candidateId: number | string): Promise<boolean> => {
+  const castVote = useCallback(async (electionId: string, candidateId: number | string): Promise<{ success: boolean, receiptCode?: string }> => {
     if (!token || !eligibility?.isEligible || votingStatus?.hasVoted) {
       setError(eligibility?.reason || (votingStatus?.hasVoted ? 'Already voted' : 'Cannot cast vote'));
-      return false;
+      return { success: false };
     }
     setLoading(true);
     setError(null);
     try {
-      await electionAPI.castVote(electionId, candidateId.toString()); // Ensure candidateId is string if API expects it
+      const response = await electionAPI.castVote(electionId, candidateId.toString()); // Ensure candidateId is string if API expects it
       
       // Update local state immediately for responsiveness
       setVotingStatus({ hasVoted: true, candidateId });
@@ -107,10 +107,14 @@ export function useVote() {
       localStorage.setItem("votingStatus", JSON.stringify(lsVotingStatus))
       localStorage.setItem("votedElections", JSON.stringify({ ...votedElections, [electionId]: Number(candidateId) })); // Keep this for dashboard fallback?
 
-      return true; // Success
+      // Return success and receipt code if available in the response
+      return { 
+        success: true,
+        receiptCode: response?.receiptCode || undefined
+      };
     } catch (err: any) {
       setError(err.message || 'Failed to cast vote');
-      return false; // Failure
+      return { success: false };
     } finally {
       setLoading(false);
     }

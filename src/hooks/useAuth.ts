@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useStore';
 import { authAPI } from '@/services/api';
@@ -6,8 +6,31 @@ import { useUIStore } from '@/store/useStore';
 
 export const useAuth = () => {
   const router = useRouter();
-  const { setAuth, logout: storeLogout, user, isAuthenticated } = useAuthStore();
+  const { setAuth, logout: storeLogout, user, isAuthenticated, token } = useAuthStore();
   const { setLoading, setError } = useUIStore();
+
+  // Set up automatic token refresh
+  useEffect(() => {
+    if (!token) return;
+
+    // Calculate when to refresh the token (after 10 minutes)
+    const REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+    
+    const refreshTokenTimer = setTimeout(async () => {
+      try {
+        const response = await authAPI.refreshToken();
+        if (response.token && response.user) {
+          setAuth(response.token, response.user);
+        }
+      } catch (error) {
+        console.error('Token refresh failed', error);
+        // Don't log out immediately on refresh failure
+      }
+    }, REFRESH_INTERVAL);
+
+    // Clean up the timer when component unmounts or token changes
+    return () => clearTimeout(refreshTokenTimer);
+  }, [token, setAuth]);
 
   const login = useCallback(
     async (identifier: string, password: string) => {
@@ -19,6 +42,24 @@ export const useAuth = () => {
         router.push('/dashboard');
       } catch (error: any) {
         setError(error.response?.data?.message || 'Login failed');
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router, setAuth, setLoading, setError]
+  );
+
+  const adminLogin = useCallback(
+    async (email: string, password: string) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await authAPI.adminLogin(email, password);
+        setAuth(response.token, response.user);
+        router.push('/admin/dashboard');
+      } catch (error: any) {
+        setError(error.response?.data?.message || 'Admin login failed');
         throw error;
       } finally {
         setLoading(false);
@@ -167,6 +208,7 @@ export const useAuth = () => {
     user,
     isAuthenticated,
     login,
+    adminLogin,
     register,
     logout,
     verifyMFA,

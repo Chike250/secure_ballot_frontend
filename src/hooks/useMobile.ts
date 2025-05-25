@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useUIStore } from '@/store/useStore';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+import { mobileAPI } from '@/services/api';
 
 export const useMobile = () => {
   const { setLoading, setError } = useUIStore();
@@ -21,18 +20,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${API_URL}/mobile/auth/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || 'Login failed');
-        }
-        return result.data;
+        const result = await mobileAPI.login(data);
+        return result;
       } catch (error: any) {
         setError(error.message || 'Login failed');
         throw error;
@@ -48,18 +37,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${API_URL}/mobile/auth/verify-device`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || 'Device verification failed');
-        }
-        return result.data;
+        const result = await mobileAPI.verifyDevice(data);
+        return result;
       } catch (error: any) {
         setError(error.message || 'Device verification failed');
         throw error;
@@ -75,20 +54,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(
-          `${API_URL}/mobile/vote/offline-package?electionId=${electionId}`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || 'Failed to get offline package');
-        }
-        return result.data;
+        const result = await mobileAPI.getOfflinePackage(electionId);
+        return result;
       } catch (error: any) {
         setError(error.message || 'Failed to get offline package');
         throw error;
@@ -110,18 +77,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${API_URL}/mobile/vote/submit-offline/${electionId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || 'Failed to submit offline votes');
-        }
-        return result.data;
+        const result = await mobileAPI.submitOfflineVotes(electionId, data);
+        return result;
       } catch (error: any) {
         setError(error.message || 'Failed to submit offline votes');
         throw error;
@@ -142,26 +99,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const queryParams = new URLSearchParams({
-          latitude: data.latitude.toString(),
-          longitude: data.longitude.toString(),
-          ...(data.radius && { radius: data.radius.toString() }),
-          ...(data.limit && { limit: data.limit.toString() }),
-        });
-        const response = await fetch(
-          `${API_URL}/mobile/polling-units/nearby?${queryParams}`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || 'Failed to get nearby polling units');
-        }
-        return result.data;
+        const result = await mobileAPI.getNearbyPollingUnits(data);
+        return result;
       } catch (error: any) {
         setError(error.message || 'Failed to get nearby polling units');
         throw error;
@@ -180,18 +119,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${API_URL}/mobile/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.message || 'Failed to sync data');
-        }
-        return result.data;
+        const result = await mobileAPI.syncData(data);
+        return result;
       } catch (error: any) {
         setError(error.message || 'Failed to sync data');
         throw error;

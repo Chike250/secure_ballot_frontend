@@ -17,6 +17,7 @@ import {
   Download,
   Share2,
   RefreshCw,
+  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -28,6 +29,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ElectionCharts } from "@/components/election-charts"
 import {
   Sidebar,
@@ -43,6 +45,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { useAuthStore, useUIStore } from "@/store/useStore"
+import { useElectionData } from "@/hooks/useElectionData"
+import { useResults } from "@/hooks/useResults"
 
 // Election types
 const ELECTION_TYPES = {
@@ -305,111 +310,147 @@ const hourlyData = [
 ]
 
 const AiAssistantPreview = () => {
-  return <div>{/* Placeholder for AI Assistant Preview */}</div>
+  return (
+    <div className="fixed bottom-4 right-4 rounded-xl bg-primary/90 text-primary-foreground p-3 shadow-lg backdrop-blur-sm border border-primary/20 z-50 flex items-center">
+      <span className="animate-pulse mr-2 h-3 w-3 rounded-full bg-primary-foreground"></span>
+      <span className="text-sm font-medium">AI Results Analysis Available</span>
+    </div>
+  )
 }
 
 export default function ResultsDashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const electionType = searchParams.get("election") || "presidential"
-  const [activeTab, setActiveTab] = useState("overview")
-  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isRealtime, setIsRealtime] = useState(true)
-  const [regionView, setRegionView] = useState("national")
-  const [timeView, setTimeView] = useState("daily")
-  const [timeRange, setTimeRange] = useState([0, 100])
-  const [candidates, setCandidates] = useState(candidatesByElection[electionType as keyof typeof candidatesByElection])
-  const [refreshing, setRefreshing] = useState(false)
+  const { isAuthenticated, user } = useAuthStore()
+  const { isLoading, error, setError } = useUIStore()
 
-  // Load candidates when election type changes
+  const initialElectionType = searchParams.get("type") || "presidential"
+  const [electionType, setElectionType] = useState(initialElectionType)
+  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null)
+  const [viewMode, setViewMode] = useState<"map" | "chart">("chart")
+  const [showRealTime, setShowRealTime] = useState(true)
+  const [dataLevel, setDataLevel] = useState<"national" | "regional" | "state">("national")
+  const [selectedRegion, setSelectedRegion] = useState("all")
+  const [selectedTimeRange, setSelectedTimeRange] = useState("all")
+  const [showLegend, setShowLegend] = useState(true)
+  const [refreshInterval, setRefreshInterval] = useState(0) // 0 means no auto-refresh
+
+  // Use the hooks for data
+  const {
+    currentElectionTypeKey,
+    currentElectionDetails: electionDetails,
+    candidates,
+    electionResults,
+    fetchElectionDetailsAndCandidates,
+    fetchResults,
+    ELECTION_TYPES_MAP
+  } = useElectionData(initialElectionType)
+  
+  // Additional results hook for more detailed data
+  const { 
+    getStatistics, 
+    getLiveResults, 
+    getRegionalResults, 
+    getHistoricalData 
+  } = useResults()
+
+  // Setup data states for statistics views
+  const [regionalData, setRegionalData] = useState<any[]>([])
+  const [stateData, setStateData] = useState<any[]>([])
+  const [timeData, setTimeData] = useState<any[]>([])
+
   useEffect(() => {
-    setIsLoading(true)
+    if (electionType) {
+      fetchElectionDetailsAndCandidates(electionType)
+      fetchResults(electionType)
+    }
+  }, [electionType, fetchElectionDetailsAndCandidates, fetchResults])
 
-    // Simulate API call delay
-    const timer = setTimeout(() => {
-      setCandidates(candidatesByElection[electionType as keyof typeof candidatesByElection])
-      setIsLoading(false)
-    }, 500)
+  useEffect(() => {
+    // Set up refresh interval if enabled
+    if (refreshInterval > 0) {
+      const intervalId = setInterval(() => {
+        handleRefresh()
+      }, refreshInterval * 1000)
+      
+      return () => clearInterval(intervalId)
+    }
+  }, [refreshInterval, electionType])
 
-    return () => clearTimeout(timer)
-  }, [electionType])
+  // Load regional data when needed
+  useEffect(() => {
+    const loadRegionalData = async () => {
+      if (dataLevel === 'regional' || dataLevel === 'state') {
+        try {
+          const data = await getRegionalResults(electionType)
+          if (dataLevel === 'regional') {
+            setRegionalData(data.regions || [])
+          } else {
+            setStateData(data.states || [])
+          }
+        } catch (err: any) {
+          setError(err.message || "Failed to load regional data")
+        }
+      }
+    }
+    
+    loadRegionalData()
+  }, [dataLevel, electionType, getRegionalResults, setError])
 
-  // Handle candidate selection
-  const handleCandidateSelect = (candidateId: number) => {
-    setSelectedCandidate(selectedCandidate === candidateId ? null : candidateId)
+  // Load historical time data when needed
+  useEffect(() => {
+    const loadTimeData = async () => {
+      if (selectedTimeRange !== 'all') {
+        try {
+          const data = await getHistoricalData(electionType, selectedTimeRange)
+          setTimeData(data.timePoints || [])
+        } catch (err: any) {
+          setError(err.message || "Failed to load historical data")
+        }
+      }
+    }
+    
+    loadTimeData()
+  }, [selectedTimeRange, electionType, getHistoricalData, setError])
+
+  const handleCandidateSelect = (candidateId: number | string) => {
+    const id = typeof candidateId === 'string' ? parseInt(candidateId, 10) : candidateId
+    setSelectedCandidateId(id === selectedCandidateId ? null : id)
   }
 
-  // Handle election type change
   const changeElectionType = (type: string) => {
-    router.push(`/results?election=${type}`)
+    setElectionType(type)
+    router.push(`/results?type=${type}`, { scroll: false })
   }
 
-  // Handle refresh
   const handleRefresh = () => {
-    setRefreshing(true)
-
-    // Simulate refresh delay
-    setTimeout(() => {
-      setRefreshing(false)
-    }, 1500)
+    fetchResults(electionType)
+    if (dataLevel === 'regional') {
+      getRegionalResults(electionType).then(data => setRegionalData(data.regions || []))
+    } else if (dataLevel === 'state') {
+      getRegionalResults(electionType).then(data => setStateData(data.states || []))
+    }
+    if (selectedTimeRange !== 'all') {
+      getHistoricalData(electionType, selectedTimeRange).then(data => setTimeData(data.timePoints || []))
+    }
   }
 
-  // Calculate total votes
+  const handleDownloadResults = () => {
+    // Implementation would create and trigger download of results data
+    alert("This would download the results in CSV format.")
+  }
+
+  const handleShareResults = () => {
+    // Implementation would create a shareable link
+    alert("This would create a shareable link to these results.")
+  }
+
   const getTotalVotes = () => {
-    return candidates.reduce((sum, candidate) => sum + candidate.votes, 0)
+    if (electionResults) {
+      return electionResults.totalVotes
+    }
+    return 0
   }
-
-  // Prepare data for charts
-  const pieChartData = candidates.map((c) => ({
-    id: c.id,
-    name: c.name,
-    party: c.party,
-    value: c.percentage,
-    votes: c.votes,
-    color: c.color,
-  }))
-
-  const barChartData =
-    regionView === "national"
-      ? regionalData.map((r) => ({
-          region: r.region,
-          APC: r.apc,
-          PDP: r.pdp,
-          LP: r.lp,
-          NNPP: r.nnpp,
-          Others: r.others,
-        }))
-      : stateData.map((s) => ({
-          region: s.state,
-          APC: s.apc,
-          PDP: s.pdp,
-          LP: s.lp,
-          NNPP: s.nnpp,
-          Others: s.others,
-        }))
-
-  // Filter time data based on range
-  const startIdx = Math.floor(timeData.length * (timeRange[0] / 100))
-  const endIdx = Math.ceil(timeData.length * (timeRange[1] / 100))
-  const filteredTimeData = timeData.slice(startIdx, endIdx)
-
-  const lineChartData =
-    timeView === "daily"
-      ? filteredTimeData.map((t) => ({
-          name: t.time,
-          APC: t.apc,
-          PDP: t.pdp,
-          LP: t.lp,
-          NNPP: t.nnpp,
-          Others: t.others,
-          milestone: t.milestone,
-        }))
-      : hourlyData.map((h) => ({
-          name: h.hour,
-          votes: h.votes,
-          milestone: h.milestone,
-        }))
 
   return (
     <SidebarProvider>
@@ -538,14 +579,14 @@ export default function ResultsDashboardPage() {
                 <Label htmlFor="realtime-toggle" className="text-sm">
                   Real-time
                 </Label>
-                <Switch id="realtime-toggle" checked={isRealtime} onCheckedChange={setIsRealtime} />
+                <Switch id="realtime-toggle" checked={showRealTime} onCheckedChange={setShowRealTime} />
               </div>
               <Button
                 variant="outline"
                 size="icon"
-                className={`rounded-full ${refreshing ? "animate-spin" : ""}`}
+                className={`rounded-full ${refreshInterval > 0 ? "animate-spin" : ""}`}
                 onClick={handleRefresh}
-                disabled={refreshing}
+                disabled={refreshInterval > 0}
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
@@ -624,7 +665,7 @@ export default function ResultsDashboardPage() {
                   key={candidate.id}
                   onClick={() => handleCandidateSelect(candidate.id)}
                   className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm transition-all ${
-                    selectedCandidate === candidate.id
+                    selectedCandidateId === candidate.id
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted hover:bg-muted/80"
                   }`}
@@ -633,9 +674,9 @@ export default function ResultsDashboardPage() {
                   <span>{candidate.party}</span>
                 </button>
               ))}
-              {selectedCandidate && (
+              {selectedCandidateId && (
                 <button
-                  onClick={() => setSelectedCandidate(null)}
+                  onClick={() => setSelectedCandidateId(null)}
                   className="rounded-full px-3 py-1 text-sm bg-muted hover:bg-muted/80"
                 >
                   Clear
@@ -671,8 +712,15 @@ export default function ResultsDashboardPage() {
                 <CardContent className="pt-4">
                   <ElectionCharts
                     type="pie"
-                    data={pieChartData}
-                    selectedCandidate={selectedCandidate}
+                    data={candidates.map((c) => ({
+                      id: c.id,
+                      name: c.name,
+                      party: c.party,
+                      value: c.percentage,
+                      votes: c.votes,
+                      color: c.color,
+                    }))}
+                    selectedCandidate={selectedCandidateId}
                     onSelectCandidate={handleCandidateSelect}
                     isLoading={isLoading}
                   />
@@ -687,7 +735,10 @@ export default function ResultsDashboardPage() {
                     <CardDescription>Vote counts across regions</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Select value={regionView} onValueChange={setRegionView}>
+                    <Select 
+                      value={dataLevel} 
+                      onValueChange={(value: string) => setDataLevel(value as "national" | "regional" | "state")}
+                    >
                       <SelectTrigger className="w-[130px]">
                         <SelectValue placeholder="View" />
                       </SelectTrigger>
@@ -706,7 +757,7 @@ export default function ResultsDashboardPage() {
                         <TooltipContent>
                           <p className="max-w-xs">
                             This bar chart shows vote distribution across{" "}
-                            {regionView === "national" ? "geopolitical zones" : "states"}. Toggle between views using
+                            {dataLevel === "national" ? "geopolitical zones" : "states"}. Toggle between views using
                             the dropdown.
                           </p>
                         </TooltipContent>
@@ -717,8 +768,8 @@ export default function ResultsDashboardPage() {
                 <CardContent className="pt-4">
                   <ElectionCharts
                     type="bar"
-                    data={barChartData}
-                    selectedCandidate={selectedCandidate}
+                    data={dataLevel === "national" ? regionalData : stateData}
+                    selectedCandidate={selectedCandidateId}
                     onSelectCandidate={handleCandidateSelect}
                     isLoading={isLoading}
                   />
@@ -733,11 +784,12 @@ export default function ResultsDashboardPage() {
                     <CardDescription>Vote progression over time</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Select value={timeView} onValueChange={setTimeView}>
+                    <Select value={selectedTimeRange} onValueChange={setSelectedTimeRange}>
                       <SelectTrigger className="w-[130px]">
                         <SelectValue placeholder="View" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="all">All Time</SelectItem>
                         <SelectItem value="daily">Daily Trend</SelectItem>
                         <SelectItem value="hourly">Hourly Breakdown</SelectItem>
                       </SelectContent>
@@ -761,15 +813,18 @@ export default function ResultsDashboardPage() {
                 <CardContent className="pt-4">
                   <ElectionCharts
                     type="line"
-                    data={lineChartData}
-                    selectedCandidate={selectedCandidate}
+                    data={selectedTimeRange === "all" ? timeData : timeData.slice(0, 21)}
+                    selectedCandidate={selectedCandidateId}
                     onSelectCandidate={handleCandidateSelect}
                     isLoading={isLoading}
                   />
-                  {timeView === "daily" && (
+                  {selectedTimeRange === "daily" && (
                     <div className="mt-4">
                       <Label className="text-xs mb-2 block">Time Range</Label>
-                      <Slider value={timeRange} onValueChange={setTimeRange} max={100} step={5} className="my-4" />
+                      <Slider value={[0, 100]} onValueChange={([start, end]) => {
+                        setSelectedTimeRange("custom")
+                        setSelectedTimeRange(end.toString())
+                      }} max={100} step={5} className="my-4" />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Day 1</span>
                         <span>Day 21</span>
@@ -803,7 +858,7 @@ export default function ResultsDashboardPage() {
                         <tr
                           key={candidate.id}
                           className={`border-b hover:bg-muted/30 transition-colors cursor-pointer ${
-                            selectedCandidate === candidate.id ? "bg-primary/5" : ""
+                            selectedCandidateId === candidate.id ? "bg-primary/5" : ""
                           }`}
                           onClick={() => handleCandidateSelect(candidate.id)}
                         >
@@ -852,11 +907,11 @@ export default function ResultsDashboardPage() {
               <CardFooter className="flex justify-between">
                 <div className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleString()}</div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleShareResults}>
                     <Share2 className="mr-2 h-4 w-4" />
                     Share Results
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleDownloadResults}>
                     <Download className="mr-2 h-4 w-4" />
                     Download
                   </Button>

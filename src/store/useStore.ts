@@ -27,7 +27,11 @@ const cookieStorage = {
     return Cookies.get(name) || null;
   },
   setItem: (name: string, value: string) => {
-    Cookies.set(name, value, { expires: 5/1440 }); // 5 minutes (5/1440 days)
+    Cookies.set(name, value, { 
+      expires: 15/1440, // 15 minutes (15/1440 days)
+      secure: process.env.NODE_ENV === 'production', // Only use secure in production
+      sameSite: 'strict' // Protect against CSRF
+    });
   },
   removeItem: (name: string) => {
     Cookies.remove(name);

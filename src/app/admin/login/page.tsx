@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Eye, EyeOff, AlertCircle, Shield } from "lucide-react"
@@ -11,74 +11,85 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SecurityBadges } from "@/components/security-badges"
+import { useAuth } from "@/hooks/useAuth"
+import { useUIStore } from "@/store/useStore"
 
 export default function AdminLoginPage() {
-  const [nin, setNin] = useState("")
-  const [passkey, setPasskey] = useState("")
-  const [showPasskey, setShowPasskey] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [formTouched, setFormTouched] = useState({ nin: false, passkey: false })
-  const [ninError, setNinError] = useState("")
-  const [passkeyError, setPasskeyError] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [formTouched, setFormTouched] = useState({ email: false, password: false })
+  const [emailError, setEmailError] = useState("")
+  const [passwordError, setPasswordError] = useState("")
+  const { adminLogin } = useAuth()
+  const { isLoading, error } = useUIStore()
 
-  const handleNinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "")
-    if (value.length <= 11) {
-      setNin(value)
-      if (!formTouched.nin) setFormTouched({ ...formTouched, nin: true })
-
-      if (value.length === 0) {
-        setNinError("NIN is required")
-      } else if (value.length !== 11) {
-        setNinError("NIN must be exactly 11 digits")
-      } else {
-        setNinError("")
+  // Create an effect to handle errors from the auth hook
+  useEffect(() => {
+    if (error) {
+      if (error.includes('email') || error.includes('Email')) {
+        setEmailError(error);
+      } else if (error.includes('password') || error.includes('credentials')) {
+        setPasswordError(error);
       }
     }
-  }
+  }, [error]);
 
-  const handlePasskeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    setPasskey(value)
-    if (!formTouched.passkey) setFormTouched({ ...formTouched, passkey: true })
+    setEmail(value)
+    if (!formTouched.email) setFormTouched({ ...formTouched, email: true })
 
     if (value.length === 0) {
-      setPasskeyError("Admin passkey is required")
-    } else if (value.length < 8) {
-      setPasskeyError("Admin passkey must be at least 8 characters")
+      setEmailError("Email is required")
+    } else if (!/\S+@\S+\.\S+/.test(value)) {
+      setEmailError("Please enter a valid email address")
     } else {
-      setPasskeyError("")
+      setEmailError("")
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setPassword(value)
+    if (!formTouched.password) setFormTouched({ ...formTouched, password: true })
+
+    if (value.length === 0) {
+      setPasswordError("Password is required")
+    } else if (value.length < 8) {
+      setPasswordError("Password must be at least 8 characters")
+    } else {
+      setPasswordError("")
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Force validation
-    setFormTouched({ nin: true, passkey: true })
+    setFormTouched({ email: true, password: true })
 
-    if (nin.length !== 11) {
-      setNinError("NIN must be exactly 11 digits")
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setEmailError("Please enter a valid email address")
       return
     }
 
-    if (passkey.length < 8) {
-      setPasskeyError("Admin passkey must be at least 8 characters")
+    if (password.length < 8) {
+      setPasswordError("Password must be at least 8 characters")
       return
     }
 
-    setIsLoading(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Redirect to admin dashboard
-      window.location.href = "/admin/dashboard"
-    }, 1500)
+    try {
+      await adminLogin(email, password)
+      // No need for redirect as the hook will handle it
+    } catch (error) {
+      // Error handling is done by the hook and useEffect above
+      console.error('Login error:', error)
+    }
   }
 
   const isLoginButtonDisabled = () => {
-    return isLoading || nin.length !== 11 || passkey.length < 8
+    return isLoading || !email || !/\S+@\S+\.\S+/.test(email) || password.length < 8
   }
 
   return (
@@ -119,61 +130,61 @@ export default function AdminLoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="admin-nin" className="flex items-center justify-between">
-                  <span>National Identification Number (NIN)</span>
-                  {formTouched.nin && ninError && <span className="text-xs text-destructive">Required</span>}
+                <Label htmlFor="admin-email" className="flex items-center justify-between">
+                  <span>Admin Email</span>
+                  {formTouched.email && emailError && <span className="text-xs text-destructive">Required</span>}
                 </Label>
                 <Input
-                  id="admin-nin"
-                  placeholder="Enter your 11-digit NIN"
-                  value={nin}
-                  onChange={handleNinChange}
-                  onBlur={() => setFormTouched({ ...formTouched, nin: true })}
+                  id="admin-email"
+                  type="email"
+                  placeholder="Enter your admin email"
+                  value={email}
+                  onChange={handleEmailChange}
+                  onBlur={() => setFormTouched({ ...formTouched, email: true })}
                   required
-                  maxLength={11}
-                  className={formTouched.nin && ninError ? "border-destructive" : ""}
+                  className={formTouched.email && emailError ? "border-destructive" : ""}
                 />
                 <div className="min-h-[20px] transition-all duration-200">
-                  {formTouched.nin && ninError && (
+                  {formTouched.email && emailError && (
                     <p className="text-xs text-destructive flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1">
                       <AlertCircle className="h-3 w-3" />
-                      {ninError}
+                      {emailError}
                     </p>
                   )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="admin-passkey" className="flex items-center justify-between">
-                  <span>Admin Passkey</span>
-                  {formTouched.passkey && passkeyError && <span className="text-xs text-destructive">Required</span>}
+                <Label htmlFor="admin-password" className="flex items-center justify-between">
+                  <span>Password</span>
+                  {formTouched.password && passwordError && <span className="text-xs text-destructive">Required</span>}
                 </Label>
                 <div className="relative">
                   <Input
-                    id="admin-passkey"
-                    type={showPasskey ? "text" : "password"}
-                    placeholder="Enter your admin passkey"
-                    value={passkey}
-                    onChange={handlePasskeyChange}
-                    onBlur={() => setFormTouched({ ...formTouched, passkey: true })}
+                    id="admin-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={handlePasswordChange}
+                    onBlur={() => setFormTouched({ ...formTouched, password: true })}
                     required
-                    className={formTouched.passkey && passkeyError ? "border-destructive" : ""}
+                    className={formTouched.password && passwordError ? "border-destructive" : ""}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     className="absolute right-0 top-0"
-                    onClick={() => setShowPasskey(!showPasskey)}
+                    onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPasskey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
                 <div className="min-h-[20px] transition-all duration-200">
-                  {formTouched.passkey && passkeyError && (
+                  {formTouched.password && passwordError && (
                     <p className="text-xs text-destructive flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1">
                       <AlertCircle className="h-3 w-3" />
-                      {passkeyError}
+                      {passwordError}
                     </p>
                   )}
                 </div>

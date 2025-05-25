@@ -46,7 +46,7 @@ interface ElectionResults {
   // Add other relevant result fields if needed
 }
 
-// Fallback dummy data (similar to what was in dashboard page)
+// Election types mapping
 const ELECTION_TYPES_MAP: Record<string, string> = {
   presidential: "Presidential Election",
   gubernatorial: "Gubernatorial Election",
@@ -54,21 +54,12 @@ const ELECTION_TYPES_MAP: Record<string, string> = {
   senatorial: "Senatorial Election",
 };
 
-const dummyCandidatesByElection: Record<string, Candidate[]> = {
-  presidential: [
-    { id: 1, name: "Bola Ahmed Tinubu", party: "APC", votes: 8500000, percentage: 35, image: "/placeholder.svg?height=80&width=80", color: "#64748b" },
-    { id: 2, name: "Atiku Abubakar", party: "PDP", votes: 6900000, percentage: 28, image: "/placeholder.svg?height=80&width=80", color: "#ef4444" },
-    { id: 3, name: "Peter Obi", party: "LP", votes: 6100000, percentage: 25, image: "/placeholder.svg?height=80&width=80", color: "#22c55e" },
-  ],
-  // Add other election types if needed for fallback
-};
-
 export function useElectionData(initialElectionTypeKey: string = "presidential") {
   const { setLoading, setError } = useUIStore();
   const [currentElectionTypeKey, setCurrentElectionTypeKey] = useState(initialElectionTypeKey);
   const [elections, setElections] = useState<Election[]>([]); // List of all elections
   const [currentElectionDetails, setCurrentElectionDetails] = useState<Election | null>(null);
-  const [candidates, setCandidates] = useState<Candidate[]>(dummyCandidatesByElection[initialElectionTypeKey] || []);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [electionResults, setElectionResults] = useState<ElectionResults | null>(null);
 
   const fetchElectionsList = useCallback(async (status: string = "all") => {
@@ -89,29 +80,17 @@ export function useElectionData(initialElectionTypeKey: string = "presidential")
     setLoading(true);
     setError(null);
     try {
-      // Find election ID from the list or derive if not using UUIDs for types
-      // This part needs refinement based on how electionId is obtained/mapped from electionTypeKey
-      // For now, we assume electionTypeKey can be used or mapped to an ID for fetching
-      // const electionDetailData = await electionAPI.getElectionById(electionTypeKey); // API: /api/v1/elections/{id}
-      // setCurrentElectionDetails(electionDetailData);
+      // Get election details
+      const electionDetailData = await electionAPI.getElectionDetails(electionTypeKey);
+      setCurrentElectionDetails(electionDetailData);
 
       // Fetch candidates for this election
-      // const candidatesData = await electionAPI.getCandidates(electionTypeKey); // API: /api/v1/elections/{electionId}/candidates
-      // setCandidates(candidatesData.candidates || []);
-      
-      // Using dummy data as placeholder for API integration
-      setCandidates(dummyCandidatesByElection[electionTypeKey] || []);
-      setCurrentElectionDetails({ 
-        id: electionTypeKey, // Placeholder ID
-        electionName: ELECTION_TYPES_MAP[electionTypeKey] || "Election", 
-        electionType: ELECTION_TYPES_MAP[electionTypeKey]?.split(' ')[0] || "Unknown",
-        startDate: new Date().toISOString(), 
-        endDate: new Date().toISOString() 
-      });
-
+      const candidatesData = await electionAPI.getCandidates(electionTypeKey);
+      setCandidates(candidatesData.candidates || []);
     } catch (err: any) {
       setError(err.message || `Failed to fetch data for ${electionTypeKey}`);
-      setCandidates(dummyCandidatesByElection[electionTypeKey] || []); // Fallback
+      // Don't set fallback dummy data, just empty array
+      setCandidates([]);
     } finally {
       setLoading(false);
     }
@@ -123,21 +102,15 @@ export function useElectionData(initialElectionTypeKey: string = "presidential")
     setError(null); // Clear previous errors
     try {
       // Call the actual API endpoint
-      const data = await resultsAPI.getDetailedResults(electionId); // API: /api/v1/results/elections/{electionId}
-      // Assuming data structure matches refined ElectionResults interface
-      // e.g., data = { totalVotes: 12345, candidates: [{ id: 1, name: '...', votes: 5000, percentage: 40 }, ...] }
+      const data = await resultsAPI.getDetailedResults(electionId);
       setElectionResults(data);
-
-      // Remove dummy results assignment
-      // const totalVotes = (dummyCandidatesByElection[currentElectionTypeKey] || []).reduce((sum, c) => sum + c.votes, 0);
-      // setElectionResults({ totalVotes, candidates: dummyCandidatesByElection[currentElectionTypeKey] || [], turnout: 65 }); 
     } catch (err: any) {
       setError(err.message || "Failed to fetch results");
       setElectionResults(null); // Clear results on error
     } finally {
       setLoading(false);
     }
-  }, [setLoading, setError]); // Removed currentElectionTypeKey as electionId is passed directly
+  }, [setLoading, setError]);
 
   // Initial fetch for the given election type
   useEffect(() => {

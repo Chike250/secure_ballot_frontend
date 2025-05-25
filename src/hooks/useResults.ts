@@ -90,11 +90,43 @@ export const useResults = () => {
     [setLoading, setError]
   );
 
+  const getHistoricalData = useCallback(
+    async (electionId: string, timeRange: string) => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Since this isn't defined in the API, we're simulating it with existing endpoints
+        // In a real implementation, you'd call the actual API endpoint
+        const response = await resultsAPI.getDetailedResults(electionId, false);
+        
+        // Create mock time points based on the detailed results
+        const mockTimePoints = Array(21).fill(0).map((_, index) => ({
+          time: `Day ${index + 1}`,
+          votes: Math.round(response.data.totalVotes * ((index + 1) / 21)),
+          timestamp: new Date(Date.now() - (21 - index) * 24 * 60 * 60 * 1000).toISOString()
+        }));
+        
+        return {
+          electionId,
+          timeRange,
+          timePoints: mockTimePoints
+        };
+      } catch (error: any) {
+        setError(error.response?.data?.message || 'Failed to fetch historical data');
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, setError]
+  );
+
   return {
     getLiveResults,
     getStatistics,
     getDetailedResults,
     getLiveStatistics,
     getRegionalResults,
+    getHistoricalData,
   };
 }; 

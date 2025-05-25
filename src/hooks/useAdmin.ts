@@ -121,10 +121,32 @@ export const useAdmin = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await adminAPI.publishResults(electionId, publishLevel);
+        const response = await adminAPI.finalizeResults(electionId, publishLevel);
         return response.data;
       } catch (error: any) {
         setError(error.response?.data?.message || 'Failed to publish results');
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, setError]
+  );
+
+  const getAdminElections = useCallback(
+    async (params: {
+      status?: string;
+      type?: string;
+      page?: number;
+      limit?: number;
+    } = {}) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await adminAPI.getAdminElections(params);
+        return response.data;
+      } catch (error: any) {
+        setError(error.response?.data?.message || 'Failed to fetch elections');
         throw error;
       } finally {
         setLoading(false);
@@ -140,5 +162,6 @@ export const useAdmin = () => {
     createElection,
     getSecurityLogs,
     publishResults,
+    getAdminElections,
   };
 }; 
