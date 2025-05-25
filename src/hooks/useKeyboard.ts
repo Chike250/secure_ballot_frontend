@@ -23,12 +23,13 @@ export function useKeyboard(
   } = options;
 
   const handleKeyEvent = useCallback(
-    (event: KeyboardEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
-      const handler = keyMap[event.key];
+      const keyboardEvent = event as KeyboardEvent;
+      const handler = keyMap[keyboardEvent.key];
       if (handler) {
-        handler(event);
+        handler(keyboardEvent);
       }
     },
     [keyMap, enabled]

@@ -18,6 +18,7 @@ interface SearchActions<T> {
   clearFilters: () => void;
   clearSearch: () => void;
   reset: () => void;
+  searchItems: (items: T[]) => T[];
 }
 
 export const useSearch = <T extends Record<string, any>>({

@@ -22,7 +22,7 @@ export function useFocus(options: FocusOptions = {}) {
   });
 
   const handleFocus = useCallback(
-    (event: FocusEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
       setState({
@@ -34,7 +34,7 @@ export function useFocus(options: FocusOptions = {}) {
   );
 
   const handleBlur = useCallback(
-    (event: FocusEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
       setState({

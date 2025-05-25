@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useUIStore } from '@/store/useStore';
-import { electionAPI, resultsAPI } from '@/services/api'; // Import resultsAPI
+import { useState, useEffect } from 'react';
+import { useElectionStore, useVotingStore, useUIStore } from '@/store/useStore';
+import { electionAPI, resultsAPI } from '@/services/api';
 
 // Define interfaces for your data structures
 interface Candidate {
@@ -54,88 +54,261 @@ const ELECTION_TYPES_MAP: Record<string, string> = {
   senatorial: "Senatorial Election",
 };
 
-export function useElectionData(initialElectionTypeKey: string = "presidential") {
-  const { setLoading, setError } = useUIStore();
-  const [currentElectionTypeKey, setCurrentElectionTypeKey] = useState(initialElectionTypeKey);
-  const [elections, setElections] = useState<Election[]>([]); // List of all elections
-  const [currentElectionDetails, setCurrentElectionDetails] = useState<Election | null>(null);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [electionResults, setElectionResults] = useState<ElectionResults | null>(null);
-
-  const fetchElectionsList = useCallback(async (status: string = "all") => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await electionAPI.getElections(status); // API: /api/v1/elections
-      setElections(data.elections || []); // Assuming API returns { elections: [...] }
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch elections list");
-    } finally {
-      setLoading(false);
-    }
-  }, [setLoading, setError]);
-
-  const fetchElectionDetailsAndCandidates = useCallback(async (electionTypeKey: string) => {
-    setCurrentElectionTypeKey(electionTypeKey);
-    setLoading(true);
-    setError(null);
-    try {
-      // Get election details
-      const electionDetailData = await electionAPI.getElectionDetails(electionTypeKey);
-      setCurrentElectionDetails(electionDetailData);
-
-      // Fetch candidates for this election
-      const candidatesData = await electionAPI.getCandidates(electionTypeKey);
-      setCandidates(candidatesData.candidates || []);
-    } catch (err: any) {
-      setError(err.message || `Failed to fetch data for ${electionTypeKey}`);
-      // Don't set fallback dummy data, just empty array
-      setCandidates([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [setLoading, setError]);
-
-  // Implement fetchResults using resultsAPI
-  const fetchResults = useCallback(async (electionId: string) => {
-    setLoading(true);
-    setError(null); // Clear previous errors
-    try {
-      // Call the actual API endpoint
-      const data = await resultsAPI.getDetailedResults(electionId);
-      setElectionResults(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch results");
-      setElectionResults(null); // Clear results on error
-    } finally {
-      setLoading(false);
-    }
-  }, [setLoading, setError]);
-
-  // Initial fetch for the given election type
-  useEffect(() => {
-    fetchElectionDetailsAndCandidates(initialElectionTypeKey);
-  }, [initialElectionTypeKey, fetchElectionDetailsAndCandidates]);
+export const useElectionData = () => {
+  const { 
+    currentElection, 
+    elections, 
+    candidates, 
+    results,
+    setCurrentElection, 
+    setElections, 
+    setCandidates,
+    setResults,
+    clearElectionData 
+  } = useElectionStore();
   
-  // Fetch list of elections on mount (optional, if needed for a selector)
-  // useEffect(() => {
-  //   fetchElectionsList();
-  // }, [fetchElectionsList]);
+  const { 
+    hasVoted, 
+    votingStatus, 
+    eligibility,
+    voteReceipts,
+    setHasVoted, 
+    setVotingStatus, 
+    setEligibility,
+    setVoteReceipt 
+  } = useVotingStore();
+  
+  const { setLoading, setError, addNotification } = useUIStore();
+  
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch all elections
+  const fetchElections = async (status = 'active', type?: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await electionAPI.getElections(status, type);
+      if (response.success) {
+        setElections(response.data);
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch elections';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch election details
+  const fetchElectionDetails = async (electionId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await electionAPI.getElectionDetails(electionId);
+      if (response.success) {
+        setCurrentElection(response.data);
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch election details';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch candidates for an election
+  const fetchCandidates = async (electionId: string, search?: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await electionAPI.getCandidates(electionId, search);
+      if (response.success) {
+        setCandidates(response.data);
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch candidates';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cast a vote
+  const castVote = async (electionId: string, candidateId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await electionAPI.castVote(electionId, candidateId);
+      if (response.success) {
+        setHasVoted(electionId, true);
+        if (response.data.receiptCode) {
+          setVoteReceipt(electionId, response.data.receiptCode);
+        }
+        addNotification({
+          type: 'success',
+          message: 'Vote cast successfully!',
+        });
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to cast vote';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check voting status
+  const checkVotingStatus = async (electionId: string) => {
+    try {
+      const response = await electionAPI.getVotingStatus(electionId);
+      if (response.success) {
+        setVotingStatus(electionId, response.data);
+        setHasVoted(electionId, response.data.hasVoted);
+        return response.data;
+      }
+    } catch (error: any) {
+      console.error('Failed to check voting status:', error);
+    }
+  };
+
+  // Fetch election results
+  const fetchResults = async (electionId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await resultsAPI.getDetailedResults(electionId);
+      if (response.success) {
+        setResults(response.data);
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch results';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch live results
+  const fetchLiveResults = async (electionId: string) => {
+    try {
+      const response = await resultsAPI.getLiveResults(electionId);
+      if (response.success) {
+        setResults(response.data);
+        return response.data;
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch live results:', error);
+    }
+  };
+
+  // Fetch election statistics
+  const fetchStatistics = async (electionId: string) => {
+    try {
+      const response = await resultsAPI.getStatistics(electionId);
+      if (response.success) {
+        return response.data;
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch statistics:', error);
+    }
+  };
+
+  // Get real-time results
+  const getRealTimeResults = async (electionId: string) => {
+    try {
+      const response = await resultsAPI.getRealTimeResults(electionId);
+      if (response.success) {
+        return response.data;
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch real-time results:', error);
+    }
+  };
+
+  // Get regional results
+  const getRegionalResults = async (electionId: string, region?: string) => {
+    try {
+      const response = await resultsAPI.getRegionalResults(electionId, region);
+      if (response.success) {
+        return response.data;
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch regional results:', error);
+    }
+  };
+
+  // Auto-fetch elections on mount
+  useEffect(() => {
+    fetchElections();
+  }, []);
+
+  // Auto-fetch candidates when current election changes
+  useEffect(() => {
+    if (currentElection?.id) {
+      fetchCandidates(currentElection.id);
+      checkVotingStatus(currentElection.id);
+    }
+  }, [currentElection?.id]);
 
   return {
-    elections, // Full list
-    currentElectionDetails, // Details of the currently selected/viewed election
-    currentElectionTypeKey,
+    // State
+    currentElection,
+    elections,
     candidates,
-    electionResults,
-    fetchElectionsList, // To manually refresh or get all elections
-    fetchElectionDetailsAndCandidates, // To switch to a different election type
-    fetchResults, // To fetch/refresh results for the current election
-    ELECTION_TYPES_MAP, // Exporting map for display names
-    isLoading: useUIStore.getState().isLoading, // Direct access to loading state from UI store
-    error: useUIStore.getState().error,
+    results,
+    hasVoted,
+    votingStatus,
+    eligibility,
+    voteReceipts,
+    isLoading,
+
+    // Actions
+    fetchElections,
+    fetchElectionDetails,
+    fetchCandidates,
+    castVote,
+    checkVotingStatus,
+    fetchResults,
+    fetchLiveResults,
+    fetchStatistics,
+    getRealTimeResults,
+    getRegionalResults,
+    setCurrentElection,
+    clearElectionData,
+
+    // Computed values
+    isElectionActive: currentElection?.status === 'active',
+    isElectionCompleted: currentElection?.status === 'completed',
+    canVote: currentElection?.status === 'active' && !hasVoted[currentElection.id],
+    totalCandidates: candidates.length,
+    totalVotes: results?.totalVotes || 0,
   };
-}
+};
 
 // NOTE: This hook assumes electionAPI methods are implemented in src/services/api.ts
 // - electionAPI.getElections({ status })

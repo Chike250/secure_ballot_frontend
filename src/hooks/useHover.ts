@@ -26,7 +26,7 @@ export function useHover(options: HoverOptions = {}) {
   const [timeoutId, setTimeoutId] = useState<number | null>(null);
 
   const handleMouseEnter = useCallback(
-    (event: MouseEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
       if (delay > 0) {
@@ -48,7 +48,7 @@ export function useHover(options: HoverOptions = {}) {
   );
 
   const handleMouseLeave = useCallback(
-    (event: MouseEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
       if (timeoutId) {

@@ -31,60 +31,64 @@ export function useTouch(options: TouchOptions = {}) {
   });
 
   const handleTouchStart = useCallback(
-    (event: TouchEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
-      const touch = event.touches[0];
+      const touchEvent = event as TouchEvent;
+      const touch = touchEvent.touches[0];
       setState((prev) => ({
         ...prev,
         x: touch.clientX,
         y: touch.clientY,
         isTouching: true,
-        touchCount: event.touches.length,
+        touchCount: touchEvent.touches.length,
       }));
     },
     [enabled]
   );
 
   const handleTouchMove = useCallback(
-    (event: TouchEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
-      const touch = event.touches[0];
+      const touchEvent = event as TouchEvent;
+      const touch = touchEvent.touches[0];
       setState((prev) => ({
         ...prev,
         x: touch.clientX,
         y: touch.clientY,
         isMoving: true,
-        touchCount: event.touches.length,
+        touchCount: touchEvent.touches.length,
       }));
     },
     [enabled]
   );
 
   const handleTouchEnd = useCallback(
-    (event: TouchEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
+      const touchEvent = event as TouchEvent;
       setState((prev) => ({
         ...prev,
         isTouching: false,
         isMoving: false,
-        touchCount: event.touches.length,
+        touchCount: touchEvent.touches.length,
       }));
     },
     [enabled]
   );
 
   const handleTouchCancel = useCallback(
-    (event: TouchEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
+      const touchEvent = event as TouchEvent;
       setState((prev) => ({
         ...prev,
         isTouching: false,
         isMoving: false,
-        touchCount: event.touches.length,
+        touchCount: touchEvent.touches.length,
       }));
     },
     [enabled]
@@ -144,10 +148,11 @@ export function useSwipe(
   const [startPosition, setStartPosition] = useState<TouchPosition | null>(null);
 
   const handleTouchStart = useCallback(
-    (event: TouchEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
-      const touch = event.touches[0];
+      const touchEvent = event as TouchEvent;
+      const touch = touchEvent.touches[0];
       setStartPosition({
         x: touch.clientX,
         y: touch.clientY,
@@ -157,10 +162,11 @@ export function useSwipe(
   );
 
   const handleTouchEnd = useCallback(
-    (event: TouchEvent) => {
+    (event: Event) => {
       if (!enabled || !startPosition) return;
 
-      const touch = event.changedTouches[0];
+      const touchEvent = event as TouchEvent;
+      const touch = touchEvent.changedTouches[0];
       const deltaX = touch.clientX - startPosition.x;
       const deltaY = touch.clientY - startPosition.y;
 
@@ -208,19 +214,21 @@ export function usePinch(
   };
 
   const handleTouchStart = useCallback(
-    (event: TouchEvent) => {
-      if (!enabled || event.touches.length !== 2) return;
+    (event: Event) => {
+      const touchEvent = event as TouchEvent;
+      if (!enabled || touchEvent.touches.length !== 2) return;
 
-      setStartDistance(getDistance(event.touches));
+      setStartDistance(getDistance(touchEvent.touches));
     },
     [enabled]
   );
 
   const handleTouchMove = useCallback(
-    (event: TouchEvent) => {
-      if (!enabled || !startDistance || event.touches.length !== 2) return;
+    (event: Event) => {
+      const touchEvent = event as TouchEvent;
+      if (!enabled || !startDistance || touchEvent.touches.length !== 2) return;
 
-      const currentDistance = getDistance(event.touches);
+      const currentDistance = getDistance(touchEvent.touches);
       const scale = currentDistance / startDistance;
       callback(scale);
     },

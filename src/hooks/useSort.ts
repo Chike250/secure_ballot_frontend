@@ -18,6 +18,7 @@ interface SortState<T> {
 interface SortActions<T> {
   sort: (key: keyof T) => void;
   clearSort: () => void;
+  sortItems: (items: T[]) => T[];
 }
 
 export const useSort = <T extends Record<string, any>>({
@@ -72,10 +73,10 @@ export const useSort = <T extends Record<string, any>>({
             : bValue - aValue;
         }
 
-        if (aValue instanceof Date && bValue instanceof Date) {
+        if ((aValue as any) instanceof Date && (bValue as any) instanceof Date) {
           return sortConfig.direction === 'asc'
-            ? aValue.getTime() - bValue.getTime()
-            : bValue.getTime() - aValue.getTime();
+            ? (aValue as Date).getTime() - (bValue as Date).getTime()
+            : (bValue as Date).getTime() - (aValue as Date).getTime();
         }
 
         return 0;

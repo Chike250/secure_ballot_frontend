@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useUIStore } from '@/store/useStore';
-import { ussdAPI } from '@/services/api';
+import { authAPI } from '@/services/api';
 
 export const useUSSD = () => {
   const { setLoading, setError } = useUIStore();
@@ -10,7 +10,7 @@ export const useUSSD = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await ussdAPI.startSession(data);
+        const result = await authAPI.ussdAuthenticate(data.nin, data.vin, data.phoneNumber);
         return result;
       } catch (error: any) {
         setError(error.message || 'Failed to start USSD session');
@@ -27,8 +27,8 @@ export const useUSSD = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await ussdAPI.castVote(data);
-        return result;
+        // USSD voting not implemented in current API
+        throw new Error('USSD voting functionality not available');
       } catch (error: any) {
         setError(error.message || 'Failed to cast vote');
         throw error;
@@ -44,7 +44,7 @@ export const useUSSD = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await ussdAPI.getSessionStatus(sessionCode);
+        const result = await authAPI.ussdVerifySession(sessionCode);
         return result;
       } catch (error: any) {
         setError(error.message || 'Failed to check session status');
@@ -61,8 +61,8 @@ export const useUSSD = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await ussdAPI.verifyVote(data);
-        return result;
+        // USSD vote verification not implemented in current API
+        throw new Error('USSD vote verification functionality not available');
       } catch (error: any) {
         setError(error.message || 'Failed to verify vote');
         throw error;

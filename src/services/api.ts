@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/useStore';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -37,8 +37,8 @@ export const authAPI = {
     return response.data;
   },
 
-  adminLogin: async (email: string, password: string) => {
-    const response = await api.post('/auth/admin-login', { email, password });
+  adminLogin: async (nin: string, password: string) => {
+    const response = await api.post('/auth/admin-login', { nin, password });
     return response.data;
   },
 
@@ -48,6 +48,12 @@ export const authAPI = {
     phoneNumber: string;
     dateOfBirth: string;
     password: string;
+    fullName: string;
+    pollingUnitCode: string;
+    state: string;
+    gender: string;
+    lga: string;
+    ward: string;
   }) => {
     const response = await api.post('/auth/register', data);
     return response.data;
@@ -73,6 +79,16 @@ export const authAPI = {
     return response.data;
   },
 
+  generateBackupCodes: async () => {
+    const response = await api.post('/auth/generate-backup-codes');
+    return response.data;
+  },
+
+  verifyBackupCode: async (code: string) => {
+    const response = await api.post('/auth/verify-backup-code', { code });
+    return response.data;
+  },
+
   refreshToken: async () => {
     const response = await api.post('/auth/refresh-token');
     return response.data;
@@ -83,13 +99,24 @@ export const authAPI = {
     return response.data;
   },
 
-  forgotPassword: async (email: string) => {
-    const response = await api.post('/auth/forgot-password', { email });
+  forgotPassword: async (identifier: string) => {
+    const response = await api.post('/auth/forgot-password', { identifier });
     return response.data;
   },
 
   resetPassword: async (token: string, newPassword: string) => {
     const response = await api.post('/auth/reset-password', { token, newPassword });
+    return response.data;
+  },
+
+  // USSD Authentication
+  ussdAuthenticate: async (nin: string, vin: string, phoneNumber: string) => {
+    const response = await api.post('/auth/ussd/authenticate', { nin, vin, phoneNumber });
+    return response.data;
+  },
+
+  ussdVerifySession: async (sessionCode: string) => {
+    const response = await api.post('/auth/ussd/verify-session', { sessionCode });
     return response.data;
   },
 };
@@ -101,7 +128,7 @@ export const voterAPI = {
     return response.data;
   },
 
-  updateProfile: async (data: { phoneNumber?: string }) => {
+  updateProfile: async (data: { phoneNumber?: string; state?: string; lga?: string; ward?: string }) => {
     const response = await api.put('/voter/profile', data);
     return response.data;
   },
@@ -119,15 +146,51 @@ export const voterAPI = {
     return response.data;
   },
 
-  getVotingHistory: async (page = 1, limit = 10) => {
-    const response = await api.get('/voter/voting-history', {
+  getPollingUnits: async (page = 1, limit = 10) => {
+    const response = await api.get('/voter/polling-units', {
       params: { page, limit },
     });
     return response.data;
   },
 
+  getPollingUnitById: async (id: string) => {
+    const response = await api.get(`/voter/polling-units/${id}`);
+    return response.data;
+  },
+
+  getNearbyPollingUnits: async (latitude: number, longitude: number, radius = 5) => {
+    const response = await api.get('/voter/polling-units/nearby', {
+      params: { latitude, longitude, radius },
+    });
+    return response.data;
+  },
+
+  getVerificationStatus: async () => {
+    const response = await api.get('/voter/verification-status');
+    return response.data;
+  },
+
+  submitVerification: async (data: any) => {
+    const response = await api.post('/voter/submit-verification', data);
+    return response.data;
+  },
+
   getEligibility: async (electionId: string) => {
     const response = await api.get(`/voter/eligibility/${electionId}`);
+    return response.data;
+  },
+
+  getVoteHistory: async (page = 1, limit = 10) => {
+    const response = await api.get('/voter/vote-history', {
+      params: { page, limit },
+    });
+    return response.data;
+  },
+
+  getVotingHistory: async (page = 1, limit = 10) => {
+    const response = await api.get('/voter/voting-history', {
+      params: { page, limit },
+    });
     return response.data;
   },
 
@@ -142,6 +205,21 @@ export const voterAPI = {
     description: string;
   }) => {
     const response = await api.post('/voter/report-vote-issue', data);
+    return response.data;
+  },
+
+  verifyIdentity: async (data: any) => {
+    const response = await api.post('/voter/verify-identity', data);
+    return response.data;
+  },
+
+  verifyAddress: async (data: any) => {
+    const response = await api.post('/voter/verify-address', data);
+    return response.data;
+  },
+
+  deactivateAccount: async () => {
+    const response = await api.post('/voter/deactivate-account');
     return response.data;
   },
 };
@@ -176,6 +254,57 @@ export const electionAPI = {
     const response = await api.get(`/elections/${electionId}/voting-status`);
     return response.data;
   },
+
+  getOfflinePackage: async (electionId: string) => {
+    const response = await api.get(`/elections/${electionId}/offline-package`);
+    return response.data;
+  },
+
+  submitOfflineVotes: async (electionId: string, data: any) => {
+    const response = await api.post(`/elections/${electionId}/submit-offline`, data);
+    return response.data;
+  },
+
+  verifyOfflineVote: async (electionId: string, receiptCode: string) => {
+    const response = await api.get(`/elections/${electionId}/offline-votes/${receiptCode}`);
+    return response.data;
+  },
+
+  // Admin endpoints
+  createElection: async (data: any) => {
+    const response = await api.post('/elections', data);
+    return response.data;
+  },
+
+  updateElection: async (id: string, data: any) => {
+    const response = await api.put(`/elections/${id}`, data);
+    return response.data;
+  },
+
+  deleteElection: async (id: string) => {
+    const response = await api.delete(`/elections/${id}`);
+    return response.data;
+  },
+
+  addCandidate: async (electionId: string, data: any) => {
+    const response = await api.post(`/elections/${electionId}/candidates`, data);
+    return response.data;
+  },
+
+  updateCandidate: async (electionId: string, candidateId: string, data: any) => {
+    const response = await api.put(`/elections/${electionId}/candidates/${candidateId}`, data);
+    return response.data;
+  },
+
+  deleteCandidate: async (electionId: string, candidateId: string) => {
+    const response = await api.delete(`/elections/${electionId}/candidates/${candidateId}`);
+    return response.data;
+  },
+
+  getElectionResults: async (electionId: string) => {
+    const response = await api.get(`/elections/${electionId}/results`);
+    return response.data;
+  },
 };
 
 // Results API
@@ -202,119 +331,45 @@ export const resultsAPI = {
     return response.data;
   },
 
-  getRegionalResults: async (electionId: string, regionId?: string) => {
+  getRegionalResults: async (electionId: string, region?: string) => {
     const response = await api.get(`/results/region/${electionId}`, {
-      params: { regionId },
-    });
-    return response.data;
-  },
-};
-
-// Mobile API
-export const mobileAPI = {
-  login: async (data: {
-    nin: string;
-    vin: string;
-    password: string;
-    deviceInfo: {
-      deviceId: string;
-      deviceModel: string;
-      osVersion: string;
-      appVersion: string;
-    };
-  }) => {
-    const response = await api.post('/mobile/auth/login', data);
-    return response.data;
-  },
-
-  verifyDevice: async (data: { deviceId: string; verificationCode: string }) => {
-    const response = await api.post('/mobile/auth/verify-device', data);
-    return response.data;
-  },
-
-  getOfflinePackage: async (electionId: string) => {
-    const response = await api.get(`/mobile/vote/offline-package?electionId=${electionId}`);
-    return response.data;
-  },
-
-  submitOfflineVotes: async (electionId: string, data: {
-    encryptedVotes: Array<{
-      candidateId: string;
-      encryptedVote: string;
-    }>;
-    signature: string;
-  }) => {
-    const response = await api.post(`/mobile/vote/submit-offline/${electionId}`, data);
-    return response.data;
-  },
-
-  getNearbyPollingUnits: async (data: {
-    latitude: number;
-    longitude: number;
-    radius?: number;
-    limit?: number;
-  }) => {
-    const queryParams = new URLSearchParams({
-      latitude: data.latitude.toString(),
-      longitude: data.longitude.toString(),
-      ...(data.radius && { radius: data.radius.toString() }),
-      ...(data.limit && { limit: data.limit.toString() }),
-    });
-    const response = await api.get(`/mobile/polling-units/nearby?${queryParams}`);
-    return response.data;
-  },
-
-  submitBiometricData: async (data: FormData) => {
-    const response = await api.post('/mobile/voter/biometric-capture', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      params: region ? { region } : {},
     });
     return response.data;
   },
 
-  syncData: async (data: {
-    type: 'elections' | 'candidates' | 'pollingUnits' | 'profile';
-    data?: object;
-  }) => {
-    const response = await api.post('/mobile/sync', data);
+  getElectionStatistics: async (electionId: string) => {
+    const response = await api.get(`/results/elections/${electionId}/statistics`);
+    return response.data;
+  },
+
+  getRealTimeResults: async (electionId: string) => {
+    const response = await api.get(`/results/elections/${electionId}/real-time`);
+    return response.data;
+  },
+
+  getRegionalBreakdown: async (electionId: string, region: string) => {
+    const response = await api.get(`/results/elections/${electionId}/regions/${region}`);
+    return response.data;
+  },
+
+  getAllElectionResults: async () => {
+    const response = await api.get('/results/elections');
     return response.data;
   },
 };
 
-// USSD API
-export const ussdAPI = {
-  startSession: async (data: { nin: string; vin: string; phoneNumber: string }) => {
-    const response = await api.post('/ussd/start', data);
-    return response.data;
-  },
-
-  castVote: async (data: { sessionCode: string; electionId: string; candidateId: string }) => {
-    const response = await api.post('/ussd/vote', data);
-    return response.data;
-  },
-
-  getSessionStatus: async (sessionCode: string) => {
-    const response = await api.get(`/ussd/session-status?sessionCode=${sessionCode}`);
-    return response.data;
-  },
-
-  verifyVote: async (data: { receiptCode: string; phoneNumber: string }) => {
-    const response = await api.post('/ussd/verify-vote', data);
-    return response.data;
-  },
-};
-
-// Admin API (expanded)
+// Admin API
 export const adminAPI = {
-  getUsers: async (role?: string, status = 'active', page = 1, limit = 50) => {
+  // Admin User Management
+  getAdminUsers: async (role?: string, status = 'active', page = 1, limit = 50) => {
     const response = await api.get('/admin/users', {
       params: { role, status, page, limit },
     });
     return response.data;
   },
 
-  createUser: async (data: {
+  createAdminUser: async (data: {
     email: string;
     fullName: string;
     phoneNumber: string;
@@ -325,162 +380,86 @@ export const adminAPI = {
     return response.data;
   },
 
-  getAuditLogs: async (params: {
-    actionType?: string;
-    startDate?: string;
-    endDate?: string;
-    userId?: string;
-    page?: number;
-    limit?: number;
-  }) => {
-    const response = await api.get('/admin/audit-logs', { params });
+  updateAdminUser: async (id: string, data: any) => {
+    const response = await api.put(`/admin/users/${id}`, data);
     return response.data;
   },
 
-  createElection: async (data: {
-    electionName: string;
-    electionType: string;
-    startDate: string;
-    endDate: string;
-    description?: string;
-    eligibilityRules?: object;
-  }) => {
-    const response = await api.post('/admin/elections', data);
+  deleteAdminUser: async (id: string) => {
+    const response = await api.delete(`/admin/users/${id}`);
     return response.data;
   },
 
-  getSecurityLogs: async (params: {
-    severity?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: number;
-    limit?: number;
-  }) => {
-    const response = await api.get('/admin/security-logs', { params });
-    return response.data;
-  },
-
-  publishResults: async (electionId: string, publishLevel = 'preliminary') => {
-    const response = await api.post('/admin/results/publish', {
-      electionId,
-      publishLevel,
+  // Polling Unit Management
+  getPollingUnits: async (state?: string, lga?: string, page = 1, limit = 50) => {
+    const response = await api.get('/admin/polling-units', {
+      params: { state, lga, page, limit },
     });
     return response.data;
   },
 
-  getUser: async (userId: string) => {
-    const response = await api.get(`/admin/users/${userId}`);
+  createPollingUnit: async (data: any) => {
+    const response = await api.post('/admin/polling-units', data);
     return response.data;
   },
 
-  updateUser: async (userId: string, data: {
-    fullName?: string;
-    phoneNumber?: string;
-    role?: string;
-    status?: 'active' | 'inactive' | 'suspended';
-  }) => {
-    const response = await api.put(`/admin/users/${userId}`, data);
+  updatePollingUnit: async (id: string, data: any) => {
+    const response = await api.put(`/admin/polling-units/${id}`, data);
     return response.data;
   },
 
-  deleteUser: async (userId: string) => {
-    const response = await api.delete(`/admin/users/${userId}`);
+  deletePollingUnit: async (id: string) => {
+    const response = await api.delete(`/admin/polling-units/${id}`);
     return response.data;
   },
 
-  getElection: async (electionId: string) => {
-    const response = await api.get(`/admin/elections/${electionId}`);
-    return response.data;
-  },
-
-  updateElection: async (electionId: string, data: {
-    electionName?: string;
-    electionType?: string;
-    startDate?: string;
-    endDate?: string;
-    description?: string;
-    eligibilityRules?: object;
-    status?: 'draft' | 'published' | 'active' | 'completed' | 'cancelled';
-  }) => {
-    const response = await api.put(`/admin/elections/${electionId}`, data);
-    return response.data;
-  },
-
-  deleteElection: async (electionId: string) => {
-    const response = await api.delete(`/admin/elections/${electionId}`);
-    return response.data;
-  },
-
-  getAdminElections: async (params: {
-    status?: string;
-    type?: string;
-    page?: number;
-    limit?: number;
-  }) => {
-    const response = await api.get('/admin/elections', { params });
-    return response.data;
-  },
-
-  addCandidate: async (electionId: string, data: {
-    name: string;
-    party: string;
-    bio?: string;
-    photo?: string;
-  }) => {
-    const response = await api.post(`/admin/elections/${electionId}/candidates`, data);
-    return response.data;
-  },
-
-  getCandidate: async (electionId: string, candidateId: string) => {
-    const response = await api.get(`/admin/elections/${electionId}/candidates/${candidateId}`);
-    return response.data;
-  },
-
-  updateCandidate: async (electionId: string, candidateId: string, data: {
-    name?: string;
-    party?: string;
-    bio?: string;
-    photo?: string;
-    status?: 'active' | 'withdrawn' | 'disqualified';
-  }) => {
-    const response = await api.put(`/admin/elections/${electionId}/candidates/${candidateId}`, data);
-    return response.data;
-  },
-
-  removeCandidate: async (electionId: string, candidateId: string) => {
-    const response = await api.delete(`/admin/elections/${electionId}/candidates/${candidateId}`);
-    return response.data;
-  },
-
-  getKeyManagement: async () => {
-    const response = await api.get('/admin/key-management');
-    return response.data;
-  },
-
-  requestKeyCeremony: async (electionId: string) => {
-    const response = await api.post('/admin/key-ceremony/request', { electionId });
-    return response.data;
-  },
-
-  submitKeyShare: async (data: {
-    electionId: string;
-    keyShare: string;
-    signature: string;
-  }) => {
-    const response = await api.post('/admin/key-ceremony/submit-share', data);
-    return response.data;
-  },
-
-  requestResultsCalculation: async (electionId: string) => {
-    const response = await api.post('/admin/results/calculate', { electionId });
-    return response.data;
-  },
-
-  finalizeResults: async (electionId: string, publishLevel = 'preliminary') => {
-    const response = await api.post('/admin/results/publish', {
-      electionId,
-      publishLevel,
+  // Verification Management
+  getVerificationRequests: async (status?: string, page = 1, limit = 50) => {
+    const response = await api.get('/admin/verification-requests', {
+      params: { status, page, limit },
     });
+    return response.data;
+  },
+
+  approveVerification: async (id: string) => {
+    const response = await api.post(`/admin/verification-requests/${id}/approve`);
+    return response.data;
+  },
+
+  rejectVerification: async (id: string, reason: string) => {
+    const response = await api.post(`/admin/verification-requests/${id}/reject`, { reason });
+    return response.data;
+  },
+
+  // Audit Logs
+  getAuditLogs: async (userId?: string, actionType?: string, page = 1, limit = 50) => {
+    const response = await api.get('/admin/audit-logs', {
+      params: { userId, actionType, page, limit },
+    });
+    return response.data;
+  },
+
+  // System Statistics
+  getSystemStatistics: async () => {
+    const response = await api.get('/admin/statistics');
+    return response.data;
+  },
+
+  // Security
+  getSuspiciousActivities: async (page = 1, limit = 50) => {
+    const response = await api.get('/admin/security/suspicious-activities', {
+      params: { page, limit },
+    });
+    return response.data;
+  },
+
+  blockUser: async (userId: string, reason: string) => {
+    const response = await api.post(`/admin/security/block-user/${userId}`, { reason });
+    return response.data;
+  },
+
+  unblockUser: async (userId: string) => {
+    const response = await api.post(`/admin/security/unblock-user/${userId}`);
     return response.data;
   },
 };

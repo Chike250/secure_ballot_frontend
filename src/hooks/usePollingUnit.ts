@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { mobileAPI } from '@/services/api';
+import { voterAPI } from '@/services/api';
 import { useUIStore } from '@/store/useStore';
 
 // Define interfaces for polling unit data
@@ -35,7 +35,7 @@ export const usePollingUnit = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await mobileAPI.getNearbyPollingUnits(data);
+        const response = await voterAPI.getNearbyPollingUnits(data.latitude, data.longitude, data.radius);
         return response.data;
       } catch (error: any) {
         setError(error.response?.data?.message || 'Failed to fetch nearby polling units');
@@ -91,12 +91,11 @@ export const usePollingUnit = () => {
       const location = await getUserLocation();
       
       // Fetch nearby polling units
-      const response = await mobileAPI.getNearbyPollingUnits({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        radius: 5, // 5km radius
-        limit: 1 // Just get the nearest one
-      });
+      const response = await voterAPI.getNearbyPollingUnits(
+        location.latitude,
+        location.longitude,
+        5 // 5km radius
+      );
       
       // Return the nearest polling unit (first in the list)
       if (response.data && response.data.pollingUnits && response.data.pollingUnits.length > 0) {

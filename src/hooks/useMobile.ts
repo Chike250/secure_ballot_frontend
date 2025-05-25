@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useUIStore } from '@/store/useStore';
-import { mobileAPI } from '@/services/api';
+import { authAPI, voterAPI } from '@/services/api';
 
 export const useMobile = () => {
   const { setLoading, setError } = useUIStore();
@@ -20,7 +20,7 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await mobileAPI.login(data);
+        const result = await authAPI.login(data.nin, data.password);
         return result;
       } catch (error: any) {
         setError(error.message || 'Login failed');
@@ -37,7 +37,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await mobileAPI.verifyDevice(data);
+        // Using MFA verification as device verification equivalent
+        const result = await authAPI.verifyMFA(data.deviceId, data.verificationCode);
         return result;
       } catch (error: any) {
         setError(error.message || 'Device verification failed');
@@ -54,8 +55,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await mobileAPI.getOfflinePackage(electionId);
-        return result;
+        // Mobile offline functionality not implemented in current API
+        throw new Error('Offline package functionality not available');
       } catch (error: any) {
         setError(error.message || 'Failed to get offline package');
         throw error;
@@ -77,8 +78,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await mobileAPI.submitOfflineVotes(electionId, data);
-        return result;
+        // Mobile offline voting not implemented in current API
+        throw new Error('Offline voting functionality not available');
       } catch (error: any) {
         setError(error.message || 'Failed to submit offline votes');
         throw error;
@@ -99,7 +100,7 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await mobileAPI.getNearbyPollingUnits(data);
+        const result = await voterAPI.getNearbyPollingUnits(data.latitude, data.longitude, data.radius);
         return result;
       } catch (error: any) {
         setError(error.message || 'Failed to get nearby polling units');
@@ -119,8 +120,8 @@ export const useMobile = () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await mobileAPI.syncData(data);
-        return result;
+        // Mobile sync functionality not implemented in current API
+        throw new Error('Data sync functionality not available');
       } catch (error: any) {
         setError(error.message || 'Failed to sync data');
         throw error;

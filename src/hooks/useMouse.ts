@@ -31,13 +31,14 @@ export function useMouse(options: MouseOptions = {}) {
   });
 
   const handleMouseMove = useCallback(
-    (event: MouseEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
+      const mouseEvent = event as MouseEvent;
       setState((prev) => ({
         ...prev,
-        x: event.clientX,
-        y: event.clientY,
+        x: mouseEvent.clientX,
+        y: mouseEvent.clientY,
         isMoving: true,
       }));
     },
@@ -45,7 +46,7 @@ export function useMouse(options: MouseOptions = {}) {
   );
 
   const handleMouseDown = useCallback(
-    (event: MouseEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
       setState((prev) => ({
@@ -58,7 +59,7 @@ export function useMouse(options: MouseOptions = {}) {
   );
 
   const handleMouseUp = useCallback(
-    (event: MouseEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
       setState((prev) => ({
@@ -71,7 +72,7 @@ export function useMouse(options: MouseOptions = {}) {
   );
 
   const handleMouseLeave = useCallback(
-    (event: MouseEvent) => {
+    (event: Event) => {
       if (!enabled) return;
 
       setState((prev) => ({
@@ -135,9 +136,9 @@ export function useClick(
   } = options;
 
   const handleClick = useCallback(
-    (event: MouseEvent) => {
+    (event: Event) => {
       if (!enabled) return;
-      callback(event);
+      callback(event as MouseEvent);
     },
     [callback, enabled]
   );
@@ -164,9 +165,9 @@ export function useDoubleClick(
   } = options;
 
   const handleDoubleClick = useCallback(
-    (event: MouseEvent) => {
+    (event: Event) => {
       if (!enabled) return;
-      callback(event);
+      callback(event as MouseEvent);
     },
     [callback, enabled]
   );

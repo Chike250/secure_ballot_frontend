@@ -7,6 +7,8 @@ const publicPaths = [
   '/register',
   '/forgot-password',
   '/reset-password',
+  '/admin/login',
+  '/mfa-verify',
   '/api/auth',
 ];
 
@@ -43,12 +45,20 @@ export function middleware(request: NextRequest) {
   }
 
   // If it's an admin path, check if the user is an admin
-  if (isAdminPath && isAdminPath !== '/admin/login') {
+  if (isAdminPath && path !== '/admin/login') {
     try {
       const authData = JSON.parse(authCookie);
-      if (authData.state?.user?.role !== 'admin') {
+      const user = authData.state?.user;
+      
+      // Check if user exists and has admin role
+      if (!user || user.role !== 'admin') {
         // Redirect non-admin users to the regular dashboard
         return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+      
+      // Check if MFA is required but not completed
+      if (authData.state?.requiresMfa && !authData.state?.isAuthenticated) {
+        return NextResponse.redirect(new URL('/mfa-verify', request.url));
       }
     } catch (error) {
       // If we can't parse the token, redirect to login

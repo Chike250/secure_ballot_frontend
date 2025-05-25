@@ -15,6 +15,7 @@ interface InfiniteScrollState {
 interface InfiniteScrollActions {
   loadMore: () => Promise<void>;
   reset: () => void;
+  targetRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const useInfiniteScroll = <T>(
