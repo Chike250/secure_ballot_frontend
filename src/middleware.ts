@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 // Add paths that don't require authentication
 const publicPaths = [
+  '/',
   '/login',
   '/register',
   '/forgot-password',
@@ -24,7 +25,7 @@ export function middleware(request: NextRequest) {
 
   // Check if the path is public
   const isPublicPath = publicPaths.some((publicPath) =>
-    path.startsWith(publicPath)
+    path === publicPath || path.startsWith(publicPath)
   );
 
   // Check if the path requires admin access
@@ -44,26 +45,46 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Try to parse the auth cookie
+  let authData;
+  try {
+    authData = JSON.parse(authCookie);
+  } catch (error) {
+    // If we can't parse the cookie, redirect to login
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('from', path);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Check if auth data has the expected structure
+  const user = authData.state?.user;
+  const token = authData.state?.token;
+  const isAuthenticated = authData.state?.isAuthenticated;
+
+  // If no valid auth data, redirect to login
+  if (!user || !token || !isAuthenticated) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('from', path);
+    return NextResponse.redirect(loginUrl);
+  }
+
   // If it's an admin path, check if the user is an admin
   if (isAdminPath && path !== '/admin/login') {
-    try {
-      const authData = JSON.parse(authCookie);
-      const user = authData.state?.user;
-      
-      // Check if user exists and has admin role
-      if (!user || user.role !== 'admin') {
-        // Redirect non-admin users to the regular dashboard
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-      }
-      
-      // Check if MFA is required but not completed
-      if (authData.state?.requiresMfa && !authData.state?.isAuthenticated) {
-        return NextResponse.redirect(new URL('/mfa-verify', request.url));
-      }
-    } catch (error) {
-      // If we can't parse the token, redirect to login
-      return NextResponse.redirect(new URL('/login', request.url));
+    // Check if user exists and has admin role
+    if (user.role !== 'admin') {
+      // Redirect non-admin users to the regular dashboard
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
+    
+    // Check if MFA is required but not completed
+    if (authData.state?.requiresMfa) {
+      return NextResponse.redirect(new URL('/mfa-verify', request.url));
+    }
+  }
+
+  // For regular protected routes, check if MFA is required
+  if (authData.state?.requiresMfa && !isPublicPath && path !== '/mfa-verify') {
+    return NextResponse.redirect(new URL('/mfa-verify', request.url));
   }
 
   return NextResponse.next();

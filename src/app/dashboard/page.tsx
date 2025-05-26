@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   BarChart3,
   Bell,
@@ -33,14 +33,25 @@ import {
   Shield,
   RefreshCw,
   Info,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { AiAssistantPreview } from "@/components/ai-assistant-preview"
-import { BarChart, PieChart } from "@/components/ui/chart"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { BarChart, PieChart } from "@/components/ui/chart";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -48,12 +59,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Sidebar,
   SidebarContent,
@@ -67,391 +83,417 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Slider } from "@/components/ui/slider"
-import { useAuthStore, useUIStore } from "@/store/useStore"
-import { useElectionData } from "@/hooks/useElectionData"
-import { useVote } from "@/hooks/useVote"
-import { useElections } from "@/hooks/useElections"
-import { useResults } from "@/hooks/useResults"
-import { useVoterProfile } from "@/hooks/useVoterProfile"
-
-// Election types
-const ELECTION_TYPES = {
-  presidential: "Presidential Election",
-  gubernatorial: "Gubernatorial Election",
-  "house-of-reps": "House of Representatives Election",
-  senatorial: "Senatorial Election",
-}
-
-// Candidate data by election type
-const candidatesByElection = {
-  presidential: [
-    {
-      id: 1,
-      name: "Bola Ahmed Tinubu",
-      party: "APC",
-      votes: 8500000,
-      percentage: 35,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#64748b",
-      bio: "Former Governor of Lagos State and National Leader of the APC",
-      manifesto: "Economic growth, security, and infrastructure development",
-    },
-    {
-      id: 2,
-      name: "Atiku Abubakar",
-      party: "PDP",
-      votes: 6900000,
-      percentage: 28,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#ef4444",
-      bio: "Former Vice President of Nigeria and business tycoon",
-      manifesto: "Job creation, education reform, and national unity",
-    },
-    {
-      id: 3,
-      name: "Peter Obi",
-      party: "LP",
-      votes: 6100000,
-      percentage: 25,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#22c55e",
-      bio: "Former Governor of Anambra State and businessman",
-      manifesto: "Economic restructuring, anti-corruption, and youth empowerment",
-    },
-    {
-      id: 4,
-      name: "Rabiu Kwankwaso",
-      party: "NNPP",
-      votes: 1500000,
-      percentage: 7,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#3b82f6",
-      bio: "Former Governor of Kano State and Senator",
-      manifesto: "Educational development, healthcare reform, and northern development",
-    },
-    {
-      id: 5,
-      name: "Others",
-      party: "Various",
-      votes: 1000000,
-      percentage: 5,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#a855f7",
-      bio: "Various candidates from smaller political parties",
-      manifesto: "Various policy positions",
-    },
-  ],
-  gubernatorial: [
-    {
-      id: 1,
-      name: "Babajide Sanwo-Olu",
-      party: "APC",
-      votes: 950000,
-      percentage: 42,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#64748b",
-      bio: "Current Governor of Lagos State",
-      manifesto: "Urban development, transportation, and economic growth",
-    },
-    {
-      id: 2,
-      name: "Olajide Adediran (Jandor)",
-      party: "PDP",
-      votes: 580000,
-      percentage: 26,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#ef4444",
-      bio: "Businessman and PDP Lagos leader",
-      manifesto: "Infrastructure development and economic diversification",
-    },
-    {
-      id: 3,
-      name: "Gbadebo Rhodes-Vivour",
-      party: "LP",
-      votes: 520000,
-      percentage: 23,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#22c55e",
-      bio: "Architect and social activist",
-      manifesto: "Social justice, environmental sustainability, and youth inclusion",
-    },
-    {
-      id: 4,
-      name: "Others",
-      party: "Various",
-      votes: 200000,
-      percentage: 9,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#a855f7",
-      bio: "Various candidates from smaller political parties",
-      manifesto: "Various policy positions",
-    },
-  ],
-  "house-of-reps": [
-    {
-      id: 1,
-      name: "Akin Alabi",
-      party: "APC",
-      votes: 45000,
-      percentage: 38,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#64748b",
-      bio: "Businessman and sports betting pioneer",
-      manifesto: "Youth empowerment, digital economy, and constituency projects",
-    },
-    {
-      id: 2,
-      name: "Tolulope Akande-Sadipe",
-      party: "PDP",
-      votes: 38000,
-      percentage: 32,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#ef4444",
-      bio: "Business executive and development expert",
-      manifesto: "Rural development, women empowerment, and education",
-    },
-    {
-      id: 3,
-      name: "Shina Peller",
-      party: "LP",
-      votes: 25000,
-      percentage: 21,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#22c55e",
-      bio: "Entrepreneur and entertainment mogul",
-      manifesto: "Creative economy, youth development, and innovation",
-    },
-    {
-      id: 4,
-      name: "Others",
-      party: "Various",
-      votes: 10000,
-      percentage: 9,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#a855f7",
-      bio: "Various candidates from smaller political parties",
-      manifesto: "Various policy positions",
-    },
-  ],
-  senatorial: [
-    {
-      id: 1,
-      name: "Oluremi Tinubu",
-      party: "APC",
-      votes: 280000,
-      percentage: 40,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#64748b",
-      bio: "Former First Lady of Lagos State and incumbent Senator",
-      manifesto: "Women empowerment, social welfare, and education",
-    },
-    {
-      id: 2,
-      name: "Dino Melaye",
-      party: "PDP",
-      votes: 210000,
-      percentage: 30,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#ef4444",
-      bio: "Former Senator and political activist",
-      manifesto: "Accountability, legislative reforms, and constituency development",
-    },
-    {
-      id: 3,
-      name: "Shehu Sani",
-      party: "LP",
-      votes: 175000,
-      percentage: 25,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#22c55e",
-      bio: "Human rights activist and former Senator",
-      manifesto: "Human rights, social justice, and northern development",
-    },
-    {
-      id: 4,
-      name: "Others",
-      party: "Various",
-      votes: 35000,
-      percentage: 5,
-      image: "/placeholder.svg?height=80&width=80",
-      color: "#a855f7",
-      bio: "Various candidates from smaller political parties",
-      manifesto: "Various policy positions",
-    },
-  ],
-}
-
-// Sample states data
-const states = [
-  { name: "Lagos", turnout: 65 },
-  { name: "Kano", turnout: 58 },
-  { name: "Rivers", turnout: 62 },
-  { name: "FCT", turnout: 70 },
-  { name: "Kaduna", turnout: 55 },
-]
-
-// Sample demographic data
-const demographicData = [
-  { age: "18-25", percentage: 22 },
-  { age: "26-35", percentage: 35 },
-  { age: "36-45", percentage: 25 },
-  { age: "46-60", percentage: 12 },
-  { age: "60+", percentage: 6 },
-]
-
-// Sample gender data
-const genderData = [
-  { gender: "Male", percentage: 52 },
-  { gender: "Female", percentage: 48 },
-]
-
-// Safe localStorage access utility
-const safeLocalStorage = {
-  getItem: (key: string, defaultValue: any = null): any => {
-    if (typeof window === "undefined") return defaultValue
-    try {
-      const item = localStorage.getItem(key)
-      return item ? JSON.parse(item) : defaultValue
-    } catch (error) {
-      console.error(`Error reading ${key} from localStorage:`, error)
-      return defaultValue
-    }
-  },
-  setItem: (key: string, value: any): boolean => {
-    if (typeof window === "undefined") return false
-    try {
-      localStorage.setItem(key, JSON.stringify(value))
-      return true
-    } catch (error) {
-      console.error(`Error saving ${key} to localStorage:`, error)
-      return false
-    }
-  },
-}
+} from "@/components/ui/sidebar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { useAuthStore, useUIStore } from "@/store/useStore";
+import { useElectionData } from "@/hooks/useElectionData";
+import { useElections } from "@/hooks/useElections";
+import { useResults } from "@/hooks/useResults";
+import { useDashboard } from "@/hooks/useDashboard";
+import ElectoralMap from "@/components/ui/electoral-map";
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { isAuthenticated, user } = useAuthStore()
-  const { isLoading, error, setError } = useUIStore()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { isAuthenticated, user, isInitialized } = useAuthStore();
+  const { isLoading, error, setError } = useUIStore();
 
-  const initialElectionType = searchParams.get("type") || "presidential"
-  const [electionType, setElectionType] = useState(initialElectionType)
-  const [activeTab, setActiveTab] = useState("overview")
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [showFilterDialog, setShowFilterDialog] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
+  const initialElectionType = searchParams.get("type") || "presidential";
+  const [electionType, setElectionType] = useState(initialElectionType);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statistics, setStatistics] = useState<any>(null);
+  const [realTimeData, setRealTimeData] = useState<any>(null);
   const [filterCriteria, setFilterCriteria] = useState({
     regions: [],
     minVotes: 0,
     maxVotes: 10000000,
     parties: [],
     turnout: [0, 100],
-  })
+  });
 
   // Use the API hooks
   const {
-    currentElectionTypeKey,
-    currentElectionDetails: electionDetails,
+    currentElection,
+    elections,
     candidates,
-    electionResults,
-    fetchElectionDetailsAndCandidates,
+    results: electionResults,
+    fetchElections,
+    fetchElectionDetails,
+    fetchCandidates,
     fetchResults,
-    ELECTION_TYPES_MAP
-  } = useElectionData(initialElectionType)
+    fetchStatistics,
+    getRealTimeResults,
+    setCurrentElection,
+    isLoading: electionLoading,
+    hasVoted,
+    checkVotingStatus,
+  } = useElectionData();
 
+  // New comprehensive dashboard hook
   const {
-    votingStatus,
-    eligibility,
-    votedElections,
-    loadElectionData: loadVotePrereqs,
-    checkVotingStatus
-  } = useVote()
+    dashboardData,
+    isLoading: dashboardLoading,
+    fetchDashboardData,
+    refreshDashboard,
+    getOverviewStats,
+    getCandidates: getDashboardCandidates,
+    getVoteDistribution,
+    getRegionalBreakdown: getDashboardRegionalBreakdown,
+    getTurnoutByRegion,
+    getLiveUpdates,
+    getRecentActivity,
+    getElectionInfo,
+  } = useDashboard();
+
+  // Election types mapping
+  const ELECTION_TYPES_MAP: Record<string, string> = {
+    presidential: "Presidential Election",
+    gubernatorial: "Gubernatorial Election",
+    "house-of-reps": "House of Representatives Election",
+    senatorial: "Senatorial Election",
+  };
+
+  const currentElectionTypeKey = electionType;
 
   // Additional hooks for more detailed data
-  const { getStatistics, getLiveResults } = useResults()
-  const { fetchElections } = useElections()
-  
-  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null)
-  const [showVoteDialog, setShowVoteDialog] = useState(false)
+  const { getStatistics, getLiveResults } = useResults();
+  const { fetchElections: fetchElectionsList } = useElections();
+
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(
+    null
+  );
+  const [showVoteDialog, setShowVoteDialog] = useState(false);
   const [notifications, setNotifications] = useState([
-    { id: 1, type: "info", message: "New election added: Local Government Elections", time: "2h ago", read: false },
-    { id: 2, type: "success", message: "Your vote was successfully recorded", time: "1d ago", read: true },
-    { id: 3, type: "info", message: "Election results for Presidential Election now available", time: "2d ago", read: true },
-  ])
+    {
+      id: 1,
+      type: "info",
+      message: "New election added: Local Government Elections",
+      time: "2h ago",
+      read: false,
+    },
+    {
+      id: 2,
+      type: "success",
+      message: "Your vote was successfully recorded",
+      time: "1d ago",
+      read: true,
+    },
+    {
+      id: 3,
+      type: "info",
+      message: "Election results for Presidential Election now available",
+      time: "2d ago",
+      read: true,
+    },
+  ]);
 
+  // Wait for authentication to be initialized
   useEffect(() => {
+    if (!isInitialized) return;
+
     if (!isAuthenticated) {
-      router.push("/login?from=/dashboard")
+      router.push("/login?from=/dashboard");
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isInitialized, router]);
 
   useEffect(() => {
-    if (isAuthenticated && electionType) {
-      // Load vote status and election data
-      loadVotePrereqs(electionType)
-      fetchElectionDetailsAndCandidates(electionType)
-      checkVotingStatus(electionType)
-      
-      // Fetch results if on results tab
-      if (activeTab === 'results') {
-        fetchResults(electionType)
+    if (!isInitialized || !isAuthenticated) return;
+
+    // If elections array is empty, the auto-fetch should handle it
+    // No need for manual fetch here to avoid re-render loops
+    if (elections.length === 0) {
+      console.log("Elections array is empty, waiting for auto-fetch...");
+      return; // Exit early, let the auto-fetch handle loading
+    }
+
+    try {
+      if (electionType) {
+        // Find election by type and fetch details
+        // Handle both possible field names: 'type' and 'electionType'
+        const election = elections.find((e) => {
+          const eType = (e as any).electionType || e.type;
+          if (!eType) return false;
+
+          // Match against the election type key (e.g., "presidential")
+          const normalizedType = eType.toLowerCase();
+          return (
+            normalizedType.includes(electionType.toLowerCase()) ||
+            normalizedType === electionType.toLowerCase() ||
+            (electionType === "presidential" &&
+              normalizedType.includes("president")) ||
+            (electionType === "gubernatorial" &&
+              normalizedType.includes("governor")) ||
+            (electionType === "house-of-reps" &&
+              (normalizedType.includes("house") ||
+                normalizedType.includes("representative"))) ||
+            (electionType === "senatorial" &&
+              (normalizedType.includes("senate") ||
+                normalizedType.includes("senator")))
+          );
+        });
+        if (election) {
+          console.log("Found election for dashboard:", election.id);
+          // Store the election ID for the separate data fetching effect
+          if (currentElection?.id !== election.id) {
+            setCurrentElection(election);
+          }
+        }
       }
+    } catch (error) {
+      console.error("Dashboard initialization error:", error);
+      setError("Failed to initialize dashboard. Please refresh the page.");
     }
-  }, [electionType, isAuthenticated, activeTab, loadVotePrereqs, fetchElectionDetailsAndCandidates, checkVotingStatus, fetchResults])
-  
+  }, [
+    electionType,
+    isAuthenticated,
+    isInitialized,
+    activeTab
+  ]);
+
+  // Separate effect for fetching dashboard data when currentElection changes
   useEffect(() => {
-    if (activeTab === 'results' && electionType) {
-      fetchResults(electionType)
+    if (!currentElection || !isAuthenticated || !isInitialized) return;
+
+    console.log("Fetching dashboard data for election:", currentElection.id);
+
+    fetchDashboardData(currentElection.id)
+      .then((dashboardData) => {
+        console.log("Dashboard data fetched:", dashboardData);
+        if (dashboardData) {
+          // Update local state with dashboard data
+          setStatistics(dashboardData.statistics);
+          setRealTimeData({
+            pollingUnitsReported:
+              dashboardData.overview.statistics.pollingUnitsReported.split(
+                "/"
+              )[0],
+            totalPollingUnits:
+              dashboardData.overview.statistics.pollingUnitsReported.split(
+                "/"
+              )[1],
+            reportingPercentage:
+              dashboardData.overview.statistics.reportingPercentage,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to fetch dashboard data:", error);
+        // Fallback to individual API calls
+        fetchElectionDetails(currentElection.id);
+        fetchCandidates(currentElection.id);
+        checkVotingStatus(currentElection.id);
+
+        // Fetch comprehensive statistics
+        fetchStatistics(currentElection.id)
+          .then((stats: any) => {
+            if (stats) setStatistics(stats);
+          })
+          .catch((err) => console.error("Failed to fetch statistics:", err));
+
+        // Fetch real-time data
+        getRealTimeResults(currentElection.id)
+          .then((realTime: any) => {
+            if (realTime) setRealTimeData(realTime);
+          })
+          .catch((err) =>
+            console.error("Failed to fetch real-time data:", err)
+          );
+      });
+
+    // Still check voting status separately as it's user-specific
+    checkVotingStatus(currentElection.id);
+  }, [currentElection?.id, isAuthenticated, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized || !isAuthenticated) return;
+
+    if (activeTab === "results" && currentElection) {
+      fetchResults(currentElection.id);
     }
-  }, [activeTab, electionType, fetchResults])
+  }, [activeTab, currentElection?.id, isInitialized, isAuthenticated]);
 
   const handleCandidateSelect = (candidate: any) => {
-    setSelectedCandidateId(candidate.id)
-    setShowVoteDialog(true)
-  }
+    setSelectedCandidateId(candidate.id);
+    setShowVoteDialog(true);
+  };
 
   const confirmVoteAction = async () => {
-    setShowVoteDialog(false)
-    router.push(`/vote?type=${electionType}`)
-  }
+    setShowVoteDialog(false);
+    router.push(`/vote?type=${electionType}`);
+  };
 
   const changeElectionType = (typeKey: string) => {
-    setElectionType(typeKey)
-    router.push(`/dashboard?type=${typeKey}`, { scroll: false })
-  }
+    setElectionType(typeKey);
+    router.push(`/dashboard?type=${typeKey}`, { scroll: false });
+  };
 
   const handleSearch = (term: string) => {
-    setSearchTerm(term)
+    setSearchTerm(term);
     // Implementation would filter candidates based on the search term
-  }
+  };
 
   const getUnreadNotificationCount = () => {
-    return notifications.filter((n) => !n.read).length
-  }
+    return notifications.filter((n) => !n.read).length;
+  };
 
   const getTotalVotes = () => {
-    if (electionResults) {
-      return electionResults.totalVotes
+    const overviewStats = getOverviewStats();
+    if (overviewStats) {
+      return overviewStats.totalVotesCast || 0;
     }
-    return 0
-  }
+    if (statistics) {
+      return statistics.totalVotesCast || 0;
+    }
+    if (electionResults) {
+      return electionResults.totalVotes;
+    }
+    return 0;
+  };
 
   const getVoterTurnout = () => {
-    if (electionResults && electionResults.turnout) {
-      return electionResults.turnout
+    const overviewStats = getOverviewStats();
+    if (overviewStats) {
+      return overviewStats.voterTurnout || 0;
     }
-    return 65 // Default fallback
-  }
+    if (statistics) {
+      return statistics.turnoutPercentage || 0;
+    }
+    if (electionResults && electionResults.turnout) {
+      return electionResults.turnout;
+    }
+    return 0; // Default fallback
+  };
+
+  const getValidVotes = () => {
+    const overviewStats = getOverviewStats();
+    if (overviewStats) {
+      return overviewStats.validVotes || 0;
+    }
+    if (statistics) {
+      return statistics.validVotes || 0;
+    }
+    if (electionResults) {
+      // Calculate valid votes from candidates
+      return candidates.reduce(
+        (total, candidate) => total + (candidate.votes || 0),
+        0
+      );
+    }
+    return 0;
+  };
+
+  const getInvalidVotes = () => {
+    const overviewStats = getOverviewStats();
+    if (overviewStats) {
+      return overviewStats.invalidVotes || 0;
+    }
+    if (statistics) {
+      return statistics.invalidVotes || 0;
+    }
+    const total = getTotalVotes();
+    const valid = getValidVotes();
+    return total - valid;
+  };
+
+  const getRegisteredVoters = () => {
+    const overviewStats = getOverviewStats();
+    if (overviewStats) {
+      return overviewStats.totalRegisteredVoters || 0;
+    }
+    if (statistics) {
+      return statistics.totalRegisteredVoters || 0;
+    }
+    return 0;
+  };
+
+  const getPollingUnitsReported = () => {
+    const overviewStats = getOverviewStats();
+    if (overviewStats) {
+      return parseInt(overviewStats.pollingUnitsReported.split("/")[0]) || 0;
+    }
+    if (realTimeData) {
+      return realTimeData.pollingUnitsReported || 0;
+    }
+    return 0;
+  };
+
+  const getTotalPollingUnits = () => {
+    const overviewStats = getOverviewStats();
+    if (overviewStats) {
+      return parseInt(overviewStats.pollingUnitsReported.split("/")[1]) || 0;
+    }
+    if (realTimeData) {
+      return realTimeData.totalPollingUnits || 0;
+    }
+    return 0;
+  };
+
+  const getReportingPercentage = () => {
+    const overviewStats = getOverviewStats();
+    if (overviewStats) {
+      return overviewStats.reportingPercentage || 0;
+    }
+    if (realTimeData) {
+      return realTimeData.reportingPercentage || 0;
+    }
+    return 0;
+  };
+
+  const getRegionalBreakdown = () => {
+    const regionalData = getDashboardRegionalBreakdown();
+    if (regionalData && Array.isArray(regionalData) && regionalData.length > 0) {
+      return regionalData;
+    }
+    if (statistics && statistics.regionalBreakdown && Array.isArray(statistics.regionalBreakdown)) {
+      return statistics.regionalBreakdown;
+    }
+    return [];
+  };
+
+  const getCandidateResults = () => {
+    const dashboardCandidates = getDashboardCandidates();
+    if (dashboardCandidates && Array.isArray(dashboardCandidates) && dashboardCandidates.length > 0) {
+      return dashboardCandidates.map((candidate) => ({
+        ...candidate,
+        name: candidate.fullName,
+        party: candidate.partyName,
+        partyCode: candidate.partyCode,
+        image: candidate.photoUrl,
+      }));
+    }
+    const voteDistribution = getVoteDistribution();
+    if (voteDistribution && Array.isArray(voteDistribution) && voteDistribution.length > 0) {
+      return voteDistribution.map((candidate) => ({
+        id: candidate.candidateId,
+        name: candidate.candidateName,
+        party: candidate.partyName,
+        partyCode: candidate.partyCode,
+        votes: candidate.votes,
+        percentage: candidate.percentage,
+      }));
+    }
+    if (statistics && statistics.candidateResults && Array.isArray(statistics.candidateResults)) {
+      return statistics.candidateResults;
+    }
+    // Ensure we always return an array, even if candidates is undefined
+    return Array.isArray(candidates) ? candidates : [];
+  };
 
   const applyFilters = () => {
     // Implementation would filter candidates based on the filter criteria
-    setShowFilterDialog(false)
-  }
+    setShowFilterDialog(false);
+  };
 
   const resetFilters = () => {
     setFilterCriteria({
@@ -460,8 +502,8 @@ export default function DashboardPage() {
       maxVotes: 10000000,
       parties: [],
       turnout: [0, 100],
-    })
-  }
+    });
+  };
 
   const markAllAsRead = () => {
     setNotifications((prev) =>
@@ -469,18 +511,49 @@ export default function DashboardPage() {
         ...notification,
         read: true,
       }))
-    )
-  }
+    );
+  };
 
   const handleFilterChange = (type: string, value: any) => {
     setFilterCriteria((prev) => ({
       ...prev,
       [type]: value,
-    }))
+    }));
+  };
+
+  // Helper function to ensure we always get an array
+  const ensureArray = (data: any): any[] => {
+    return Array.isArray(data) ? data : [];
+  };
+
+  // Show loading state while authentication is being initialized
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Etc...
-  
+  // If not authenticated after initialization, show a fallback and redirect
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Authentication Required</h2>
+            <p className="text-sm text-muted-foreground">
+              Redirecting to login...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="flex w-full">
@@ -542,7 +615,11 @@ export default function DashboardPage() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={activeTab === "map"} onClick={() => setActiveTab("map")}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={activeTab === "map"}
+                      onClick={() => setActiveTab("map")}
+                    >
                       <button>
                         <Map />
                         <span>Electoral Map</span>
@@ -557,30 +634,32 @@ export default function DashboardPage() {
               <SidebarGroupLabel>Elections</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {Object.entries(ELECTION_TYPES_MAP).map(([typeKey, title]) => (
-                    <SidebarMenuItem key={typeKey}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={currentElectionTypeKey === typeKey}
-                        onClick={() => changeElectionType(typeKey)}
-                      >
-                        <button className="flex items-center justify-between w-full">
-                          <div className="flex items-center">
-                            <Users className="mr-2 h-4 w-4" />
-                            <span>{title.split(" ")[0]}</span>
-                          </div>
-                          {votedElections[typeKey] && (
-                            <Badge
-                              variant="outline"
-                              className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
-                            >
-                              <Check className="mr-1 h-3 w-3" /> Voted
-                            </Badge>
-                          )}
-                        </button>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {Object.entries(ELECTION_TYPES_MAP).map(
+                    ([typeKey, title]) => (
+                      <SidebarMenuItem key={typeKey}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={currentElectionTypeKey === typeKey}
+                          onClick={() => changeElectionType(typeKey)}
+                        >
+                          <button className="flex items-center justify-between w-full">
+                            <div className="flex items-center">
+                              <Users className="mr-2 h-4 w-4" />
+                              <span>{(title as string).split(" ")[0]}</span>
+                            </div>
+                            {hasVoted[typeKey] && (
+                              <Badge
+                                variant="outline"
+                                className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
+                              >
+                                <Check className="mr-1 h-3 w-3" /> Voted
+                              </Badge>
+                            )}
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -593,7 +672,7 @@ export default function DashboardPage() {
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton>
                       <User />
-                      <span>{user?.fullName || 'User Name'}</span>
+                      <span>{user?.fullName || "User Name"}</span>
                       <ChevronDown className="ml-auto h-4 w-4" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
@@ -610,7 +689,10 @@ export default function DashboardPage() {
                         <span>Settings</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => useAuthStore.getState().logout()} className="cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={() => useAuthStore.getState().logout()}
+                      className="cursor-pointer"
+                    >
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Logout</span>
                     </DropdownMenuItem>
@@ -631,9 +713,33 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  const election = elections.find((e) =>
+                    e.type?.toLowerCase().includes(electionType)
+                  );
+                  if (election) {
+                    refreshDashboard(election.id);
+                  }
+                }}
+                disabled={dashboardLoading}
+                className="rounded-full"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${
+                    dashboardLoading ? "animate-spin" : ""
+                  }`}
+                />
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full relative">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full relative"
+                  >
                     <Bell className="h-4 w-4" />
                     {notifications.filter((n) => !n.read).length > 0 && (
                       <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500"></span>
@@ -652,34 +758,65 @@ export default function DashboardPage() {
                       {notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          className={`mb-2 p-3 rounded-lg ${notification.read ? "bg-background" : "bg-muted/50"} hover:bg-muted cursor-pointer`}
+                          className={`mb-2 p-3 rounded-lg ${
+                            notification.read ? "bg-background" : "bg-muted/50"
+                          } hover:bg-muted cursor-pointer`}
                           onClick={() => {
                             setNotifications((prev) =>
-                              prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
-                            )
+                              prev.map((n) =>
+                                n.id === notification.id
+                                  ? { ...n, read: true }
+                                  : n
+                              )
+                            );
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`p-2 rounded-full ${notification.read ? "bg-muted" : "bg-primary/10"}`}>
-                              {notification.type === "alert" ? <AlertCircle className="h-5 w-5" /> : 
-                               notification.type === "update" ? <RefreshCw className="h-5 w-5" /> : 
-                               <Info className="h-5 w-5" />}
+                            <div
+                              className={`p-2 rounded-full ${
+                                notification.read ? "bg-muted" : "bg-primary/10"
+                              }`}
+                            >
+                              {notification.type === "alert" ? (
+                                <AlertCircle className="h-5 w-5" />
+                              ) : notification.type === "update" ? (
+                                <RefreshCw className="h-5 w-5" />
+                              ) : (
+                                <Info className="h-5 w-5" />
+                              )}
                             </div>
                             <div className="flex-1 space-y-1">
                               <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium">{notification.type === "alert" ? "Important Alert" : notification.type === "update" ? "System Update" : "Information"}</p>
-                                <p className="text-xs text-muted-foreground">{notification.time}</p>
+                                <p className="text-sm font-medium">
+                                  {notification.type === "alert"
+                                    ? "Important Alert"
+                                    : notification.type === "update"
+                                    ? "System Update"
+                                    : "Information"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {notification.time}
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground">{notification.message}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {notification.message}
+                              </p>
                             </div>
-                            {!notification.read && <div className="h-2 w-2 rounded-full bg-primary"></div>}
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-primary"></div>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   </ScrollArea>
                   <div className="p-4 border-t">
-                    <Button variant="outline" size="sm" className="w-full" onClick={markAllAsRead}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={markAllAsRead}
+                    >
                       Mark all as read
                     </Button>
                   </div>
@@ -688,7 +825,11 @@ export default function DashboardPage() {
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="hidden md:flex">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="hidden md:flex"
+                  >
                     <Filter className="mr-2 h-4 w-4" />
                     Filter Results
                   </Button>
@@ -701,7 +842,12 @@ export default function DashboardPage() {
                       <h5 className="text-sm font-medium">Time Period</h5>
                       <Select
                         value={filterCriteria.turnout[0].toString()}
-                        onValueChange={(value) => handleFilterChange("turnout", [Number(value), filterCriteria.turnout[1]])}
+                        onValueChange={(value) =>
+                          handleFilterChange("turnout", [
+                            Number(value),
+                            filterCriteria.turnout[1],
+                          ])
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select time period" />
@@ -719,17 +865,23 @@ export default function DashboardPage() {
                       <h5 className="text-sm font-medium">Region</h5>
                       <Select
                         value={filterCriteria.regions.join(",")}
-                        onValueChange={(value) => handleFilterChange("regions", value.split(","))}
+                        onValueChange={(value) =>
+                          handleFilterChange("regions", value.split(","))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select regions" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Lagos,Kano,Rivers,FCT,Kaduna">Lagos, Kano, Rivers, FCT, Kaduna</SelectItem>
+                          <SelectItem value="Lagos,Kano,Rivers,FCT,Kaduna">
+                            Lagos, Kano, Rivers, FCT, Kaduna
+                          </SelectItem>
                           <SelectItem value="Abuja">Abuja</SelectItem>
                           <SelectItem value="Anambra">Anambra</SelectItem>
                           <SelectItem value="Benue">Benue</SelectItem>
-                          <SelectItem value="Cross River">Cross River</SelectItem>
+                          <SelectItem value="Cross River">
+                            Cross River
+                          </SelectItem>
                           <SelectItem value="Delta">Delta</SelectItem>
                           <SelectItem value="Edo">Edo</SelectItem>
                           <SelectItem value="Ekiti">Ekiti</SelectItem>
@@ -759,7 +911,9 @@ export default function DashboardPage() {
                       <h5 className="text-sm font-medium">Party</h5>
                       <Select
                         value={filterCriteria.parties.join(",")}
-                        onValueChange={(value) => handleFilterChange("parties", value.split(","))}
+                        onValueChange={(value) =>
+                          handleFilterChange("parties", value.split(","))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select parties" />
@@ -781,7 +935,9 @@ export default function DashboardPage() {
                           min={0}
                           max={100}
                           step={1}
-                          onValueChange={(value) => handleFilterChange("turnout", value)}
+                          onValueChange={(value) =>
+                            handleFilterChange("turnout", value)
+                          }
                         />
                         <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                           <span>{filterCriteria.turnout[0]}%</span>
@@ -791,7 +947,11 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex justify-between pt-2">
-                      <Button variant="outline" size="sm" onClick={resetFilters}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resetFilters}
+                      >
                         Reset
                       </Button>
                       <Button size="sm" onClick={applyFilters}>
@@ -805,7 +965,11 @@ export default function DashboardPage() {
           </header>
 
           <main className="flex-1 p-4 md:p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="space-y-6"
+            >
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="candidates">Candidates</TabsTrigger>
@@ -819,41 +983,77 @@ export default function DashboardPage() {
                 <div className="grid gap-6 md:grid-cols-4">
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Total Votes Cast</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Total Votes Cast
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{getTotalVotes().toLocaleString()}</div>
-                      <p className="text-xs text-muted-foreground">+2.5% from last hour</p>
+                      <div className="text-2xl font-bold">
+                        {getTotalVotes().toLocaleString()}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {getRegisteredVoters() > 0
+                          ? `${(
+                              (getTotalVotes() / getRegisteredVoters()) *
+                              100
+                            ).toFixed(1)}% of registered voters`
+                          : "Real-time updates"}
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Voter Turnout</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Voter Turnout
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{getVoterTurnout()}%</div>
-                      <p className="text-xs text-muted-foreground">Of registered voters</p>
+                      <div className="text-2xl font-bold">
+                        {getVoterTurnout().toFixed(1)}%
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {getRegisteredVoters().toLocaleString()} registered
+                        voters
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">States Reporting</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Polling Units Reported
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">36/37</div>
-                      <p className="text-xs text-muted-foreground">Including FCT</p>
+                      <div className="text-2xl font-bold">
+                        {getPollingUnitsReported().toLocaleString()}/
+                        {getTotalPollingUnits().toLocaleString()}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {getReportingPercentage().toFixed(1)}% reporting
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Time Remaining</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Valid Votes
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">14 days</div>
-                      <p className="text-xs text-muted-foreground">In 3-week voting period</p>
+                      <div className="text-2xl font-bold">
+                        {getValidVotes().toLocaleString()}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {getTotalVotes() > 0
+                          ? `${(
+                              (getValidVotes() / getTotalVotes()) *
+                              100
+                            ).toFixed(1)}% valid`
+                          : "No votes yet"}
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
@@ -863,18 +1063,24 @@ export default function DashboardPage() {
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader>
                       <CardTitle>Vote Distribution</CardTitle>
-                      <CardDescription>Votes by political party</CardDescription>
+                      <CardDescription>
+                        Votes by political party
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="h-80">
                       <BarChart
-                        data={candidates.slice(0, 4).map(c => ({
-                          name: c.party,
-                          votes: c.votes || 0
-                        }))}
+                        data={ensureArray(getCandidateResults())
+                          .slice(0, 4)
+                          .map((c: any) => ({
+                            name: c.partyCode || c.party,
+                            votes: c.votes || 0,
+                          }))}
                         index="name"
                         categories={["votes"]}
                         colors={["emerald"]}
-                        valueFormatter={(value) => `${(value / 1000000).toFixed(1)}M votes`}
+                        valueFormatter={(value) =>
+                          `${(value / 1000000).toFixed(1)}M votes`
+                        }
                         yAxisWidth={60}
                       />
                     </CardContent>
@@ -883,14 +1089,18 @@ export default function DashboardPage() {
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader>
                       <CardTitle>Percentage Breakdown</CardTitle>
-                      <CardDescription>Vote share by political party</CardDescription>
+                      <CardDescription>
+                        Vote share by political party
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="h-80">
                       <PieChart
-                        data={candidates.slice(0, 5).map(c => ({
-                          name: c.party,
-                          value: c.percentage || 0
-                        }))}
+                        data={ensureArray(getCandidateResults())
+                          .slice(0, 5)
+                          .map((c: any) => ({
+                            name: c.partyCode || c.party,
+                            value: c.percentage || 0,
+                          }))}
                         index="name"
                         categories={["value"]}
                         colors={["emerald", "red", "blue", "yellow", "purple"]}
@@ -905,7 +1115,9 @@ export default function DashboardPage() {
                   <CardHeader className="flex flex-row items-center">
                     <div className="flex-1">
                       <CardTitle>Live Updates</CardTitle>
-                      <CardDescription>Real-time election news and announcements</CardDescription>
+                      <CardDescription>
+                        Real-time election news and announcements
+                      </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="h-3 w-3 rounded-full bg-green-500 pulse-animation"></div>
@@ -914,158 +1126,286 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <Clock className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">INEC Announcement</h4>
-                            <span className="text-xs text-muted-foreground">2 minutes ago</span>
+                      {/* Show recent activity from API if available */}
+                      {ensureArray(getRecentActivity()).length > 0 ? (
+                        ensureArray(getRecentActivity())
+                          .slice(0, 10)
+                          .map((activity) => (
+                            <div
+                              key={activity.id}
+                              className="flex gap-4 border-b pb-4 last:border-b-0"
+                            >
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                                {activity.source === "web" && (
+                                  <Globe className="h-5 w-5 text-primary" />
+                                )}
+                                {activity.source === "mobile" && (
+                                  <User className="h-5 w-5 text-primary" />
+                                )}
+                                {activity.source === "ussd" && (
+                                  <MessageSquare className="h-5 w-5 text-primary" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-semibold">
+                                    Vote Cast - {activity.pollingUnit}
+                                  </h4>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(
+                                      activity.timestamp
+                                    ).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm">
+                                  Vote for {activity.candidate} (
+                                  {activity.party}) from {activity.state},{" "}
+                                  {activity.lga} via {activity.source}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                      ) : ensureArray(getLiveUpdates()).length > 0 ? (
+                        ensureArray(getLiveUpdates()).map((update) => (
+                          <div
+                            key={update.id}
+                            className="flex gap-4 border-b pb-4 last:border-b-0"
+                          >
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              {update.type === "announcement" && (
+                                <Clock className="h-5 w-5 text-primary" />
+                              )}
+                              {update.type === "results" && (
+                                <BarChart3 className="h-5 w-5 text-primary" />
+                              )}
+                              {update.type === "security" && (
+                                <AlertCircle className="h-5 w-5 text-primary" />
+                              )}
+                              {update.type === "update" && (
+                                <RefreshCw className="h-5 w-5 text-primary" />
+                              )}
+                              {update.type === "alert" && (
+                                <AlertCircle className="h-5 w-5 text-primary" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  {update.title}
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(update.timestamp).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-sm">{update.message}</p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            Polls will remain open for the full 3-week period to accommodate all voters.
-                          </p>
-                        </div>
-                      </div>
+                        ))
+                      ) : (
+                        // Fallback to static updates if no live updates available
+                        <>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <Clock className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  INEC Announcement
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  2 minutes ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                Polls will remain open for the full 3-week
+                                period to accommodate all voters.
+                              </p>
+                            </div>
+                          </div>
 
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <BarChart3 className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">Results Update</h4>
-                            <span className="text-xs text-muted-foreground">15 minutes ago</span>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <BarChart3 className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  Results Update
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  15 minutes ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                Lagos State has reported 85% of polling units.
+                                Current turnout at 68%.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            Lagos State has reported 85% of polling units. Current turnout at 68%.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <AlertCircle className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">Security Alert</h4>
-                            <span className="text-xs text-muted-foreground">30 minutes ago</span>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <AlertCircle className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  Security Alert
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  30 minutes ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                Secure Ballot has detected and blocked several
+                                unauthorized access attempts. All votes remain
+                                secure and uncompromised.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            Secure Ballot has detected and blocked several unauthorized access attempts. All votes
-                            remain secure and uncompromised.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <MessageSquare className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">Candidate Statement</h4>
-                            <span className="text-xs text-muted-foreground">45 minutes ago</span>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <MessageSquare className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  Candidate Statement
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  45 minutes ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                Bola Ahmed Tinubu urges supporters to remain
+                                calm as results continue to come in.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            Bola Ahmed Tinubu urges supporters to remain calm as results continue to come in.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <TrendingUp className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">Turnout Milestone</h4>
-                            <span className="text-xs text-muted-foreground">1 hour ago</span>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <TrendingUp className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  Turnout Milestone
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  1 hour ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                National voter turnout has reached 50% - the
+                                highest in Nigeria's electoral history at this
+                                stage.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            National voter turnout has reached 50% - the highest in Nigeria's electoral history at this
-                            stage.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <MapPin className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">Regional Update</h4>
-                            <span className="text-xs text-muted-foreground">1.5 hours ago</span>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <MapPin className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  Regional Update
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  1.5 hours ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                South East region reports record-breaking 72%
+                                turnout with LP leading in 4 out of 5 states.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            South East region reports record-breaking 72% turnout with LP leading in 4 out of 5 states.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <ShieldCheck className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">System Update</h4>
-                            <span className="text-xs text-muted-foreground">2 hours ago</span>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <ShieldCheck className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">System Update</h4>
+                                <span className="text-xs text-muted-foreground">
+                                  2 hours ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                Secure Ballot has successfully processed over 20
+                                million votes with zero system downtime.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            Secure Ballot has successfully processed over 20 million votes with zero system downtime.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <MessageSquare className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">Candidate Statement</h4>
-                            <span className="text-xs text-muted-foreground">2.5 hours ago</span>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <MessageSquare className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  Candidate Statement
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  2.5 hours ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                Peter Obi thanks supporters and emphasizes the
+                                importance of peaceful democratic process.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            Peter Obi thanks supporters and emphasizes the importance of peaceful democratic process.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4 border-b pb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <Users className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">Demographic Insight</h4>
-                            <span className="text-xs text-muted-foreground">3 hours ago</span>
+                          <div className="flex gap-4 border-b pb-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <Users className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  Demographic Insight
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  3 hours ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                Youth voter participation (18-35) has increased
+                                by 27% compared to the 2023 elections.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            Youth voter participation (18-35) has increased by 27% compared to the 2023 elections.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <Globe className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">International Observers</h4>
-                            <span className="text-xs text-muted-foreground">3.5 hours ago</span>
+                          <div className="flex gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                              <Globe className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  International Observers
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  3.5 hours ago
+                                </span>
+                              </div>
+                              <p className="text-sm">
+                                EU Election Observation Mission praises
+                                Nigeria's digital voting system for transparency
+                                and security.
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm">
-                            EU Election Observation Mission praises Nigeria's digital voting system for transparency and
-                            security.
-                          </p>
-                        </div>
-                      </div>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1077,14 +1417,17 @@ export default function DashboardPage() {
                   <CardHeader>
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                       <div>
-                        <CardTitle>{ELECTION_TYPES_MAP[currentElectionTypeKey]} Candidates</CardTitle>
+                        <CardTitle>
+                          {ELECTION_TYPES_MAP[currentElectionTypeKey]}{" "}
+                          Candidates
+                        </CardTitle>
                         <CardDescription>
-                          {votedElections[currentElectionTypeKey]
+                          {hasVoted[currentElectionTypeKey]
                             ? "You have already voted in this election"
                             : "Select a candidate to cast your vote"}
                         </CardDescription>
                       </div>
-                      {votedElections[currentElectionTypeKey] && (
+                      {hasVoted[currentElectionTypeKey] && (
                         <Badge className="mt-2 md:mt-0 bg-green-500/10 text-green-500 border-green-500/20 px-3 py-1">
                           <Check className="mr-1 h-4 w-4" /> Vote Cast
                         </Badge>
@@ -1106,10 +1449,13 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                    {isLoading ? (
+                    {isLoading || dashboardLoading ? (
                       <div className="space-y-4">
                         {[1, 2, 3, 4].map((i) => (
-                          <div key={i} className="flex items-center rounded-lg border p-4 animate-pulse">
+                          <div
+                            key={i}
+                            className="flex items-center rounded-lg border p-4 animate-pulse"
+                          >
                             <div className="mr-4 h-16 w-16 rounded-full bg-muted"></div>
                             <div className="flex-1">
                               <div className="h-5 w-32 bg-muted rounded mb-2"></div>
@@ -1123,18 +1469,22 @@ export default function DashboardPage() {
                           </div>
                         ))}
                       </div>
-                    ) : candidates.length === 0 ? (
+                    ) : ensureArray(candidates).length === 0 ? (
                       <div className="text-center py-8">
                         <div className="mx-auto w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
                           <Search className="h-6 w-6 text-muted-foreground" />
                         </div>
-                        <h3 className="text-lg font-medium">No candidates found</h3>
-                        <p className="text-muted-foreground mt-1">Try a different search term</p>
+                        <h3 className="text-lg font-medium">
+                          No candidates found
+                        </h3>
+                        <p className="text-muted-foreground mt-1">
+                          Try a different search term
+                        </p>
                         <Button
                           variant="outline"
                           className="mt-4"
                           onClick={() => {
-                            setSearchTerm("")
+                            setSearchTerm("");
                             // Reset search results
                           }}
                         >
@@ -1143,17 +1493,20 @@ export default function DashboardPage() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {candidates.map((candidate) => (
+                        {ensureArray(getCandidateResults()).map((candidate: any) => (
                           <div
                             key={candidate.id}
                             className={`flex items-center rounded-lg border p-4 transition-all duration-300 ${
-                              votedElections[currentElectionTypeKey] === candidate.id
+                              hasVoted[currentElectionTypeKey] === candidate.id
                                 ? "border-green-500 bg-green-500/5"
-                                : votedElections[currentElectionTypeKey]
-                                  ? "opacity-80 hover:bg-muted/30"
-                                  : "cursor-pointer hover:bg-muted/50 hover:scale-[1.01] hover:shadow-md"
+                                : hasVoted[currentElectionTypeKey]
+                                ? "opacity-80 hover:bg-muted/30"
+                                : "cursor-pointer hover:bg-muted/50 hover:scale-[1.01] hover:shadow-md"
                             }`}
-                            onClick={() => !votedElections[currentElectionTypeKey] && handleCandidateSelect(candidate)}
+                            onClick={() =>
+                              !hasVoted[currentElectionTypeKey] &&
+                              handleCandidateSelect(candidate)
+                            }
                           >
                             <div className="mr-4 h-16 w-16 overflow-hidden rounded-full">
                               <img
@@ -1165,30 +1518,45 @@ export default function DashboardPage() {
                             <div className="flex-1">
                               <h3 className="font-semibold flex items-center">
                                 {candidate.name}
-                                {votedElections[currentElectionTypeKey] === candidate.id && (
+                                {hasVoted[currentElectionTypeKey] ===
+                                  candidate.id && (
                                   <Check className="ml-2 h-4 w-4 text-green-500" />
                                 )}
                               </h3>
-                              <p className="text-sm text-muted-foreground">{candidate.party}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {candidate.party}
+                              </p>
                             </div>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="text-right">
-                                    <div className="font-bold">{(candidate.votes / 1000000).toFixed(1)}M</div>
+                                    <div className="font-bold">
+                                      {(
+                                        (candidate.votes || 0) / 1000000
+                                      ).toFixed(1)}
+                                      M
+                                    </div>
                                     <div className="text-sm text-muted-foreground">
-                                      {candidate.percentage}% of votes
+                                      {candidate.percentage || 0}% of votes
                                     </div>
                                   </div>
                                 </TooltipTrigger>
-                                <TooltipContent side="left" className="max-w-xs">
+                                <TooltipContent
+                                  side="left"
+                                  className="max-w-xs"
+                                >
                                   <div className="space-y-2">
                                     <p className="font-semibold">
                                       {candidate.name} ({candidate.party})
                                     </p>
                                     <p className="text-sm">{candidate.bio}</p>
                                     <p className="text-sm">
-                                      <span className="font-medium">Manifesto:</span> {candidate.manifesto}
+                                      <span className="font-medium">
+                                        Manifesto:
+                                      </span>{" "}
+                                      {candidate.manifesto ||
+                                        "No manifesto available"}
                                     </p>
                                   </div>
                                 </TooltipContent>
@@ -1205,13 +1573,15 @@ export default function DashboardPage() {
                   </CardContent>
                   <CardFooter className="flex justify-between">
                     <p className="text-sm text-muted-foreground">
-                      {votedElections[currentElectionTypeKey]
+                      {hasVoted[currentElectionTypeKey]
                         ? "Thank you for voting in this election"
                         : "Click on a candidate to cast your vote"}
                     </p>
-                    {!votedElections[currentElectionTypeKey] && (
+                    {!hasVoted[currentElectionTypeKey] && (
                       <Button asChild className="ml-auto">
-                        <Link href={`/vote?type=${currentElectionTypeKey}`}>Vote Now</Link>
+                        <Link href={`/vote?type=${currentElectionTypeKey}`}>
+                          Vote Now
+                        </Link>
                       </Button>
                     )}
                   </CardFooter>
@@ -1221,7 +1591,9 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Candidate Comparison</CardTitle>
-                    <CardDescription>Compare candidates side by side</CardDescription>
+                    <CardDescription>
+                      Compare candidates side by side
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
@@ -1236,8 +1608,11 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {candidates.map((candidate) => (
-                            <tr key={candidate.id} className="border-b hover:bg-muted/30">
+                                                      {ensureArray(getCandidateResults()).map((candidate: any) => (
+                            <tr
+                              key={candidate.id}
+                              className="border-b hover:bg-muted/30"
+                            >
                               <td className="p-2 flex items-center gap-2">
                                 <div className="h-8 w-8 rounded-full overflow-hidden">
                                   <img
@@ -1249,12 +1624,20 @@ export default function DashboardPage() {
                                 <span>{candidate.name}</span>
                               </td>
                               <td className="p-2">{candidate.party}</td>
-                              <td className="p-2">{candidate.manifesto}</td>
-                              <td className="p-2">{candidate.votes.toLocaleString()}</td>
+                              <td className="p-2">
+                                {candidate.manifesto ||
+                                  "No manifesto available"}
+                              </td>
+                              <td className="p-2">
+                                {(candidate.votes || 0).toLocaleString()}
+                              </td>
                               <td className="p-2">
                                 <div className="flex items-center gap-2">
-                                  <Progress value={candidate.percentage} className="h-2 w-20" />
-                                  <span>{candidate.percentage}%</span>
+                                  <Progress
+                                    value={candidate.percentage || 0}
+                                    className="h-2 w-20"
+                                  />
+                                  <span>{candidate.percentage || 0}%</span>
                                 </div>
                               </td>
                             </tr>
@@ -1272,7 +1655,9 @@ export default function DashboardPage() {
                   <Card className="flex-1">
                     <CardHeader>
                       <CardTitle>Election Statistics</CardTitle>
-                      <CardDescription>Detailed breakdown of voting patterns</CardDescription>
+                      <CardDescription>
+                        Detailed breakdown of voting patterns
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Tabs defaultValue="overview">
@@ -1291,14 +1676,17 @@ export default function DashboardPage() {
                                   <div className="p-2 rounded-full bg-primary/10">
                                     <Users className="h-4 w-4 text-primary" />
                                   </div>
-                                  <CardTitle className="text-sm font-medium">Registered Voters</CardTitle>
+                                  <CardTitle className="text-sm font-medium">
+                                    Registered Voters
+                                  </CardTitle>
                                 </div>
                               </CardHeader>
                               <CardContent>
-                                <div className="text-2xl font-bold">93,469,008</div>
+                                <div className="text-2xl font-bold">
+                                  {getRegisteredVoters().toLocaleString()}
+                                </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <ArrowUp className="h-3 w-3 text-green-500" />
-                                  <span>5.2% from 2019 election</span>
+                                  <span>Total eligible voters</span>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1309,13 +1697,19 @@ export default function DashboardPage() {
                                   <div className="p-2 rounded-full bg-primary/10">
                                     <CreditCard className="h-4 w-4 text-primary" />
                                   </div>
-                                  <CardTitle className="text-sm font-medium">PVCs Collected</CardTitle>
+                                  <CardTitle className="text-sm font-medium">
+                                    Total Votes Cast
+                                  </CardTitle>
                                 </div>
                               </CardHeader>
                               <CardContent>
-                                <div className="text-2xl font-bold">87,209,007</div>
+                                <div className="text-2xl font-bold">
+                                  {getTotalVotes().toLocaleString()}
+                                </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span>93.3% collection rate</span>
+                                  <span>
+                                    {getVoterTurnout().toFixed(1)}% turnout rate
+                                  </span>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1326,13 +1720,21 @@ export default function DashboardPage() {
                                   <div className="p-2 rounded-full bg-primary/10">
                                     <UserCheck className="h-4 w-4 text-primary" />
                                   </div>
-                                  <CardTitle className="text-sm font-medium">Accredited Voters</CardTitle>
+                                  <CardTitle className="text-sm font-medium">
+                                    Polling Units
+                                  </CardTitle>
                                 </div>
                               </CardHeader>
                               <CardContent>
-                                <div className="text-2xl font-bold">62,578,440</div>
+                                <div className="text-2xl font-bold">
+                                  {getPollingUnitsReported().toLocaleString()}/
+                                  {getTotalPollingUnits().toLocaleString()}
+                                </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span>67.0% of registered voters</span>
+                                  <span>
+                                    {getReportingPercentage().toFixed(1)}%
+                                    reporting
+                                  </span>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1343,13 +1745,25 @@ export default function DashboardPage() {
                                   <div className="p-2 rounded-full bg-primary/10">
                                     <CheckCircle className="h-4 w-4 text-primary" />
                                   </div>
-                                  <CardTitle className="text-sm font-medium">Valid Votes</CardTitle>
+                                  <CardTitle className="text-sm font-medium">
+                                    Valid Votes
+                                  </CardTitle>
                                 </div>
                               </CardHeader>
                               <CardContent>
-                                <div className="text-2xl font-bold">{getTotalVotes().toLocaleString()}</div>
+                                <div className="text-2xl font-bold">
+                                  {getValidVotes().toLocaleString()}
+                                </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span>98.8% of total votes cast</span>
+                                  <span>
+                                    {getTotalVotes() > 0
+                                      ? (
+                                          (getValidVotes() / getTotalVotes()) *
+                                          100
+                                        ).toFixed(1)
+                                      : 0}
+                                    % of total votes cast
+                                  </span>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1360,13 +1774,26 @@ export default function DashboardPage() {
                                   <div className="p-2 rounded-full bg-primary/10">
                                     <XCircle className="h-4 w-4 text-primary" />
                                   </div>
-                                  <CardTitle className="text-sm font-medium">Rejected Votes</CardTitle>
+                                  <CardTitle className="text-sm font-medium">
+                                    Invalid Votes
+                                  </CardTitle>
                                 </div>
                               </CardHeader>
                               <CardContent>
-                                <div className="text-2xl font-bold">731,285</div>
+                                <div className="text-2xl font-bold">
+                                  {getInvalidVotes().toLocaleString()}
+                                </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span>1.2% of total votes cast</span>
+                                  <span>
+                                    {getTotalVotes() > 0
+                                      ? (
+                                          (getInvalidVotes() /
+                                            getTotalVotes()) *
+                                          100
+                                        ).toFixed(1)
+                                      : 0}
+                                    % of total votes cast
+                                  </span>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1377,7 +1804,9 @@ export default function DashboardPage() {
                                   <div className="p-2 rounded-full bg-primary/10">
                                     <Percent className="h-4 w-4 text-primary" />
                                   </div>
-                                  <CardTitle className="text-sm font-medium">Voter Turnout</CardTitle>
+                                  <CardTitle className="text-sm font-medium">
+                                    Voter Turnout
+                                  </CardTitle>
                                 </div>
                               </CardHeader>
                               <CardContent>
@@ -1392,84 +1821,142 @@ export default function DashboardPage() {
 
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <h3 className="text-sm font-medium">Voter Turnout by Geopolitical Zone</h3>
+                              <h3 className="text-sm font-medium">
+                                Voter Turnout by Geopolitical Zone
+                              </h3>
                               <Select defaultValue="all">
                                 <SelectTrigger className="w-[180px] h-8 text-xs">
                                   <SelectValue placeholder="Select Zone" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="all">All Zones</SelectItem>
-                                  <SelectItem value="nc">North Central</SelectItem>
+                                  <SelectItem value="nc">
+                                    North Central
+                                  </SelectItem>
                                   <SelectItem value="ne">North East</SelectItem>
                                   <SelectItem value="nw">North West</SelectItem>
                                   <SelectItem value="se">South East</SelectItem>
-                                  <SelectItem value="ss">South South</SelectItem>
+                                  <SelectItem value="ss">
+                                    South South
+                                  </SelectItem>
                                   <SelectItem value="sw">South West</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
 
                             <div className="space-y-4">
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm">North Central</span>
-                                  <span className="text-sm font-medium">67%</span>
-                                </div>
-                                <Progress value={67} className="h-2" />
-                              </div>
+                                                          {ensureArray(getTurnoutByRegion()).length > 0 ? (
+                              ensureArray(getTurnoutByRegion()).map((region: any) => (
+                                  <div
+                                    key={region.regionName}
+                                    className="space-y-2"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm">
+                                        {region.regionName}
+                                      </span>
+                                      <span className="text-sm font-medium">
+                                        {region.turnoutPercentage.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                    <Progress
+                                      value={region.turnoutPercentage}
+                                      className="h-2"
+                                    />
+                                    <div className="text-xs text-muted-foreground">
+                                      {region.statesReported}/
+                                      {region.totalStatesInZone} states reported
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                // Fallback to static data if API data not available
+                                <>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm">
+                                        North Central
+                                      </span>
+                                      <span className="text-sm font-medium">
+                                        67%
+                                      </span>
+                                    </div>
+                                    <Progress value={67} className="h-2" />
+                                  </div>
 
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm">North East</span>
-                                  <span className="text-sm font-medium">58%</span>
-                                </div>
-                                <Progress value={58} className="h-2" />
-                              </div>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm">
+                                        North East
+                                      </span>
+                                      <span className="text-sm font-medium">
+                                        58%
+                                      </span>
+                                    </div>
+                                    <Progress value={58} className="h-2" />
+                                  </div>
 
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm">North West</span>
-                                  <span className="text-sm font-medium">72%</span>
-                                </div>
-                                <Progress value={72} className="h-2" />
-                              </div>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm">
+                                        North West
+                                      </span>
+                                      <span className="text-sm font-medium">
+                                        72%
+                                      </span>
+                                    </div>
+                                    <Progress value={72} className="h-2" />
+                                  </div>
 
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm">South East</span>
-                                  <span className="text-sm font-medium">54%</span>
-                                </div>
-                                <Progress value={54} className="h-2" />
-                              </div>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm">
+                                        South East
+                                      </span>
+                                      <span className="text-sm font-medium">
+                                        54%
+                                      </span>
+                                    </div>
+                                    <Progress value={54} className="h-2" />
+                                  </div>
 
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm">South South</span>
-                                  <span className="text-sm font-medium">61%</span>
-                                </div>
-                                <Progress value={61} className="h-2" />
-                              </div>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm">
+                                        South South
+                                      </span>
+                                      <span className="text-sm font-medium">
+                                        61%
+                                      </span>
+                                    </div>
+                                    <Progress value={61} className="h-2" />
+                                  </div>
 
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm">South West</span>
-                                  <span className="text-sm font-medium">65%</span>
-                                </div>
-                                <Progress value={65} className="h-2" />
-                              </div>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm">
+                                        South West
+                                      </span>
+                                      <span className="text-sm font-medium">
+                                        65%
+                                      </span>
+                                    </div>
+                                    <Progress value={65} className="h-2" />
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
                         </TabsContent>
 
                         <TabsContent value="state" className="h-80 pt-4">
                           <BarChart
-                            data={[
-                              { name: "Lagos", turnout: 65 },
-                              { name: "Kano", turnout: 72 },
-                              { name: "Rivers", turnout: 58 },
-                              { name: "FCT", turnout: 61 },
-                              { name: "Kaduna", turnout: 69 }
-                            ]}
+                            data={ensureArray(getTurnoutByRegion())
+                              .slice(0, 10)
+                              .map((region: any) => ({
+                                name: region.regionName || region.state,
+                                turnout: region.turnoutPercentage || 0,
+                              }))}
                             index="name"
                             categories={["turnout"]}
                             colors={["blue"]}
@@ -1480,7 +1967,13 @@ export default function DashboardPage() {
 
                         <TabsContent value="demographic" className="h-80 pt-4">
                           <BarChart
-                            data={demographicData}
+                            data={[
+                              { age: "18-25", percentage: 22 },
+                              { age: "26-35", percentage: 35 },
+                              { age: "36-45", percentage: 25 },
+                              { age: "46-60", percentage: 12 },
+                              { age: "60+", percentage: 6 },
+                            ]}
                             index="age"
                             categories={["percentage"]}
                             colors={["purple"]}
@@ -1491,7 +1984,10 @@ export default function DashboardPage() {
 
                         <TabsContent value="gender" className="h-80 pt-4">
                           <PieChart
-                            data={genderData}
+                            data={[
+                              { gender: "Male", percentage: 52 },
+                              { gender: "Female", percentage: 48 },
+                            ]}
                             index="gender"
                             categories={["percentage"]}
                             colors={["blue", "pink"]}
@@ -1506,26 +2002,52 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Detailed Statistics</CardTitle>
-                    <CardDescription>Comprehensive election data</CardDescription>
+                    <CardDescription>
+                      Comprehensive election data
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-6 md:grid-cols-3">
                       <div className="space-y-2">
-                        <h3 className="font-medium">Registered Voters</h3>
-                        <div className="text-2xl font-bold">93,469,008</div>
-                        <p className="text-sm text-muted-foreground">Total eligible voters</p>
+                        <h3 className="font-medium">Total Votes Cast</h3>
+                        <div className="text-2xl font-bold">
+                          {getTotalVotes().toLocaleString()}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          All votes recorded
+                        </p>
                       </div>
 
                       <div className="space-y-2">
-                        <h3 className="font-medium">Votes Cast</h3>
-                        <div className="text-2xl font-bold">{getTotalVotes().toLocaleString()}</div>
-                        <p className="text-sm text-muted-foreground">62.5% turnout</p>
+                        <h3 className="font-medium">Valid Votes</h3>
+                        <div className="text-2xl font-bold">
+                          {getValidVotes().toLocaleString()}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {getTotalVotes() > 0
+                            ? (
+                                (getValidVotes() / getTotalVotes()) *
+                                100
+                              ).toFixed(1)
+                            : 0}
+                          % of total
+                        </p>
                       </div>
 
                       <div className="space-y-2">
                         <h3 className="font-medium">Invalid Votes</h3>
-                        <div className="text-2xl font-bold">731,285</div>
-                        <p className="text-sm text-muted-foreground">1.2% of total votes</p>
+                        <div className="text-2xl font-bold">
+                          {getInvalidVotes().toLocaleString()}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {getTotalVotes() > 0
+                            ? (
+                                (getInvalidVotes() / getTotalVotes()) *
+                                100
+                              ).toFixed(1)
+                            : 0}
+                          % of total
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -1537,20 +2059,15 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Electoral Map</CardTitle>
-                    <CardDescription>Geographic distribution of votes across Nigeria</CardDescription>
+                    <CardDescription>
+                      Interactive map showing election results across Nigerian states
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[500px] flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="mx-auto mb-4 h-40 w-40 rounded-full bg-muted p-8">
-                        <Map className="h-full w-full text-muted-foreground" />
-                      </div>
-                      <p className="text-muted-foreground">
-                        Interactive map will be available when more results are in
-                      </p>
-                      <Button variant="outline" className="mt-4">
-                        View Preliminary Map
-                      </Button>
-                    </div>
+                  <CardContent>
+                    <ElectoralMap 
+                      height="500px"
+                      showLegend={true}
+                    />
                   </CardContent>
                 </Card>
 
@@ -1558,57 +2075,84 @@ export default function DashboardPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Regional Breakdown</CardTitle>
-                      <CardDescription>Vote distribution by geopolitical zone</CardDescription>
+                      <CardDescription>
+                        Vote distribution by geopolitical zone
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span>North Central</span>
-                            <span className="font-medium">32%</span>
-                          </div>
-                          <Progress value={32} className="h-2" />
-                        </div>
+                        {ensureArray(getRegionalBreakdown()).length > 0 ? (
+                          ensureArray(getRegionalBreakdown()).map((region: any) => (
+                            <div key={region.region_name} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span>{region.region_name}</span>
+                                <span className="font-medium">
+                                  {region.percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                              <Progress
+                                value={region.percentage}
+                                className="h-2"
+                              />
+                              <div className="text-xs text-muted-foreground">
+                                {region.vote_count.toLocaleString()} votes •{" "}
+                                {region.states_reported}/
+                                {region.total_states_in_zone} states reported
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          // Fallback to static data if API data not available
+                          <>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span>North Central</span>
+                                <span className="font-medium">32%</span>
+                              </div>
+                              <Progress value={32} className="h-2" />
+                            </div>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span>North East</span>
-                            <span className="font-medium">28%</span>
-                          </div>
-                          <Progress value={28} className="h-2" />
-                        </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span>North East</span>
+                                <span className="font-medium">28%</span>
+                              </div>
+                              <Progress value={28} className="h-2" />
+                            </div>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span>North West</span>
-                            <span className="font-medium">45%</span>
-                          </div>
-                          <Progress value={45} className="h-2" />
-                        </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span>North West</span>
+                                <span className="font-medium">45%</span>
+                              </div>
+                              <Progress value={45} className="h-2" />
+                            </div>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span>South East</span>
-                            <span className="font-medium">38%</span>
-                          </div>
-                          <Progress value={38} className="h-2" />
-                        </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span>South East</span>
+                                <span className="font-medium">38%</span>
+                              </div>
+                              <Progress value={38} className="h-2" />
+                            </div>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span>South South</span>
-                            <span className="font-medium">41%</span>
-                          </div>
-                          <Progress value={41} className="h-2" />
-                        </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span>South South</span>
+                                <span className="font-medium">41%</span>
+                              </div>
+                              <Progress value={41} className="h-2" />
+                            </div>
 
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span>South West</span>
-                            <span className="font-medium">52%</span>
-                          </div>
-                          <Progress value={52} className="h-2" />
-                        </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span>South West</span>
+                                <span className="font-medium">52%</span>
+                              </div>
+                              <Progress value={52} className="h-2" />
+                            </div>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -1616,7 +2160,9 @@ export default function DashboardPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Leading Party by State</CardTitle>
-                      <CardDescription>Current leading party in each state</CardDescription>
+                      <CardDescription>
+                        Current leading party in each state
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-[300px] pr-4">
@@ -1624,13 +2170,21 @@ export default function DashboardPage() {
                           {[
                             { state: "Abia", party: "LP", percentage: 48 },
                             { state: "Adamawa", party: "PDP", percentage: 52 },
-                            { state: "Akwa Ibom", party: "PDP", percentage: 55 },
+                            {
+                              state: "Akwa Ibom",
+                              party: "PDP",
+                              percentage: 55,
+                            },
                             { state: "Anambra", party: "LP", percentage: 63 },
                             { state: "Bauchi", party: "APC", percentage: 47 },
                             { state: "Bayelsa", party: "PDP", percentage: 51 },
                             { state: "Benue", party: "LP", percentage: 42 },
                             { state: "Borno", party: "APC", percentage: 58 },
-                            { state: "Cross River", party: "APC", percentage: 45 },
+                            {
+                              state: "Cross River",
+                              party: "APC",
+                              percentage: 45,
+                            },
                             { state: "Delta", party: "PDP", percentage: 49 },
                             { state: "Ebonyi", party: "APC", percentage: 46 },
                             { state: "Edo", party: "LP", percentage: 44 },
@@ -1666,10 +2220,26 @@ export default function DashboardPage() {
                                 <Badge
                                   variant="outline"
                                   className={`
-                                  ${item.party === "APC" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : ""}
-                                  ${item.party === "PDP" ? "bg-red-500/10 text-red-500 border-red-500/20" : ""}
-                                  ${item.party === "LP" ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}
-                                  ${item.party === "NNPP" ? "bg-purple-500/10 text-purple-500 border-purple-500/20" : ""}
+                                  ${
+                                    item.party === "APC"
+                                      ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                      : ""
+                                  }
+                                  ${
+                                    item.party === "PDP"
+                                      ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                      : ""
+                                  }
+                                  ${
+                                    item.party === "LP"
+                                      ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                      : ""
+                                  }
+                                  ${
+                                    item.party === "NNPP"
+                                      ? "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                                      : ""
+                                  }
                                 `}
                                 >
                                   {item.party} ({item.percentage}%)
@@ -1681,10 +2251,10 @@ export default function DashboardPage() {
                                   item.party === "APC"
                                     ? "bg-blue-100 dark:bg-blue-950"
                                     : item.party === "PDP"
-                                      ? "bg-red-100 dark:bg-red-950"
-                                      : item.party === "LP"
-                                        ? "bg-green-100 dark:bg-green-950"
-                                        : "bg-purple-100 dark:bg-purple-950"
+                                    ? "bg-red-100 dark:bg-red-950"
+                                    : item.party === "LP"
+                                    ? "bg-green-100 dark:bg-green-950"
+                                    : "bg-purple-100 dark:bg-purple-950"
                                 }`}
                               />
                             </div>
@@ -1703,7 +2273,8 @@ export default function DashboardPage() {
                     <DialogTitle>Confirm Your Vote</DialogTitle>
                     <DialogDescription>
                       You are about to cast your vote in the{" "}
-                      {ELECTION_TYPES_MAP[currentElectionTypeKey]}. This action cannot be undone.
+                      {ELECTION_TYPES_MAP[currentElectionTypeKey]}. This action
+                      cannot be undone.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex items-center space-x-4 py-4">
@@ -1711,15 +2282,29 @@ export default function DashboardPage() {
                       <>
                         <div className="h-16 w-16 overflow-hidden rounded-full">
                           <img
-                            src={candidates.find(c => c.id === selectedCandidateId)?.image || "/placeholder.svg"}
+                            src={
+                              candidates.find(
+                                (c) => c.id === selectedCandidateId
+                              )?.image || "/placeholder.svg"
+                            }
                             alt="Selected candidate"
                             className="h-full w-full object-cover"
                           />
                         </div>
                         <div>
-                          <h4 className="font-medium">{candidates.find(c => c.id === selectedCandidateId)?.name}</h4>
+                          <h4 className="font-medium">
+                            {
+                              candidates.find(
+                                (c) => c.id === selectedCandidateId
+                              )?.name
+                            }
+                          </h4>
                           <p className="text-sm text-muted-foreground">
-                            {candidates.find(c => c.id === selectedCandidateId)?.party}
+                            {
+                              candidates.find(
+                                (c) => c.id === selectedCandidateId
+                              )?.party
+                            }
                           </p>
                         </div>
                       </>
@@ -1737,5 +2322,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </SidebarProvider>
-  )
+  );
 }

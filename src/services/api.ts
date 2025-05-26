@@ -10,6 +10,14 @@ const api = axios.create({
   },
 });
 
+// Create a separate instance for refresh token calls to avoid circular dependency
+const refreshApi = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Add request interceptor to add auth token
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
@@ -23,9 +31,41 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    const originalRequest = error.config;
+    
+    // If the error is 401 and we haven't already tried to refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        // Try to refresh the token using the separate API instance
+        const token = useAuthStore.getState().token;
+        const refreshResponse = await refreshApi.post('/auth/refresh-token', {}, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        if (refreshResponse.data.success) {
+          const { token: newToken, user } = refreshResponse.data.data;
+          useAuthStore.getState().validateAndSetAuth(newToken, user);
+          
+          // Retry the original request with the new token
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        // Refresh failed, logout user
+        useAuthStore.getState().logout();
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    // If it's still 401 after refresh attempt, logout
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
     }
+    
     return Promise.reject(error);
   }
 );
@@ -235,6 +275,12 @@ export const electionAPI = {
 
   getElectionDetails: async (id: string) => {
     const response = await api.get(`/elections/${id}`);
+    return response.data;
+  },
+
+  // New comprehensive dashboard endpoint
+  getElectionDashboard: async (electionId: string) => {
+    const response = await api.get(`/elections/${electionId}/dashboard`);
     return response.data;
   },
 

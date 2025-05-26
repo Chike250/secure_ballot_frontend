@@ -6,6 +6,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { Toaster } from "@/components/ui/toaster";
 import { StoreProvider } from "@/components/providers/store-provider";
+import { AuthProvider } from "@/components/providers/auth-provider";
+import { AuthDebug } from "@/components/auth-debug";
+import ErrorBoundary from "@/components/error-boundary";
+import { ClientErrorHandler } from "@/components/client-error-handler";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,19 +28,25 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <StoreProvider>
-            <LanguageProvider>
-              {children}
-              <Toaster />
-            </LanguageProvider>
-          </StoreProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <StoreProvider>
+              <AuthProvider>
+                <LanguageProvider>
+                  <ClientErrorHandler />
+                  {children}
+                  <Toaster />
+                  <AuthDebug />
+                </LanguageProvider>
+              </AuthProvider>
+            </StoreProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

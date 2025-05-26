@@ -29,25 +29,50 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   requiresMfa: boolean;
+  isInitialized: boolean;
   setAuth: (token: string, user: User, requiresMfa?: boolean) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   setMfaRequired: (required: boolean) => void;
+  setInitialized: (initialized: boolean) => void;
+  validateAndSetAuth: (token: string, user: User, requiresMfa?: boolean) => void;
 }
 
 const cookieStorage = {
   getItem: (name: string) => {
-    return Cookies.get(name) || null;
+    try {
+      const value = Cookies.get(name);
+      if (!value) return null;
+      
+      // Try to parse the value to ensure it's valid JSON
+      JSON.parse(value);
+      return value;
+    } catch (error) {
+      console.warn(`Failed to parse cookie ${name}:`, error);
+      // Remove corrupted cookie
+      Cookies.remove(name);
+      return null;
+    }
   },
   setItem: (name: string, value: string) => {
-    Cookies.set(name, value, { 
-      expires: 15/1440, // 15 minutes (15/1440 days)
-      secure: process.env.NODE_ENV === 'production', // Only use secure in production
-      sameSite: 'strict' // Protect against CSRF
-    });
+    try {
+      // Validate that the value is valid JSON before storing
+      JSON.parse(value);
+      Cookies.set(name, value, { 
+        expires: 30/1440, // 30 minutes (30/1440 days)
+        secure: process.env.NODE_ENV === 'production', // Only use secure in production
+        sameSite: 'strict' // Protect against CSRF
+      });
+    } catch (error) {
+      console.error(`Failed to store cookie ${name}:`, error);
+    }
   },
   removeItem: (name: string) => {
-    Cookies.remove(name);
+    try {
+      Cookies.remove(name);
+    } catch (error) {
+      console.warn(`Failed to remove cookie ${name}:`, error);
+    }
   },
 };
 
@@ -58,6 +83,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       requiresMfa: false,
+      isInitialized: false,
       setAuth: (token, user, requiresMfa = false) => set({ 
         token, 
         user, 
@@ -75,6 +101,13 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, ...userData } : null,
         })),
       setMfaRequired: (required) => set({ requiresMfa: required }),
+      setInitialized: (initialized) => set({ isInitialized: initialized }),
+      validateAndSetAuth: (token, user, requiresMfa = false) => set({ 
+        token, 
+        user, 
+        isAuthenticated: true, 
+        requiresMfa 
+      }),
     }),
     {
       name: 'auth-storage',
@@ -102,6 +135,7 @@ interface Candidate {
   party: string;
   image?: string;
   bio?: string;
+  manifesto?: string;
   electionId: string;
   votes?: number;
   percentage?: number;
@@ -137,7 +171,9 @@ export const useElectionStore = create<ElectionState>()(
       candidates: [],
       results: null,
       setCurrentElection: (election) => set({ currentElection: election }),
-      setElections: (elections) => set({ elections }),
+      setElections: (elections) => {
+        set({ elections });
+      },
       setCandidates: (candidates) => set({ candidates }),
       setResults: (results) => set({ results }),
       clearElectionData: () => set({ 
@@ -153,11 +189,11 @@ export const useElectionStore = create<ElectionState>()(
 );
 
 interface VotingState {
-  hasVoted: { [electionId: string]: boolean };
+  hasVoted: { [electionId: string]: string | null }; // Store candidate ID instead of boolean
   votingStatus: { [electionId: string]: any };
   eligibility: { [electionId: string]: any };
   voteReceipts: { [electionId: string]: string };
-  setHasVoted: (electionId: string, voted: boolean) => void;
+  setHasVoted: (electionId: string, candidateId: string | null) => void;
   setVotingStatus: (electionId: string, status: any) => void;
   setEligibility: (electionId: string, eligibility: any) => void;
   setVoteReceipt: (electionId: string, receiptCode: string) => void;
@@ -171,9 +207,9 @@ export const useVotingStore = create<VotingState>()(
       votingStatus: {},
       eligibility: {},
       voteReceipts: {},
-      setHasVoted: (electionId, voted) => 
+      setHasVoted: (electionId, candidateId) => 
         set((state) => ({ 
-          hasVoted: { ...state.hasVoted, [electionId]: voted } 
+          hasVoted: { ...state.hasVoted, [electionId]: candidateId } 
         })),
       setVotingStatus: (electionId, status) => 
         set((state) => ({ 
