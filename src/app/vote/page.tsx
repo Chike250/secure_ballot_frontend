@@ -29,7 +29,13 @@ import { useElectionData } from "@/hooks/useElectionData"
 import { useVoterProfile } from "@/hooks/useVoterProfile"
 import { Switch } from "@/components/ui/switch"
 
-// No need to hardcode election types, using those from the hooks
+// Election types mapping
+const ELECTION_TYPES_MAP: Record<string, string> = {
+  presidential: "Presidential Election",
+  gubernatorial: "Gubernatorial Election",
+  "house-of-reps": "House of Representatives Election",
+  senatorial: "Senatorial Election",
+}
 
 export default function VotePage() {
   const router = useRouter()
@@ -49,15 +55,14 @@ export default function VotePage() {
   } = useVote()
 
   const {
-    currentElectionTypeKey,
     elections: electionList,
-    currentElectionDetails: electionDetails,
+    currentElection: electionDetails,
     candidates,
-    electionResults,
-    fetchElectionDetailsAndCandidates,
-    fetchResults,
-    ELECTION_TYPES_MAP
-  } = useElectionData(initialElectionType)
+    results: electionResults,
+    fetchElectionDetails,
+    fetchCandidates,
+    fetchResults
+  } = useElectionData()
 
   const {
     getProfile,
@@ -75,6 +80,12 @@ export default function VotePage() {
   const [voterProfile, setVoterProfile] = useState<any>(null)
   const [pollingUnit, setPollingUnit] = useState<any>(null)
   const [receiptCode, setReceiptCode] = useState<string>("")
+
+  // Helper function to safely find candidate
+  const findCandidate = (candidateId: number | string | null) => {
+    if (!candidateId || !candidates) return null;
+    return candidates.find((c) => c.id === candidateId);
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -103,19 +114,27 @@ export default function VotePage() {
   useEffect(() => {
     if (isAuthenticated && electionType) {
       loadVotePrereqs(electionType)
-      fetchElectionDetailsAndCandidates(electionType)
+      // Find election by type and fetch details
+      const election = electionList.find(e => e.type?.toLowerCase().includes(electionType.toLowerCase()))
+      if (election) {
+        fetchElectionDetails(election.id)
+        fetchCandidates(election.id)
+      }
       setSelectedCandidate(null)
-      if (activeTab === 'results') {
-        fetchResults(electionType)
+      if (activeTab === 'results' && election) {
+        fetchResults(election.id)
       }
     }
-  }, [electionType, isAuthenticated, loadVotePrereqs, fetchElectionDetailsAndCandidates, fetchResults, activeTab])
+  }, [electionType, isAuthenticated, loadVotePrereqs, fetchElectionDetails, fetchCandidates, fetchResults, activeTab, electionList])
 
   useEffect(() => {
     if (activeTab === 'results' && electionType) {
-      fetchResults(electionType)
+      const election = electionList.find(e => e.type?.toLowerCase().includes(electionType.toLowerCase()))
+      if (election) {
+        fetchResults(election.id)
+      }
     }
-  }, [activeTab, electionType, fetchResults])
+  }, [activeTab, electionType, fetchResults, electionList])
 
   const handleCandidateSelect = (candidateId: number | string) => {
     if (votingStatus?.hasVoted) {
@@ -194,7 +213,7 @@ export default function VotePage() {
               </Link>
             </Button>
             <h1 className="text-3xl font-bold tracking-tight">
-              {electionDetails?.electionName || ELECTION_TYPES_MAP[electionType] || "Election"}
+              {electionDetails?.name || ELECTION_TYPES_MAP[electionType] || "Election"}
             </h1>
             <p className="text-muted-foreground">Cast your vote securely and confidentially</p>
           </div>
@@ -294,7 +313,7 @@ export default function VotePage() {
                         </CardFooter>
                       </Card>
                     ))
-                  ) : candidates.map((candidate) => (
+                  ) : (candidates || []).map((candidate) => (
                   <Card
                     key={candidate.id}
                     className={`overflow-hidden transition-all duration-300 hover:shadow-lg ${
@@ -422,7 +441,7 @@ export default function VotePage() {
                         <div className="col-span-1 flex items-center justify-center"><div className="h-5 w-5 bg-muted rounded-full"></div></div>
                       </div>
                    ))
-                  ) : candidates.map((candidate) => (
+                  ) : (candidates || []).map((candidate) => (
                   <div
                     key={candidate.id}
                     className={`p-3 grid grid-cols-12 gap-2 border-t hover:bg-muted/30 ${
@@ -522,7 +541,7 @@ export default function VotePage() {
               <CardHeader>
                 <CardTitle>Live Results</CardTitle>
                 <CardDescription>
-                  Current vote counts for {electionDetails?.electionName || ELECTION_TYPES_MAP[electionType] || "Election"}
+                  Current vote counts for {electionDetails?.name || ELECTION_TYPES_MAP[electionType] || "Election"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -561,7 +580,7 @@ export default function VotePage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className="font-medium">{resultCandidate.votes.toLocaleString()} votes</span>
+                            <span className="font-medium">{(resultCandidate.votes || 0).toLocaleString()} votes</span>
                             <span className="ml-2 text-sm text-muted-foreground">({resultCandidate.percentage}%)</span>
                           </div>
                         </div>
@@ -653,32 +672,32 @@ export default function VotePage() {
               Please review your selection carefully. Once submitted, your vote cannot be changed.
             </DialogDescription>
           </DialogHeader>
-          {selectedCandidate && candidates.length > 0 && (
+          {selectedCandidate && (candidates || []).length > 0 && (
             <div className="flex flex-col items-center justify-center p-4">
               <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary mb-4">
                 <Image
-                  src={candidates.find((c) => c.id === selectedCandidate)?.image || "/placeholder.svg"}
+                  src={findCandidate(selectedCandidate)?.image || "/placeholder.svg"}
                   alt="Selected candidate"
                   fill
                   className="object-cover"
                 />
               </div>
-              <h3 className="text-xl font-bold mb-1">{candidates.find((c) => c.id === selectedCandidate)?.name}</h3>
+                              <h3 className="text-xl font-bold mb-1">{findCandidate(selectedCandidate)?.name}</h3>
               <div className="flex items-center gap-2 mb-4">
                 <Badge
                   variant="outline"
                   style={{
-                    backgroundColor: `${candidates.find((c) => c.id === selectedCandidate)?.color}20`,
-                    color: candidates.find((c) => c.id === selectedCandidate)?.color,
-                    borderColor: `${candidates.find((c) => c.id === selectedCandidate)?.color}40`,
+                    backgroundColor: `${findCandidate(selectedCandidate)?.color}20`,
+                    color: findCandidate(selectedCandidate)?.color,
+                    borderColor: `${findCandidate(selectedCandidate)?.color}40`,
                   }}
                 >
-                  {candidates.find((c) => c.id === selectedCandidate)?.party}
+                  {findCandidate(selectedCandidate)?.party}
                 </Badge>
               </div>
               <p className="text-center text-muted-foreground mb-4">
                 You are about to cast your vote for this candidate in the{" "}
-                {electionDetails?.electionName || ELECTION_TYPES_MAP[electionType] || "Election"}.
+                {electionDetails?.name || ELECTION_TYPES_MAP[electionType] || "Election"}.
               </p>
               <Alert variant="warning" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
@@ -733,7 +752,7 @@ export default function VotePage() {
           <div className="flex flex-col items-center justify-center py-6">
             <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-green-500 mb-4">
               <Image
-                src={candidates.find((c) => c.id === selectedCandidate)?.image || "/placeholder.svg"}
+                src={findCandidate(selectedCandidate)?.image || "/placeholder.svg"}
                 alt="Selected candidate"
                 fill
                 className="object-cover"
@@ -748,16 +767,16 @@ export default function VotePage() {
             </p>
             <div className="text-center space-y-1 mb-4">
               <p className="font-medium">You voted for:</p>
-              <p className="text-lg font-bold">{candidates.find((c) => c.id === selectedCandidate)?.name}</p>
+              <p className="text-lg font-bold">{findCandidate(selectedCandidate)?.name}</p>
               <Badge
                 className="mt-1"
                 style={{
-                  backgroundColor: `${candidates.find((c) => c.id === selectedCandidate)?.color}20`,
-                  color: candidates.find((c) => c.id === selectedCandidate)?.color,
-                  borderColor: `${candidates.find((c) => c.id === selectedCandidate)?.color}40`,
+                  backgroundColor: `${findCandidate(selectedCandidate)?.color}20`,
+                  color: findCandidate(selectedCandidate)?.color,
+                  borderColor: `${findCandidate(selectedCandidate)?.color}40`,
                 }}
               >
-                {candidates.find((c) => c.id === selectedCandidate)?.party}
+                {findCandidate(selectedCandidate)?.party}
               </Badge>
             </div>
             {receiptCode && (
