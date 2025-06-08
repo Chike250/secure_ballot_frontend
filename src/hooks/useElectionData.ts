@@ -55,7 +55,6 @@ const ELECTION_TYPES_MAP: Record<string, string> = {
 };
 
 export const useElectionData = () => {
-  console.log("useElectionData");
   const {
     currentElection,
     elections,
@@ -94,10 +93,13 @@ export const useElectionData = () => {
           type,
         });
         const response = await electionAPI.getElections(status, type);
-        console.log("fetchElections: Full API response:", response);
 
         if (response.success) {
-          setElections(response.data.elections);
+          const electionsList = response.data.elections || response.data || [];
+          console.log("fetchElections: Setting elections:", electionsList);
+          setElections(electionsList);
+        } else {
+          console.log("fetchElections: Response not successful:", response);
         }
       } catch (error: any) {
         console.error("fetchElections: API call failed:", error);

@@ -40,12 +40,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Navbar } from "@/components/navbar";
 import { useAuthStore, useUIStore } from "@/store/useStore";
 import { useVote } from "@/hooks/useVote";
@@ -57,8 +51,15 @@ import { Switch } from "@/components/ui/switch";
 const ELECTION_TYPES_MAP: Record<string, string> = {
   presidential: "Presidential Election",
   gubernatorial: "Gubernatorial Election",
-  "house-of-reps": "House of Representatives Election",
-  senatorial: "Senatorial Election",
+  house: "House of Representatives Election",
+  senate: "Senatorial Election",
+  local: "Local Election",
+};
+
+// Also support the old naming for backward compatibility
+const ELECTION_TYPE_ALIASES: Record<string, string> = {
+  "house-of-reps": "house",
+  "senatorial": "senate",
 };
 
 export default function VotePage() {
@@ -69,6 +70,20 @@ export default function VotePage() {
 
   const initialElectionType = searchParams.get("type") || "presidential";
   const [electionType, setElectionType] = useState(initialElectionType);
+
+  // Helper function to generate initials from candidate name
+  const getInitials = (name: string | undefined | null) => {
+    if (!name || typeof name !== 'string') {
+      return '??'; // Fallback for missing names
+    }
+    return name
+      .trim()
+      .split(' ')
+      .filter(word => word.length > 0) // Filter out empty strings
+      .map(word => word.charAt(0).toUpperCase())
+      .slice(0, 2) // Take only first 2 initials
+      .join('');
+  };
 
   // Use the voting hook
   const {
@@ -104,6 +119,7 @@ export default function VotePage() {
   const [currentElection, setCurrentElection] = useState<any>(null);
   const [voterProfile, setVoterProfile] = useState<any>(null);
   const [pollingUnit, setPollingUnit] = useState<any>(null);
+  const [votedCandidate, setVotedCandidate] = useState<any>(null);
 
   // Helper function to safely find candidate
   const findCandidate = (candidateId: number | string | null) => {
@@ -146,13 +162,39 @@ export default function VotePage() {
 
   // Load election data when election type changes
   useEffect(() => {
+    
     if (isAuthenticated && electionType && electionList.length > 0) {
+      electionList.forEach((election: any, index) => {
+        console.log(`Election ${index}:`, {
+          id: election.id,
+          name: election.name,
+          electionName: election.electionName, // API field
+          type: election.type,
+          electionType: election.electionType, // API field  
+          description: election.description,
+          status: election.status,
+          fullObject: election
+        });
+      });
+
       // Find election by type
-      const election = electionList.find(
-        (e) =>
-          e.type?.toLowerCase().includes(electionType.toLowerCase()) ||
-          e.name?.toLowerCase().includes(electionType.toLowerCase())
-      );
+      const normalizedElectionType = ELECTION_TYPE_ALIASES[electionType] || electionType;
+      
+      const election = electionList.find((e: any) => {
+        const apiElectionType = e.electionType?.toLowerCase(); // API uses electionType
+        const apiElectionName = e.electionName?.toLowerCase(); // API uses electionName
+        const searchType = normalizedElectionType.toLowerCase();
+        const originalType = electionType.toLowerCase();
+        
+        return (
+          apiElectionType === searchType ||
+          apiElectionType === originalType ||
+          apiElectionType?.includes(searchType) ||
+          apiElectionName?.includes(searchType) ||
+          apiElectionName?.includes(originalType) ||
+          e.description?.toLowerCase().includes(searchType)
+        );
+      });
 
       if (election) {
         setCurrentElection(election);
@@ -163,7 +205,15 @@ export default function VotePage() {
         if (activeTab === "results") {
           fetchResults(election.id);
         }
+      } else {
+        console.log('❌ No election found for type:', electionType);
       }
+    } else {
+      console.log('⏳ Waiting for conditions:', {
+        isAuthenticated,
+        electionType,
+        electionListLength: electionList.length
+      });
     }
   }, [
     electionType,
@@ -198,7 +248,7 @@ export default function VotePage() {
     setError(null);
   };
 
-  const handleConfirmVote = async () => {
+  const handleFinalVoteSubmit = async () => {
     if (!selectedCandidate || !currentElection) {
       setError("No candidate or election selected.");
       return;
@@ -207,16 +257,28 @@ export default function VotePage() {
     setShowConfirmDialog(false);
 
     try {
+      // Store the voted candidate info before clearing selection
+      const candidateInfo = findCandidate(selectedCandidate);
+      
       const result = await castVote(currentElection.id, selectedCandidate);
 
       if (result.success) {
-        if (result.receiptCode) {
-          setReceiptCode(result.receiptCode);
+        // Store the voted candidate for the success dialog
+        setVotedCandidate(candidateInfo);
+        
+        // Handle different receipt code response structures
+        const receiptCode = result.receiptCode || (result as any).data?.receiptCode;
+        if (receiptCode) {
+          setReceiptCode(receiptCode);
         }
+        
         setShowSuccessDialog(true);
+        // Clear the selected candidate after successful vote
+        setSelectedCandidate(null);
       }
     } catch (err) {
       console.error("Vote casting failed:", err);
+      setError("Failed to cast vote. Please try again.");
     }
   };
 
@@ -395,17 +457,26 @@ export default function VotePage() {
                       >
                         <CardHeader>
                           <div className="flex items-center space-x-4">
-                            <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-primary/20">
-                              <Image
-                                src={candidate.image || "/placeholder.svg"}
-                                alt={candidate.name}
-                                fill
-                                className="object-cover"
-                              />
+                            <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-primary/20 flex items-center justify-center">
+                              {candidate.image ? (
+                                <Image
+                                  src={candidate.image}
+                                  alt={candidate.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div 
+                                  className="w-full h-full flex items-center justify-center text-white font-semibold text-lg"
+                                  style={{ backgroundColor: candidate.color || '#6B7280' }}
+                                >
+                                  {getInitials(candidate.name)}
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1">
                               <CardTitle className="text-lg">
-                                {candidate.name}
+                                {candidate.name || 'Unknown Candidate'}
                               </CardTitle>
                               <CardDescription className="flex items-center gap-2">
                                 <Badge
@@ -456,26 +527,23 @@ export default function VotePage() {
                                 <div></div>
                               )
                             ) : (
-                              <div className="flex items-center">
+                              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                                 <RadioGroup
                                   value={selectedCandidate?.toString() || ""}
+                                  onValueChange={(value) => {
+                                    handleCandidateSelect(value);
+                                  }}
                                   className="flex"
                                 >
                                   <div className="flex items-center space-x-2">
                                     <RadioGroupItem
                                       value={candidate.id.toString()}
                                       id={`candidate-${candidate.id}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      checked={
-                                        selectedCandidate === candidate.id
-                                      }
-                                      onChange={() =>
-                                        handleCandidateSelect(candidate.id)
-                                      }
                                       disabled={!eligibility?.isEligible}
                                     />
                                     <Label
                                       htmlFor={`candidate-${candidate.id}`}
+                                      className="cursor-pointer"
                                     >
                                       Select
                                     </Label>
@@ -543,17 +611,26 @@ export default function VotePage() {
                         }
                       >
                         <div className="col-span-1 flex items-center justify-center">
-                          <div className="relative h-10 w-10 rounded-full overflow-hidden">
-                            <Image
-                              src={candidate.image || "/placeholder.svg"}
-                              alt={candidate.name}
-                              fill
-                              className="object-cover"
-                            />
+                          <div className="relative h-10 w-10 rounded-full overflow-hidden flex items-center justify-center">
+                            {candidate.image ? (
+                              <Image
+                                src={candidate.image}
+                                alt={candidate.name}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div 
+                                className="w-full h-full flex items-center justify-center text-white font-semibold text-sm"
+                                style={{ backgroundColor: candidate.color || '#6B7280' }}
+                              >
+                                {getInitials(candidate.name)}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="col-span-3 flex flex-col justify-center">
-                          <span className="font-medium">{candidate.name}</span>
+                          <span className="font-medium">{candidate.name || 'Unknown Candidate'}</span>
                           <span className="text-xs text-muted-foreground">
                             {candidate.bio?.split(" ").slice(0, 3).join(" ") ||
                               "No bio available"}
@@ -600,21 +677,21 @@ export default function VotePage() {
                               </Badge>
                             ) : null
                           ) : (
-                            <RadioGroup
-                              value={selectedCandidate?.toString() || ""}
-                              className="flex"
-                            >
-                              <RadioGroupItem
-                                value={candidate.id.toString()}
-                                id={`list-candidate-${candidate.id}`}
-                                onClick={(e) => e.stopPropagation()}
-                                checked={selectedCandidate === candidate.id}
-                                onChange={() =>
-                                  handleCandidateSelect(candidate.id)
-                                }
-                                disabled={!eligibility?.isEligible}
-                              />
-                            </RadioGroup>
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <RadioGroup
+                                value={selectedCandidate?.toString() || ""}
+                                onValueChange={(value) => {
+                                  handleCandidateSelect(value);
+                                }}
+                                className="flex"
+                              >
+                                <RadioGroupItem
+                                  value={candidate.id.toString()}
+                                  id={`list-candidate-${candidate.id}`}
+                                  disabled={!eligibility?.isEligible}
+                                />
+                              </RadioGroup>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -629,7 +706,7 @@ export default function VotePage() {
                   disabled={
                     !selectedCandidate || !eligibility?.isEligible || isLoading
                   }
-                  onClick={handleConfirmVote}
+                  onClick={() => setShowConfirmDialog(true)}
                 >
                   Confirm Vote Selection
                 </Button>
@@ -823,16 +900,22 @@ export default function VotePage() {
           </DialogHeader>
           {selectedCandidate && (candidates || []).length > 0 && (
             <div className="flex flex-col items-center justify-center p-4">
-              <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary mb-4">
-                <Image
-                  src={
-                    findCandidate(selectedCandidate)?.image ||
-                    "/placeholder.svg"
-                  }
-                  alt="Selected candidate"
-                  fill
-                  className="object-cover"
-                />
+              <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary mb-4 flex items-center justify-center">
+                {findCandidate(selectedCandidate)?.image ? (
+                  <Image
+                    src={findCandidate(selectedCandidate)?.image!}
+                    alt="Selected candidate"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div 
+                    className="w-full h-full flex items-center justify-center text-white font-semibold text-xl"
+                    style={{ backgroundColor: findCandidate(selectedCandidate)?.color || '#6B7280' }}
+                  >
+                    {getInitials(findCandidate(selectedCandidate)?.name)}
+                  </div>
+                )}
               </div>
               <h3 className="text-xl font-bold mb-1">
                 {findCandidate(selectedCandidate)?.name}
@@ -875,7 +958,7 @@ export default function VotePage() {
               Go Back
             </Button>
             <Button
-              onClick={handleConfirmVote}
+              onClick={handleFinalVoteSubmit}
               disabled={isLoading}
               className="relative"
             >
@@ -919,15 +1002,22 @@ export default function VotePage() {
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center py-6">
-            <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-green-500 mb-4">
-              <Image
-                src={
-                  findCandidate(selectedCandidate)?.image || "/placeholder.svg"
-                }
-                alt="Selected candidate"
-                fill
-                className="object-cover"
-              />
+            <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-green-500 mb-4 flex items-center justify-center">
+              {votedCandidate?.image ? (
+                <Image
+                  src={votedCandidate.image}
+                  alt="Selected candidate"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div 
+                  className="w-full h-full flex items-center justify-center text-white font-semibold text-xl"
+                  style={{ backgroundColor: votedCandidate?.color || '#6B7280' }}
+                >
+                  {getInitials(votedCandidate?.name)}
+                </div>
+              )}
             </div>
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
               <BadgeCheck className="h-10 w-10 text-green-600" />
@@ -940,19 +1030,17 @@ export default function VotePage() {
             <div className="text-center space-y-1 mb-4">
               <p className="font-medium">You voted for:</p>
               <p className="text-lg font-bold">
-                {findCandidate(selectedCandidate)?.name}
+                {votedCandidate?.name}
               </p>
               <Badge
                 className="mt-1"
                 style={{
-                  backgroundColor: `${
-                    findCandidate(selectedCandidate)?.color
-                  }20`,
-                  color: findCandidate(selectedCandidate)?.color,
-                  borderColor: `${findCandidate(selectedCandidate)?.color}40`,
+                  backgroundColor: `${votedCandidate?.color}20`,
+                  color: votedCandidate?.color,
+                  borderColor: `${votedCandidate?.color}40`,
                 }}
               >
-                {findCandidate(selectedCandidate)?.party}
+                {votedCandidate?.party}
               </Badge>
             </div>
             {receiptCode && (

@@ -34,6 +34,26 @@ interface EligibilityStatus {
   reason?: string;
 }
 
+// Helper function to get party colors
+const getPartyColor = (partyCode: string | undefined): string => {
+  const partyColors: Record<string, string> = {
+    'APC': '#1E40AF', // Blue
+    'PDP': '#DC2626', // Red
+    'LP': '#059669',  // Green
+    'NNPP': '#7C3AED', // Purple
+    'APGA': '#EA580C', // Orange
+    'SDP': '#0891B2', // Cyan
+    'YPP': '#BE185D', // Pink
+    'AAC': '#7C2D12', // Brown
+    'ADC': '#4338CA', // Indigo
+    'NRM': '#065F46', // Emerald
+  };
+  
+  if (!partyCode) return '#6B7280'; // Default gray
+  
+  return partyColors[partyCode.toUpperCase()] || '#6B7280';
+};
+
 // Hook to manage voting for a specific election
 export function useVote() {
   const { token } = useAuthStore();
@@ -48,11 +68,16 @@ export function useVote() {
   const [votedElections, setVotedElections] = useState<Record<string, number>>({});
 
   const loadElectionData = useCallback(async (electionId: string) => {
-    if (!token) return;
+    
+    if (!token) {
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     setVotingStatus(null);
     setEligibility(null);
+    
     try {
       // Fetch election details, candidates, status, eligibility in parallel
       const [details, candidatesData, status, elig] = await Promise.all([
@@ -61,15 +86,100 @@ export function useVote() {
         electionAPI.getVotingStatus(electionId),    // Use electionAPI for getVotingStatus
         voterAPI.getEligibility(electionId)         // Use voterAPI for getEligibility
       ]);
-
+      
       setElectionDetails(details);
-      setCandidates(candidatesData.candidates || []);
-      setVotingStatus(status); 
-      setEligibility(elig);
+      
+      // Handle different possible response structures
+      let rawCandidatesList = [];
+      if (candidatesData.candidates) {
+        rawCandidatesList = candidatesData.candidates;
+      } else if (candidatesData.data && candidatesData.data.candidates) {
+        rawCandidatesList = candidatesData.data.candidates;
+      } else if (candidatesData.data && Array.isArray(candidatesData.data)) {
+        rawCandidatesList = candidatesData.data;
+      } else if (Array.isArray(candidatesData)) {
+        rawCandidatesList = candidatesData;
+      }
+      
+      // Transform API response to match frontend interface
+      const candidatesList = rawCandidatesList.map((candidate: any) => ({
+        id: candidate.id,
+        name: candidate.fullName || candidate.name || 'Unknown Candidate',
+        party: candidate.partyName || candidate.party || candidate.partyCode || 'Unknown Party',
+        image: candidate.photoUrl || candidate.image,
+        color: getPartyColor(candidate.partyCode || candidate.partyName || candidate.party),
+        bio: candidate.bio,
+        manifesto: candidate.manifesto,
+        votes: candidate.votes || 0,
+        percentage: candidate.percentage || 0,
+        // Preserve original fields for reference
+        partyCode: candidate.partyCode,
+        partyName: candidate.partyName,
+        fullName: candidate.fullName,
+        photoUrl: candidate.photoUrl,
+      }));
+      
+      setCandidates(candidatesList);
+      
+      // Process voting status - handle different response structures
+      let votingStatusData = null;
+      if (status?.data) {
+        votingStatusData = {
+          hasVoted: status.data.hasVoted || false,
+          candidateId: status.data.candidateId || null
+        };
+      } else {
+        votingStatusData = {
+          hasVoted: status?.hasVoted || false,
+          candidateId: status?.candidateId || null
+        };
+      }
+      
+      // Process eligibility - prioritize separate eligibility API call, fallback to voting status
+      let eligibilityData = null;
+      
+      // First check separate eligibility API response
+      if (elig?.data?.isEligible !== undefined) {
+        eligibilityData = {
+          isEligible: elig.data.isEligible,
+          reason: elig.data.reason || elig.data.eligibilityReason || (elig.data.isEligible ? 'Eligible to vote' : 'Not eligible to vote')
+        };
+        console.log("Using eligibility from separate API call");
+      } 
+      // Fallback to eligibility data in voting status response
+      else if (status?.data?.isEligible !== undefined) {
+        eligibilityData = {
+          isEligible: status.data.isEligible,
+          reason: status.data.eligibilityReason || status.data.reason || (status.data.isEligible ? 'Eligible to vote' : 'Not eligible to vote')
+        };
+        console.log("Using eligibility from voting status response");
+      } 
+      // Fallback to direct eligibility object
+      else if (elig) {
+        eligibilityData = {
+          isEligible: elig.isEligible !== undefined ? elig.isEligible : false,
+          reason: elig.reason || elig.eligibilityReason || (elig.isEligible ? 'Eligible to vote' : 'Not eligible to vote')
+        };
+        console.log("Using direct eligibility object");
+      }
+      // Default to not eligible if no data found
+      else {
+        eligibilityData = {
+          isEligible: false,
+          reason: 'Eligibility could not be determined'
+        };
+        console.log("No eligibility data found, defaulting to not eligible");
+      }
+      
+      console.log("Processed voting status:", votingStatusData);
+      console.log("Processed eligibility:", eligibilityData);
+      
+      setVotingStatus(votingStatusData); 
+      setEligibility(eligibilityData);
 
       // Update the votedElections state based on fetched status
-      if (status?.hasVoted && status.candidateId) {
-        setVotedElections(prev => ({ ...prev, [electionId]: Number(status.candidateId) }));
+      if (votingStatusData?.hasVoted && votingStatusData.candidateId) {
+        setVotedElections(prev => ({ ...prev, [electionId]: Number(votingStatusData.candidateId) }));
       }
 
     } catch (err: any) {
