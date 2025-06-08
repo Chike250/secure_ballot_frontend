@@ -18,6 +18,8 @@ import {
   Fingerprint,
   Laptop,
   LogOut,
+  Shield,
+  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,6 +34,8 @@ import { useTheme } from "next-themes"
 import { useLanguage, languages, type LanguageCode } from "@/lib/i18n/LanguageContext"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { useAuthStore, useUIStore } from "@/store/useStore"
+import { useUser } from "@/hooks/useUser"
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -39,6 +43,9 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
+  const { user } = useAuthStore()
+  const { isLoading, error, setError } = useUIStore()
+  const { profile } = useUser()
 
   // Settings state
   const [settings, setSettings] = useState(() => {
@@ -114,40 +121,53 @@ export default function SettingsPage() {
     } else {
       document.documentElement.classList.remove("high-contrast")
     }
+
+    if (settings.accessibility.reducedMotion) {
+      document.documentElement.classList.add("reduce-motion")
+    } else {
+      document.documentElement.classList.remove("reduce-motion")
+    }
   }, [settings.accessibility])
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
+    setError(null)
 
-    // Apply language change
-    if (settings.language !== language) {
-      setLanguage(settings.language as LanguageCode)
-    }
+    try {
+      // Apply language change
+      if (settings.language !== language) {
+        setLanguage(settings.language as LanguageCode)
+      }
 
-    // Apply theme change
-    if (settings.theme !== theme) {
-      setTheme(settings.theme)
-    }
+      // Apply theme change
+      if (settings.theme !== theme) {
+        setTheme(settings.theme)
+      }
 
-    // Apply accessibility settings
-    // In a real app, these would be persisted to a backend
+      // Save settings to localStorage
+      localStorage.setItem("userSettings", JSON.stringify(settings))
 
-    // Save settings to localStorage
-    localStorage.setItem("userSettings", JSON.stringify(settings))
-
-    // Simulate API call
-    setTimeout(() => {
+      // Simulate API call for other settings
+      setTimeout(() => {
+        setIsSaving(false)
+        setSaveSuccess(true)
+        toast({
+          title: "Success",
+          description: "Settings saved successfully",
+        })
+        setTimeout(() => setSaveSuccess(false), 3000)
+      }, 1000)
+    } catch (err) {
       setIsSaving(false)
-      setSaveSuccess(true)
+      setError("Failed to save settings")
       toast({
-        title: t("common.success"),
-        description: t("settings.saveSuccess"),
-        variant: "success",
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
       })
-      setTimeout(() => setSaveSuccess(false), 3000)
-    }, 1000)
+    }
   }
 
   // Handle theme change
@@ -182,844 +202,552 @@ export default function SettingsPage() {
     })
   }
 
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
-  const [biometricEnabled, setBiometricEnabled] = useState(false)
-  const [rememberDevice, setRememberDevice] = useState(true)
-  const [loginNotifications, setLoginNotifications] = useState(true)
-
   return (
     <div className="container mx-auto py-6 px-4 max-w-5xl">
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {t("dashboard.back")}
+            Back to Dashboard
           </Link>
         </Button>
       </div>
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">{t("settings.title")}</h1>
-        <p className="text-muted-foreground">{t("settings.subtitle")}</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your account preferences and application settings
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">
+            {profile?.fullName || user?.fullName}
+          </Badge>
+        </div>
       </div>
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {saveSuccess && (
         <Alert className="mb-6 bg-green-500/10 border-green-500/20 text-green-600">
           <Check className="h-4 w-4" />
-          <AlertTitle>{t("common.success")}</AlertTitle>
-          <AlertDescription>{t("settings.saveSuccess")}</AlertDescription>
+          <AlertTitle>Success</AlertTitle>
+          <AlertDescription>Your settings have been saved successfully.</AlertDescription>
         </Alert>
       )}
 
-      <Tabs defaultValue="general">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="general">{t("settings.tabs.general")}</TabsTrigger>
-          <TabsTrigger value="notifications">{t("settings.tabs.notifications")}</TabsTrigger>
-          <TabsTrigger value="accessibility">{t("settings.tabs.accessibility")}</TabsTrigger>
-          <TabsTrigger value="privacy">{t("settings.tabs.privacy")}</TabsTrigger>
-          <TabsTrigger value="language">{t("settings.tabs.language")}</TabsTrigger>
-          <TabsTrigger value="display">{t("settings.tabs.display")}</TabsTrigger>
-          <TabsTrigger value="security">{t("settings.tabs.security")}</TabsTrigger>
-        </TabsList>
+      <form onSubmit={handleSubmit}>
+        <Tabs defaultValue="general" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="accessibility">Accessibility</TabsTrigger>
+            <TabsTrigger value="privacy">Privacy</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="general" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.general.title")}</CardTitle>
-              <CardDescription>{t("settings.general.description")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="language">{t("settings.general.language.label")}</Label>
-                    <Select
-                      value={settings.language}
-                      onValueChange={(value) => handleLanguageChange(value as LanguageCode)}
-                    >
-                      <SelectTrigger id="language">
-                        <SelectValue placeholder={t("settings.language.selectLanguage")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(languages).map(([code, { name, nativeName, flag }]) => (
-                          <SelectItem key={code} value={code}>
-                            <span className="flex items-center gap-2">
-                              <span>{flag}</span>
-                              <span>{nativeName}</span>
-                              <span className="text-muted-foreground">({name})</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">{t("settings.general.language.help")}</p>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label>{t("settings.general.theme.label")}</Label>
-                    <RadioGroup
-                      value={settings.theme}
-                      onValueChange={handleThemeChange}
-                      className="flex flex-col space-y-1"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="light" id="theme-light" />
-                        <Label htmlFor="theme-light" className="flex items-center gap-2 cursor-pointer">
-                          <Sun className="h-4 w-4" />
-                          {t("settings.general.theme.light")}
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="dark" id="theme-dark" />
-                        <Label htmlFor="theme-dark" className="flex items-center gap-2 cursor-pointer">
-                          <Moon className="h-4 w-4" />
-                          {t("settings.general.theme.dark")}
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="system" id="theme-system" />
-                        <Label htmlFor="theme-system" className="flex items-center gap-2 cursor-pointer">
-                          <Globe className="h-4 w-4" />
-                          {t("settings.general.theme.system")}
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label>{t("settings.general.timeZone.label")}</Label>
-                    <Select
-                      defaultValue="africa-lagos"
-                      onValueChange={(value) => handleSelectChange("general", "timeZone", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("settings.general.timeZone.label")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="africa-lagos">Africa/Lagos (GMT+1)</SelectItem>
-                        <SelectItem value="africa-abuja">Africa/Abuja (GMT+1)</SelectItem>
-                        <SelectItem value="europe-london">Europe/London (GMT+0)</SelectItem>
-                        <SelectItem value="america-new_york">America/New York (GMT-5)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">{t("settings.general.timeZone.help")}</p>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>{t("settings.general.updates.label")}</Label>
-                      <p className="text-sm text-muted-foreground">{t("settings.general.updates.help")}</p>
-                    </div>
-                    <Switch
-                      checked={settings.notifications.updates}
-                      onCheckedChange={(checked) => handleToggleChange("notifications", "updates", checked)}
-                    />
-                  </div>
-
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        {t("common.saving")}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        {t("common.save")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="language" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.language.title")}</CardTitle>
-              <CardDescription>{t("settings.language.description")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-6">
-                  <RadioGroup
-                    value={settings.language}
-                    onValueChange={(value) => handleLanguageChange(value as LanguageCode)}
-                    className="space-y-3"
-                  >
-                    {Object.entries(languages).map(([code, { name, nativeName, flag }]) => (
-                      <div key={code} className="flex items-center space-x-2">
-                        <RadioGroupItem value={code} id={`lang-${code}`} />
-                        <Label htmlFor={`lang-${code}`} className="flex items-center cursor-pointer">
-                          <span className="mr-2 text-lg">{flag}</span>
-                          <span className="font-medium">{nativeName}</span>
-                          <span className="ml-2 text-sm text-muted-foreground">({name})</span>
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        {t("common.saving")}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        {t("common.save")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.tabs.notifications")}</CardTitle>
-              <CardDescription>Control how you receive updates and alerts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-lg flex items-center gap-2">
-                      <Bell className="h-5 w-5" />
-                      Notification Channels
-                    </h3>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Email Notifications</Label>
-                          <p className="text-sm text-muted-foreground">Receive updates via email</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.email}
-                          onCheckedChange={(checked) => handleToggleChange("notifications", "email", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>SMS Notifications</Label>
-                          <p className="text-sm text-muted-foreground">Receive updates via SMS</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.sms}
-                          onCheckedChange={(checked) => handleToggleChange("notifications", "sms", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>In-App Notifications</Label>
-                          <p className="text-sm text-muted-foreground">Show notifications in the app</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.app}
-                          onCheckedChange={(checked) => handleToggleChange("notifications", "app", checked)}
-                        />
-                      </div>
-                    </div>
-
-                    <Separator className="my-4" />
-
-                    <h3 className="font-medium text-lg flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Notification Types
-                    </h3>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Election Results</Label>
-                          <p className="text-sm text-muted-foreground">Get notified about election results</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.results}
-                          onCheckedChange={(checked) => handleToggleChange("notifications", "results", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Security Alerts</Label>
-                          <p className="text-sm text-muted-foreground">Important security notifications</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.security}
-                          onCheckedChange={(checked) => handleToggleChange("notifications", "security", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Platform Updates</Label>
-                          <p className="text-sm text-muted-foreground">Get notified about platform changes</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.updates}
-                          onCheckedChange={(checked) => handleToggleChange("notifications", "updates", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Election Reminders</Label>
-                          <p className="text-sm text-muted-foreground">Reminders about upcoming elections</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.electionReminders}
-                          onCheckedChange={(checked) =>
-                            handleToggleChange("notifications", "electionReminders", checked)
-                          }
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Voting Deadlines</Label>
-                          <p className="text-sm text-muted-foreground">Alerts about closing polls</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.votingDeadlines}
-                          onCheckedChange={(checked) => handleToggleChange("notifications", "votingDeadlines", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>New Candidates</Label>
-                          <p className="text-sm text-muted-foreground">Updates about new candidates</p>
-                        </div>
-                        <Switch
-                          checked={settings.notifications.newCandidates}
-                          onCheckedChange={(checked) => handleToggleChange("notifications", "newCandidates", checked)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        {t("common.saving")}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        {t("common.save")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="accessibility" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.tabs.accessibility")}</CardTitle>
-              <CardDescription>Customize your experience for better accessibility</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>High Contrast Mode</Label>
-                          <p className="text-sm text-muted-foreground">Increase contrast for better visibility</p>
-                        </div>
-                        <Switch
-                          checked={settings.accessibility.highContrast}
-                          onCheckedChange={(checked) => handleToggleChange("accessibility", "highContrast", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Large Text</Label>
-                          <p className="text-sm text-muted-foreground">Increase text size throughout the application</p>
-                        </div>
-                        <Switch
-                          checked={settings.accessibility.largeText}
-                          onCheckedChange={(checked) => handleToggleChange("accessibility", "largeText", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Reduced Motion</Label>
-                          <p className="text-sm text-muted-foreground">Minimize animations and motion effects</p>
-                        </div>
-                        <Switch
-                          checked={settings.accessibility.reducedMotion}
-                          onCheckedChange={(checked) => handleToggleChange("accessibility", "reducedMotion", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Screen Reader Support</Label>
-                          <p className="text-sm text-muted-foreground">Optimize for screen readers</p>
-                        </div>
-                        <Switch
-                          checked={settings.accessibility.screenReader}
-                          onCheckedChange={(checked) => handleToggleChange("accessibility", "screenReader", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Color Blind Mode</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Use color schemes suitable for color blindness
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.accessibility.colorBlindMode}
-                          onCheckedChange={(checked) => handleToggleChange("accessibility", "colorBlindMode", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Keyboard Navigation</Label>
-                          <p className="text-sm text-muted-foreground">Enhance keyboard navigation support</p>
-                        </div>
-                        <Switch
-                          checked={settings.accessibility.keyboardNavigation}
-                          onCheckedChange={(checked) =>
-                            handleToggleChange("accessibility", "keyboardNavigation", checked)
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        {t("common.saving")}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        {t("common.save")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="privacy" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.tabs.privacy")}</CardTitle>
-              <CardDescription>Control your data and privacy preferences</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Share Usage Data</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Help us improve by sharing anonymous usage data
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.privacy.shareData}
-                          onCheckedChange={(checked) => handleToggleChange("privacy", "shareData", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Analytics Cookies</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Allow analytics cookies to improve our service
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.privacy.analytics}
-                          onCheckedChange={(checked) => handleToggleChange("privacy", "analytics", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Marketing Communications</Label>
-                          <p className="text-sm text-muted-foreground">Receive marketing emails and updates</p>
-                        </div>
-                        <Switch
-                          checked={settings.privacy.marketing}
-                          onCheckedChange={(checked) => handleToggleChange("privacy", "marketing", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Location Data</Label>
-                          <p className="text-sm text-muted-foreground">Allow collection of location data</p>
-                        </div>
-                        <Switch
-                          checked={settings.privacy.locationData}
-                          onCheckedChange={(checked) => handleToggleChange("privacy", "locationData", checked)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mt-4">
-                      <Label>Profile Visibility</Label>
-                      <Select
-                        value={settings.privacy.profileVisibility}
-                        onValueChange={(value) => handleSelectChange("privacy", "profileVisibility", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select visibility level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="public">Public (Everyone can see)</SelectItem>
-                          <SelectItem value="registered">Registered Users Only</SelectItem>
-                          <SelectItem value="private">Private (Only you)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">Control who can see your profile information</p>
-                    </div>
-                  </div>
-
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        {t("common.saving")}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        {t("common.save")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="display" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Display Settings</CardTitle>
-              <CardDescription>Customize how election data is displayed</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-lg flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      Data Display Preferences
-                    </h3>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Show Vote Counts</Label>
-                          <p className="text-sm text-muted-foreground">Display actual vote counts in results</p>
-                        </div>
-                        <Switch
-                          checked={settings.display.showVoteCounts}
-                          onCheckedChange={(checked) => handleToggleChange("display", "showVoteCounts", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Show Percentages</Label>
-                          <p className="text-sm text-muted-foreground">Display percentage values in results</p>
-                        </div>
-                        <Switch
-                          checked={settings.display.showPercentages}
-                          onCheckedChange={(checked) => handleToggleChange("display", "showPercentages", checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between border p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <Label>Compact Mode</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Use compact layout for dense information display
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.display.compactMode}
-                          onCheckedChange={(checked) => handleToggleChange("display", "compactMode", checked)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mt-4">
-                      <Label>Default View</Label>
-                      <Select
-                        value={settings.display.defaultView}
-                        onValueChange={(value) => handleSelectChange("display", "defaultView", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select default view" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="chart">Charts</SelectItem>
-                          <SelectItem value="map">Map View</SelectItem>
-                          <SelectItem value="table">Table (Detailed)</SelectItem>
-                          <SelectItem value="card">Card View</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">
-                        Choose how election results are displayed by default
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 mt-4">
-                      <Label>Data Refresh Rate</Label>
-                      <Select
-                        value={settings.display.dataRefreshRate}
-                        onValueChange={(value) => handleSelectChange("display", "dataRefreshRate", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select refresh rate" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="realtime">Real-time (Live)</SelectItem>
-                          <SelectItem value="fast">Fast (15 seconds)</SelectItem>
-                          <SelectItem value="medium">Medium (30 seconds)</SelectItem>
-                          <SelectItem value="slow">Slow (1 minute)</SelectItem>
-                          <SelectItem value="manual">Manual Refresh Only</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">Control how often the election data refreshes</p>
-                    </div>
-                  </div>
-
-                  <Button type="submit" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        {t("common.saving")}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        {t("common.save")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="security" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>Manage your account security preferences and authentication methods</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">Two-Factor Authentication</h3>
-                      <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
-                    </div>
-                    <Switch
-                      checked={twoFactorEnabled}
-                      onCheckedChange={setTwoFactorEnabled}
-                      aria-label="Toggle two-factor authentication"
-                    />
-                  </div>
-                  {twoFactorEnabled && (
-                    <div className="rounded-md bg-muted p-4">
-                      <div className="flex items-start gap-4">
-                        <div className="mt-0.5 rounded-full bg-primary/10 p-1">
-                          <Smartphone className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">SMS verification enabled</p>
-                          <p className="text-xs text-muted-foreground">
-                            A verification code will be sent to your phone when you sign in
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">Biometric Login</h3>
-                      <p className="text-sm text-muted-foreground">Use fingerprint or face recognition to sign in</p>
-                    </div>
-                    <Switch
-                      checked={biometricEnabled}
-                      onCheckedChange={setBiometricEnabled}
-                      aria-label="Toggle biometric login"
-                    />
-                  </div>
-                  {biometricEnabled && (
-                    <div className="rounded-md bg-muted p-4">
-                      <div className="flex items-start gap-4">
-                        <div className="mt-0.5 rounded-full bg-primary/10 p-1">
-                          <Fingerprint className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">Fingerprint authentication enabled</p>
-                          <p className="text-xs text-muted-foreground">
-                            You can use your device's fingerprint scanner to sign in
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="font-medium">Session Management</h3>
-
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="session-timeout">Session Timeout</Label>
-                    <Select defaultValue="30" id="session-timeout">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select timeout duration" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15">15 minutes</SelectItem>
-                        <SelectItem value="30">30 minutes</SelectItem>
-                        <SelectItem value="60">1 hour</SelectItem>
-                        <SelectItem value="120">2 hours</SelectItem>
-                        <SelectItem value="never">Never</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Your session will expire after this period of inactivity
+          <TabsContent value="general" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Language & Region</CardTitle>
+                <CardDescription>
+                  Choose your preferred language and regional settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Language</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Select your preferred language for the interface
                     </p>
                   </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Remember This Device</Label>
-                        <p className="text-xs text-muted-foreground">Stay signed in on this device for 30 days</p>
-                      </div>
-                      <Switch
-                        checked={rememberDevice}
-                        onCheckedChange={setRememberDevice}
-                        aria-label="Remember this device"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Login Notifications</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Get notified when someone logs into your account
-                        </p>
-                      </div>
-                      <Switch
-                        checked={loginNotifications}
-                        onCheckedChange={setLoginNotifications}
-                        aria-label="Login notifications"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="font-medium">Active Sessions</h3>
-                <div className="space-y-4">
-                  <div className="rounded-md border p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="mt-0.5 rounded-full bg-primary/10 p-1">
-                          <Laptop className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
+                  <Select value={settings.language} onValueChange={handleLanguageChange}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(languages).map(([code, languageObj]) => (
+                        <SelectItem key={code} value={code}>
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium">Current Device</p>
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-green-500/10 text-green-500 border-green-500/20"
-                            >
-                              Active Now
-                            </Badge>
+                            <Globe className="h-4 w-4" />
+                            {languageObj.name}
                           </div>
-                          <p className="text-xs text-muted-foreground">Windows 11 • Chrome • Lagos, Nigeria</p>
-                          <p className="text-xs text-muted-foreground">IP: 102.89.23.xxx • Last active: Just now</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-md border p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="mt-0.5 rounded-full bg-primary/10 p-1">
-                          <Smartphone className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Mobile Device</p>
-                          <p className="text-xs text-muted-foreground">Android 13 • Chrome • Lagos, Nigeria</p>
-                          <p className="text-xs text-muted-foreground">IP: 102.89.24.xxx • Last active: 2 hours ago</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm" className="text-destructive">
-                        <LogOut className="mr-2 h-3 w-3" />
-                        Sign Out
-                      </Button>
-                    </div>
-                  </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Appearance</CardTitle>
+                <CardDescription>
+                  Customize the appearance of the application
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Theme</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Choose between light, dark, or system theme
+                    </p>
+                  </div>
+                  <RadioGroup
+                    value={settings.theme}
+                    onValueChange={handleThemeChange}
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="light" id="light" />
+                      <Label htmlFor="light" className="flex items-center gap-2">
+                        <Sun className="h-4 w-4" />
+                        Light
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="dark" id="dark" />
+                      <Label htmlFor="dark" className="flex items-center gap-2">
+                        <Moon className="h-4 w-4" />
+                        Dark
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="system" id="system" />
+                      <Label htmlFor="system" className="flex items-center gap-2">
+                        <Laptop className="h-4 w-4" />
+                        System
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Compact Mode</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Use a more compact layout to show more content
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.display.compactMode}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("display", "compactMode", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Show Vote Counts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Display vote counts in results
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.display.showVoteCounts}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("display", "showVoteCounts", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Show Percentages</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Display percentage values in charts
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.display.showPercentages}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("display", "showPercentages", checked)
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Preferences</CardTitle>
+                <CardDescription>
+                  Configure how and when you receive notifications
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive notifications via email
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications.email}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("notifications", "email", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>SMS Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive important alerts via SMS
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications.sms}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("notifications", "sms", checked)
+                    }
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Election Results</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Get notified when election results are available
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications.results}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("notifications", "results", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Security Alerts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Important security notifications
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications.security}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("notifications", "security", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Election Reminders</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Reminders about upcoming elections
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications.electionReminders}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("notifications", "electionReminders", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Voting Deadlines</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Alerts about voting deadlines
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications.votingDeadlines}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("notifications", "votingDeadlines", checked)
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="accessibility" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Accessibility Options</CardTitle>
+                <CardDescription>
+                  Configure accessibility features to improve your experience
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>High Contrast</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Increase contrast for better visibility
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.accessibility.highContrast}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("accessibility", "highContrast", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Large Text</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Increase text size for better readability
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.accessibility.largeText}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("accessibility", "largeText", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Reduced Motion</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Minimize animations and transitions
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.accessibility.reducedMotion}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("accessibility", "reducedMotion", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Keyboard Navigation</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enhanced keyboard navigation support
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.accessibility.keyboardNavigation}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("accessibility", "keyboardNavigation", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Color Blind Mode</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Adjust colors for color vision deficiency
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.accessibility.colorBlindMode}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("accessibility", "colorBlindMode", checked)
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="privacy" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Privacy Settings</CardTitle>
+                <CardDescription>
+                  Control how your data is used and shared
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Data Sharing</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow sharing anonymized data for research
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.privacy.shareData}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("privacy", "shareData", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Analytics</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Help improve the platform with usage analytics
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.privacy.analytics}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("privacy", "analytics", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Marketing Communications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive updates about new features
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.privacy.marketing}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("privacy", "marketing", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Location Data</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Use location data for polling unit suggestions
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.privacy.locationData}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("privacy", "locationData", checked)
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Security Settings</CardTitle>
+                <CardDescription>
+                  Manage your account security and authentication
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Two-Factor Authentication</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Add an extra layer of security to your account
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.twoFactorAuth}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("security", "twoFactorAuth", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Remember Device</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Stay logged in on this device
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.rememberDevice}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("security", "rememberDevice", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Login Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Get notified of login attempts
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.security.loginNotifications}
+                    onCheckedChange={(checked) =>
+                      handleToggleChange("security", "loginNotifications", checked)
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Session Timeout</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically log out after inactivity
+                    </p>
+                  </div>
+                  <Select
+                    value={settings.security.sessionTimeout}
+                    onValueChange={(value) =>
+                      handleSelectChange("security", "sessionTimeout", value)
+                    }
+                  >
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15min">15 minutes</SelectItem>
+                      <SelectItem value="30min">30 minutes</SelectItem>
+                      <SelectItem value="1hour">1 hour</SelectItem>
+                      <SelectItem value="2hours">2 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Alert>
+                  <Shield className="h-4 w-4" />
+                  <AlertTitle>Enhanced Security</AlertTitle>
+                  <AlertDescription>
+                    Your account is protected with enterprise-grade security measures including 
+                    encryption, audit trails, and fraud detection.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <div className="flex justify-end gap-4 pt-6">
+            <Button variant="outline" type="button">
+              Reset to Defaults
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Settings"}
+              <Save className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </Tabs>
+      </form>
     </div>
   )
 }

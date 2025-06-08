@@ -228,14 +228,14 @@ export const useElectionData = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await resultsAPI.getDetailedResults(electionId);
+        const response = await resultsAPI.getLiveResults(electionId);
         if (response.success) {
           setResults(response.data);
           return response.data;
         }
       } catch (error: any) {
         const errorMessage =
-          error.response?.data?.message || "Failed to fetch results";
+          error.response?.data?.message || "Failed to fetch election results";
         setError(errorMessage);
         addNotification({
           type: "error",
@@ -306,18 +306,24 @@ export const useElectionData = () => {
     []
   );
 
-  // Auto-fetch elections on mount
+  // Auto-fetch elections on mount (with throttling to prevent multiple calls)
   useEffect(() => {
     console.log(
       "useElectionData: Auto-fetch effect running, calling fetchElections..."
     );
-    fetchElections()
-      .then(() => {
-        console.log("useElectionData: Auto-fetch completed successfully");
-      })
-      .catch((error: any) => {
-        console.error("useElectionData: Auto-fetch failed:", error);
-      });
+    
+    // Add a small delay to prevent multiple rapid calls on initial mount
+    const timeoutId = setTimeout(() => {
+      fetchElections()
+        .then(() => {
+          console.log("useElectionData: Auto-fetch completed successfully");
+        })
+        .catch((error: any) => {
+          console.error("useElectionData: Auto-fetch failed:", error);
+        });
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, []); // Empty dependency array - only run on mount
 
   // Auto-fetch candidates when current election changes

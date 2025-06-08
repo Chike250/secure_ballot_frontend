@@ -4,11 +4,11 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect, type ReactNode, useMemo } from "react"
 
 // Import all language files
-import en from "./translations/en.ts"
-import ha from "./translations/ha.ts"
-import yo from "./translations/yo.ts"
-import ig from "./translations/ig.ts"
-import pcm from "./translations/pcm.ts"
+import en from "./translations/en"
+import ha from "./translations/ha"
+import yo from "./translations/yo"
+import ig from "./translations/ig"
+import pcm from "./translations/pcm"
 
 // Define available languages
 export const languages = {
