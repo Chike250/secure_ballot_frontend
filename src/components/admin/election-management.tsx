@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Filter, Plus, Search } from "lucide-react"
+import { Calendar, Filter, Plus, Search, Users, Eye, UserPlus } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { useAdmin } from "@/hooks/useAdmin"
+import { useAdminData } from "@/hooks/useAdminData"
+import { useElectionData } from "@/hooks/useElectionData"
 import { useUIStore } from "@/store/useStore"
 
 // Interface for election data
@@ -34,9 +35,25 @@ interface Election {
   description?: string;
 }
 
+// Interface for candidate data
+interface Candidate {
+  id: string;
+  fullName: string;
+  partyCode: string;
+  partyName: string;
+  bio?: string;
+  photoUrl?: string;
+  position?: string;
+  manifesto?: string;
+}
+
 export function ElectionManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isCandidateDialogOpen, setIsCandidateDialogOpen] = useState(false)
+  const [selectedElectionId, setSelectedElectionId] = useState<string>("")
+  const [selectedElectionName, setSelectedElectionName] = useState<string>("")
   const [elections, setElections] = useState<Election[]>([])
+  const [candidates, setCandidates] = useState<{ [electionId: string]: Candidate[] }>({})
   const [newElection, setNewElection] = useState({
     electionName: "",
     electionType: "",
@@ -44,11 +61,21 @@ export function ElectionManagement() {
     endDate: "",
     description: ""
   })
+  const [newCandidate, setNewCandidate] = useState({
+    fullName: "",
+    partyCode: "",
+    partyName: "",
+    bio: "",
+    photoUrl: "",
+    position: "",
+    manifesto: ""
+  })
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   
-  const { getAdminElections, createElection } = useAdmin()
+  const { isAdmin, createElection, addCandidateToElection } = useAdminData()
+  const { elections: electionsData, fetchElections: fetchElectionsData, isLoading: electionLoading } = useElectionData()
   const { isLoading, error } = useUIStore()
 
   useEffect(() => {
@@ -57,16 +84,34 @@ export function ElectionManagement() {
 
   const fetchElections = async () => {
     try {
-      const params: {
-        status?: string;
-        type?: string;
-      } = {};
-      
-      if (statusFilter !== "all") params.status = statusFilter;
-      if (typeFilter !== "all") params.type = typeFilter;
-      
-      const response = await getAdminElections(params);
-      setElections(response.elections || []);
+      await fetchElectionsData();
+      // Update local elections state with fetched data
+      if (electionsData) {
+        let filteredData = electionsData;
+        
+        // Apply filters
+        if (statusFilter !== "all") {
+          filteredData = filteredData.filter(election => election.status === statusFilter);
+        }
+        if (typeFilter !== "all") {
+          filteredData = filteredData.filter(election => election.type === typeFilter);
+        }
+        
+        // Convert to expected format
+        const convertedElections = filteredData.map(election => ({
+          id: election.id,
+          electionName: election.name,
+          electionType: election.type,
+          status: election.status,
+          startDate: election.startDate,
+          endDate: election.endDate,
+          registeredVoters: 0, // This would need to come from API
+          votesCast: 0, // This would need to come from API
+          description: election.description || ""
+        }));
+        
+        setElections(convertedElections);
+      }
     } catch (error) {
       console.error("Error fetching elections:", error);
     }
@@ -81,6 +126,7 @@ export function ElectionManagement() {
         endDate: newElection.endDate,
         description: newElection.description
       });
+      
       setIsDialogOpen(false);
       fetchElections();
       // Reset form
@@ -103,6 +149,59 @@ export function ElectionManagement() {
 
   const handleSelectChange = (field: string, value: string) => {
     setNewElection((prev) => ({ ...prev, [field]: value }));
+  }
+
+  const handleCandidateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setNewCandidate((prev) => ({ ...prev, [id]: value }));
+  }
+
+  const handleAddCandidate = (electionId: string, electionName: string) => {
+    setSelectedElectionId(electionId);
+    setSelectedElectionName(electionName);
+    setIsCandidateDialogOpen(true);
+  }
+
+  const handleCreateCandidate = async () => {
+    try {
+      await addCandidateToElection(selectedElectionId, {
+        fullName: newCandidate.fullName,
+        partyCode: newCandidate.partyCode,
+        partyName: newCandidate.partyName,
+        bio: newCandidate.bio || undefined,
+        photoUrl: newCandidate.photoUrl || undefined,
+        position: newCandidate.position || undefined,
+        manifesto: newCandidate.manifesto || undefined,
+      });
+      
+      setIsCandidateDialogOpen(false);
+      // Reset form
+      setNewCandidate({
+        fullName: "",
+        partyCode: "",
+        partyName: "",
+        bio: "",
+        photoUrl: "",
+        position: "",
+        manifesto: ""
+      });
+      
+      // Refresh candidate list for this election
+      await fetchCandidatesForElection(selectedElectionId);
+    } catch (error) {
+      console.error("Error creating candidate:", error);
+    }
+  }
+
+  const fetchCandidatesForElection = async (electionId: string) => {
+    try {
+      // This would use the electionsAPI.getCandidates method
+      // For now, we'll use mock data since the method exists but needs to be integrated
+      console.log(`Fetching candidates for election ${electionId}`);
+      // TODO: Implement actual API call when getCandidates is available
+    } catch (error) {
+      console.error("Error fetching candidates:", error);
+    }
   }
 
   const filteredElections = elections.filter(election => 
@@ -193,6 +292,96 @@ export function ElectionManagement() {
                   </Button>
                   <Button onClick={handleCreateElection} disabled={isLoading}>
                     {isLoading ? "Creating..." : "Create"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Add Candidate Dialog */}
+            <Dialog open={isCandidateDialogOpen} onOpenChange={setIsCandidateDialogOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Add Candidate to {selectedElectionName}</DialogTitle>
+                  <DialogDescription>Fill in the candidate details to add them to this election.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="fullName">Full Name *</Label>
+                      <Input 
+                        id="fullName" 
+                        placeholder="Enter candidate full name" 
+                        value={newCandidate.fullName}
+                        onChange={handleCandidateInputChange}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="position">Position</Label>
+                      <Input 
+                        id="position" 
+                        placeholder="e.g., President, Governor" 
+                        value={newCandidate.position}
+                        onChange={handleCandidateInputChange}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="partyCode">Party Code *</Label>
+                      <Input 
+                        id="partyCode" 
+                        placeholder="e.g., APC, PDP" 
+                        value={newCandidate.partyCode}
+                        onChange={handleCandidateInputChange}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="partyName">Party Name *</Label>
+                      <Input 
+                        id="partyName" 
+                        placeholder="e.g., All Progressives Congress" 
+                        value={newCandidate.partyName}
+                        onChange={handleCandidateInputChange}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="photoUrl">Photo URL</Label>
+                    <Input 
+                      id="photoUrl" 
+                      placeholder="https://example.com/candidate-photo.jpg" 
+                      value={newCandidate.photoUrl}
+                      onChange={handleCandidateInputChange}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="bio">Biography</Label>
+                    <Input 
+                      id="bio" 
+                      placeholder="Brief biography of the candidate" 
+                      value={newCandidate.bio}
+                      onChange={handleCandidateInputChange}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="manifesto">Manifesto</Label>
+                    <Input 
+                      id="manifesto" 
+                      placeholder="Campaign manifesto or key promises" 
+                      value={newCandidate.manifesto}
+                      onChange={handleCandidateInputChange}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCandidateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleCreateCandidate} 
+                    disabled={isLoading || !newCandidate.fullName || !newCandidate.partyCode || !newCandidate.partyName}
+                  >
+                    {isLoading ? "Adding..." : "Add Candidate"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -314,6 +503,14 @@ export function ElectionManagement() {
                         <TableCell>{election.votesCast?.toLocaleString() || "N/A"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleAddCandidate(election.id, election.electionName)}
+                            >
+                              <UserPlus className="mr-1 h-3 w-3" />
+                              Add Candidate
+                            </Button>
                             {election.status === "published" && (
                               <Button size="sm" variant="default">
                                 Start
@@ -325,6 +522,7 @@ export function ElectionManagement() {
                               </Button>
                             )}
                             <Button size="sm" variant="outline">
+                              <Eye className="mr-1 h-3 w-3" />
                               View
                             </Button>
                           </div>

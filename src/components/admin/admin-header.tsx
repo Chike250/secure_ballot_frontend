@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/store/useStore"
+import { useAuth } from "@/hooks/useAuth"
 import Link from "next/link"
 import { Bell, LogOut, Menu, Settings, User, Shield, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -29,6 +31,8 @@ import { Badge } from "@/components/ui/badge"
 
 export function AdminHeader() {
   const router = useRouter()
+  const { user } = useAuthStore()
+  const { logout } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState([
@@ -57,10 +61,14 @@ export function AdminHeader() {
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
-  const handleLogout = () => {
-    // In a real app, this would handle the logout process
-    console.log("Logging out...")
-    router.push("/admin/login")
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error("Logout failed:", error)
+      // Fallback redirect
+      router.push("/admin/login")
+    }
   }
 
   const handleProfileClick = () => {

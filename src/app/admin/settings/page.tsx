@@ -63,7 +63,7 @@ export default function AdminSettingsPage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuthStore()
   const { isLoading, error, setError } = useUIStore()
-  const { isAdmin } = useAdminData()
+  const { isAdmin, updateSystemSettings, getSystemSettings } = useAdminData()
 
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -122,18 +122,21 @@ export default function AdminSettingsPage() {
     }
   }, [isAuthenticated, isAdmin, router])
 
-  // Load settings from localStorage on mount
+  // Load settings from API/localStorage on mount
   useEffect(() => {
-    const loadSettings = () => {
+    const loadSettings = async () => {
       try {
-        const savedSystemSettings = localStorage.getItem("admin-system-settings")
+        // Load system settings using admin API
+        const savedSystemSettings = await getSystemSettings()
+        if (savedSystemSettings) {
+          setSystemSettings(savedSystemSettings)
+        }
+
+        // Load other settings from localStorage for now
         const savedSecuritySettings = localStorage.getItem("admin-security-settings")
         const savedNotificationSettings = localStorage.getItem("admin-notification-settings")
         const savedBackupSettings = localStorage.getItem("admin-backup-settings")
 
-        if (savedSystemSettings) {
-          setSystemSettings(JSON.parse(savedSystemSettings))
-        }
         if (savedSecuritySettings) {
           setSecuritySettings(JSON.parse(savedSecuritySettings))
         }
@@ -151,7 +154,7 @@ export default function AdminSettingsPage() {
     if (isAuthenticated && isAdmin) {
       loadSettings()
     }
-  }, [isAuthenticated, isAdmin])
+  }, [isAuthenticated, isAdmin, getSystemSettings])
 
   const handleSystemChange = (key: keyof SystemSettings, value: any) => {
     setSystemSettings(prev => ({ ...prev, [key]: value }))
@@ -174,14 +177,13 @@ export default function AdminSettingsPage() {
     setError(null)
 
     try {
-      // Save to localStorage
-      localStorage.setItem("admin-system-settings", JSON.stringify(systemSettings))
+      // Save system settings using admin API
+      await updateSystemSettings(systemSettings)
+
+      // Save other settings to localStorage for now
       localStorage.setItem("admin-security-settings", JSON.stringify(securitySettings))
       localStorage.setItem("admin-notification-settings", JSON.stringify(notificationSettings))
       localStorage.setItem("admin-backup-settings", JSON.stringify(backupSettings))
-
-      // In a real app, you would call an API to save settings
-      // await adminAPI.updateSystemSettings({ systemSettings, securitySettings, notificationSettings, backupSettings })
 
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)

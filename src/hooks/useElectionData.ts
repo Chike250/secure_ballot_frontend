@@ -208,17 +208,42 @@ export const useElectionData = () => {
   const checkVotingStatus = useCallback(
     async (electionId: string) => {
       try {
+        console.log(`🗳️ [ElectionData] Checking voting status for election ${electionId}`);
         const response = await electionAPI.getVotingStatus(electionId);
+        console.log(`📊 [ElectionData] Voting status response:`, response);
+        
         if (response.success) {
-          setVotingStatus(electionId, response.data);
-          setHasVoted(
-            electionId,
-            response.data.hasVoted ? response.data.candidateId : null
-          );
-          return response.data;
+          // Handle different response structures
+          const statusData = response.data || response;
+          console.log(`🔍 [ElectionData] Processing status data:`, statusData);
+          
+          // Store the raw voting status data
+          setVotingStatus(electionId, statusData);
+          
+          // Determine if user has voted based on the response
+          const hasVoted = statusData.hasVoted === true;
+          console.log(`✅ [ElectionData] User has voted: ${hasVoted}`);
+          
+          if (hasVoted) {
+            // If voted, try to get the candidate ID from various possible fields
+            const candidateId = statusData.candidateId || 
+                              statusData.votedCandidateId || 
+                              statusData.candidate?.id || 
+                              'voted'; // Fallback to indicate they voted
+            console.log(`🎯 [ElectionData] Setting hasVoted with candidateId: ${candidateId}`);
+            setHasVoted(electionId, candidateId);
+          } else {
+            console.log(`❌ [ElectionData] Setting hasVoted to null (not voted)`);
+            setHasVoted(electionId, null);
+          }
+          
+          return statusData;
         }
       } catch (error: any) {
         console.error("Failed to check voting status:", error);
+        // Don't fail silently - set status to indicate unknown state
+        setVotingStatus(electionId, { hasVoted: false, isEligible: false, error: true });
+        setHasVoted(electionId, null);
       }
     },
     [setVotingStatus, setHasVoted]

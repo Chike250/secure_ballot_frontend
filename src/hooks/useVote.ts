@@ -135,16 +135,24 @@ export function useVote() {
         };
       }
       
-      // Process eligibility - prioritize separate eligibility API call, fallback to voting status
+      // Process eligibility - use voting status first if user has voted
       let eligibilityData = null;
       
-      // First check separate eligibility API response
-      if (elig?.data?.isEligible !== undefined) {
+      // If voting status says user has voted, use that eligibility info
+      if (status?.data?.hasVoted && status?.data?.isEligible !== undefined) {
+        eligibilityData = {
+          isEligible: status.data.isEligible,
+          reason: status.data.eligibilityReason || status.data.reason || (status.data.hasVoted ? 'Already voted in this election' : 'Not eligible to vote')
+        };
+        console.log("✅ Using eligibility from voting status (user has voted)");
+      }
+      // Otherwise check separate eligibility API response
+      else if (elig?.data?.isEligible !== undefined) {
         eligibilityData = {
           isEligible: elig.data.isEligible,
           reason: elig.data.reason || elig.data.eligibilityReason || (elig.data.isEligible ? 'Eligible to vote' : 'Not eligible to vote')
         };
-        console.log("Using eligibility from separate API call");
+        console.log("✅ Using eligibility from separate API call");
       } 
       // Fallback to eligibility data in voting status response
       else if (status?.data?.isEligible !== undefined) {
@@ -152,7 +160,7 @@ export function useVote() {
           isEligible: status.data.isEligible,
           reason: status.data.eligibilityReason || status.data.reason || (status.data.isEligible ? 'Eligible to vote' : 'Not eligible to vote')
         };
-        console.log("Using eligibility from voting status response");
+        console.log("✅ Using eligibility from voting status response");
       } 
       // Fallback to direct eligibility object
       else if (elig) {
@@ -160,7 +168,7 @@ export function useVote() {
           isEligible: elig.isEligible !== undefined ? elig.isEligible : false,
           reason: elig.reason || elig.eligibilityReason || (elig.isEligible ? 'Eligible to vote' : 'Not eligible to vote')
         };
-        console.log("Using direct eligibility object");
+        console.log("✅ Using direct eligibility object");
       }
       // Default to not eligible if no data found
       else {
@@ -168,11 +176,11 @@ export function useVote() {
           isEligible: false,
           reason: 'Eligibility could not be determined'
         };
-        console.log("No eligibility data found, defaulting to not eligible");
+        console.log("❌ No eligibility data found, defaulting to not eligible");
       }
       
-      console.log("Processed voting status:", votingStatusData);
-      console.log("Processed eligibility:", eligibilityData);
+      console.log("📊 Processed voting status:", votingStatusData);
+      console.log("📊 Processed eligibility:", eligibilityData);
       
       setVotingStatus(votingStatusData); 
       setEligibility(eligibilityData);

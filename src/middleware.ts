@@ -23,8 +23,6 @@ export function middleware(request: NextRequest) {
   const authCookie = request.cookies.get('auth-storage')?.value;
   const path = request.nextUrl.pathname;
 
-  console.log(`[Middleware] Path: ${path}, Auth Cookie: ${authCookie ? 'present' : 'missing'}`);
-
   // Check if the path is public
   const isPublicPath = publicPaths.some((publicPath) =>
     path === publicPath || path.startsWith(publicPath)
@@ -35,17 +33,13 @@ export function middleware(request: NextRequest) {
     path.startsWith(adminPath)
   );
   
-  console.log(`[Middleware] isPublicPath: ${isPublicPath}, isAdminPath: ${isAdminPath}`);
-  
   // If it's a public path, allow access
   if (isPublicPath) {
-    console.log('[Middleware] Public path, allowing access');
     return NextResponse.next();
   }
 
   // If there's no auth cookie and the path is not public, redirect to login
   if (!authCookie) {
-    console.log('[Middleware] No auth cookie, redirecting to login');
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', path);
     return NextResponse.redirect(loginUrl);
@@ -55,9 +49,7 @@ export function middleware(request: NextRequest) {
   let authData;
   try {
     authData = JSON.parse(authCookie);
-    console.log('[Middleware] Auth data parsed successfully');
   } catch (error) {
-    console.log('[Middleware] Failed to parse auth cookie, redirecting to login');
     // If we can't parse the cookie, redirect to login
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', path);
@@ -69,11 +61,8 @@ export function middleware(request: NextRequest) {
   const token = authData.state?.token;
   const isAuthenticated = authData.state?.isAuthenticated;
 
-  console.log(`[Middleware] Auth check - User: ${user ? 'present' : 'missing'}, Token: ${token ? 'present' : 'missing'}, Authenticated: ${isAuthenticated}`);
-
   // If no valid auth data, redirect to login
   if (!user || !token || !isAuthenticated) {
-    console.log('[Middleware] Invalid auth data, redirecting to login');
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', path);
     return NextResponse.redirect(loginUrl);
@@ -95,11 +84,9 @@ export function middleware(request: NextRequest) {
 
   // For regular protected routes, check if MFA is required
   if (authData.state?.requiresMfa && !isPublicPath && path !== '/mfa-verify') {
-    console.log('[Middleware] MFA required, redirecting to MFA verify');
     return NextResponse.redirect(new URL('/mfa-verify', request.url));
   }
 
-  console.log('[Middleware] All checks passed, allowing access');
   return NextResponse.next();
 }
 

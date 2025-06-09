@@ -77,8 +77,8 @@ export const authAPI = {
     return response.data;
   },
 
-  adminLogin: async (nin: string, password: string) => {
-    const response = await api.post('/auth/admin-login', { nin, password });
+  adminLogin: async (email: string, password: string) => {
+    const response = await api.post('/auth/admin-login', { email, password });
     return response.data;
   },
 
@@ -488,6 +488,32 @@ export const adminAPI = {
   // System Statistics
   getSystemStatistics: async () => {
     const response = await api.get('/admin/statistics');
+    return response.data;
+  },
+
+  // Election Management
+  createElection: async (data: {
+    electionName: string;
+    electionType: string;
+    startDate: string;
+    endDate: string;
+    description?: string;
+    eligibilityRules?: object;
+  }) => {
+    const response = await api.post('/admin/elections', data);
+    return response.data;
+  },
+
+  addCandidateToElection: async (electionId: string, data: {
+    fullName: string;
+    partyCode: string;
+    partyName: string;
+    bio?: string;
+    photoUrl?: string;
+    position?: string;
+    manifesto?: string;
+  }) => {
+    const response = await api.post(`/admin/elections/${electionId}/candidates`, data);
     return response.data;
   },
 

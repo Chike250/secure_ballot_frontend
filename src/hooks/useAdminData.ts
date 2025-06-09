@@ -431,6 +431,112 @@ export const useAdminData = () => {
     }
   };
 
+  // System Settings Management
+  const updateSystemSettings = async (settings: any) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // For now, store in localStorage as fallback
+      // In production, this would call an actual API
+      localStorage.setItem('admin-system-settings', JSON.stringify(settings));
+      
+      addNotification({
+        type: 'success',
+        message: 'System settings updated successfully!',
+      });
+      return { success: true, data: settings };
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to update system settings';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getSystemSettings = async () => {
+    try {
+      // For now, get from localStorage as fallback
+      // In production, this would call an actual API
+      const settings = localStorage.getItem('admin-system-settings');
+      return settings ? JSON.parse(settings) : null;
+    } catch (error: any) {
+      console.error('Failed to get system settings:', error);
+      return null;
+    }
+  };
+
+  // Election Management
+  const createElection = async (data: {
+    electionName: string;
+    electionType: string;
+    startDate: string;
+    endDate: string;
+    description?: string;
+    eligibilityRules?: object;
+  }) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await adminAPI.createElection(data);
+      if (response.success) {
+        addNotification({
+          type: 'success',
+          message: 'Election created successfully!',
+        });
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to create election';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addCandidateToElection = async (electionId: string, data: {
+    fullName: string;
+    partyCode: string;
+    partyName: string;
+    bio?: string;
+    photoUrl?: string;
+    position?: string;
+    manifesto?: string;
+  }) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await adminAPI.addCandidateToElection(electionId, data);
+      if (response.success) {
+        addNotification({
+          type: 'success',
+          message: 'Candidate added successfully!',
+        });
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to add candidate';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Auto-fetch data on mount if user is admin
   useEffect(() => {
     if (isAdmin) {
@@ -474,6 +580,14 @@ export const useAdminData = () => {
     fetchSuspiciousActivities,
     blockUser,
     unblockUser,
+
+    // System Settings
+    updateSystemSettings,
+    getSystemSettings,
+
+    // Election Management
+    createElection,
+    addCandidateToElection,
 
     // Utility
     clearAdminData,

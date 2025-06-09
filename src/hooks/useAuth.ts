@@ -60,11 +60,11 @@ export const useAuth = () => {
   };
 
   // Admin login function
-  const adminLogin = async (nin: string, password: string) => {
+  const adminLogin = async (email: string, password: string) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await authAPI.adminLogin(nin, password);
+      const response = await authAPI.adminLogin(email, password);
       
       if (response.success) {
         const { token, admin, requiresMfa } = response.data;
@@ -80,7 +80,7 @@ export const useAuth = () => {
             type: 'success',
             message: 'Admin login successful!',
           });
-          router.push('/admin');
+          router.push('/admin/dashboard');
         }
         
         return response.data;
@@ -154,7 +154,7 @@ export const useAuth = () => {
         
         // Redirect based on user role
         if (user?.role === 'admin') {
-          router.push('/admin');
+          router.push('/admin/dashboard');
         } else {
           router.push('/dashboard');
         }

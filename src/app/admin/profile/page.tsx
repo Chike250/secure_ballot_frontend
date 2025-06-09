@@ -22,7 +22,7 @@ export default function AdminProfilePage() {
   const router = useRouter()
   const { user, isAuthenticated, updateUser } = useAuthStore()
   const { isLoading, error, setError } = useUIStore()
-  const { isAdmin } = useAdminData()
+  const { isAdmin, updateAdminUser } = useAdminData()
 
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -87,18 +87,34 @@ export default function AdminProfilePage() {
     setError(null)
 
     try {
-      // Update user data in auth store
-      updateUser({
-        fullName: formData.fullName,
-        phoneNumber: formData.phoneNumber,
-        ...(formData.jobTitle && { jobTitle: formData.jobTitle }),
-        ...(formData.department && { department: formData.department }),
-        ...(formData.bio && { bio: formData.bio }),
-        ...(formData.location && { location: formData.location }),
-      } as any)
+      // Update user data through admin API
+      if (user?.id) {
+        const updateData = {
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+          jobTitle: formData.jobTitle,
+          department: formData.department,
+          bio: formData.bio,
+          location: formData.location,
+        }
 
-      // In a real app, you would also call an API to update the profile
-      // await adminAPI.updateProfile(formData)
+        // Use admin API to update profile
+        try {
+          await updateAdminUser(user.id, updateData)
+        } catch (apiError) {
+          console.log("API update failed, updating local store only:", apiError)
+        }
+
+        // Update local auth store
+        updateUser({
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+          ...(formData.jobTitle && { jobTitle: formData.jobTitle }),
+          ...(formData.department && { department: formData.department }),
+          ...(formData.bio && { bio: formData.bio }),
+          ...(formData.location && { location: formData.location }),
+        } as any)
+      }
 
       setSaveSuccess(true)
       setIsEditing(false)

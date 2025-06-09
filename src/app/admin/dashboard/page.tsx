@@ -1,6 +1,5 @@
 "use client"
 
-import type { Metadata } from "next"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -21,11 +20,6 @@ import { useAdminData } from "@/hooks/useAdminData"
 import { useElectionData } from "@/hooks/useElectionData"
 import { useAuthStore, useUIStore } from "@/store/useStore"
 import { useRouter } from "next/navigation"
-
-export const metadata: Metadata = {
-  title: "Admin Dashboard | Secure Ballot",
-  description: "Admin dashboard for managing elections, voters, and system security",
-}
 
 export default function AdminDashboardPage() {
   const router = useRouter()
@@ -67,32 +61,29 @@ export default function AdminDashboardPage() {
     }
   }, [isAuthenticated, isAdmin, router])
 
-  // Load initial data
-  useEffect(() => {
-    const loadAdminData = async () => {
-      if (isAuthenticated && isAdmin) {
-        try {
-          await Promise.all([
-            fetchSystemStatistics(),
-            fetchElections(),
-            fetchAdminUsers(),
-            fetchPollingUnits(),
-            fetchVerificationRequests(),
-            fetchSuspiciousActivities(),
-          ])
-        } catch (err) {
-          console.error("Failed to load admin data:", err)
-        }
-      }
-    }
-
-    loadAdminData()
-  }, [isAuthenticated, isAdmin, fetchSystemStatistics, fetchElections, fetchAdminUsers, fetchPollingUnits, fetchVerificationRequests, fetchSuspiciousActivities])
-
-  // Auto-refresh data every 30 seconds
+  // Load initial data and set up auto-refresh
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) return
 
+    const loadAdminData = async () => {
+      try {
+        await Promise.all([
+          fetchSystemStatistics(),
+          fetchElections(),
+          fetchAdminUsers(),
+          fetchPollingUnits(),
+          fetchVerificationRequests(),
+          fetchSuspiciousActivities(),
+        ])
+      } catch (err) {
+        console.error("Failed to load admin data:", err)
+      }
+    }
+
+    // Load initial data
+    loadAdminData()
+
+    // Set up auto-refresh interval (30 seconds)
     const interval = setInterval(async () => {
       try {
         await Promise.all([
@@ -102,10 +93,12 @@ export default function AdminDashboardPage() {
       } catch (err) {
         console.error("Failed to refresh admin data:", err)
       }
-    }, 30000) // 30 seconds
+    }, 30000)
 
+    // Cleanup interval on unmount
     return () => clearInterval(interval)
-  }, [isAuthenticated, isAdmin, fetchSystemStatistics, fetchSuspiciousActivities])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAdmin])
 
   if (!isAuthenticated || !isAdmin) {
     return (

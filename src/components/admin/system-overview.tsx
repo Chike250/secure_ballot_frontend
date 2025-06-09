@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useAdminData } from "@/hooks/useAdminData"
+import { useElectionData } from "@/hooks/useElectionData"
 import { Activity, AlertTriangle, CheckCircle, Clock, RefreshCw, Users, Vote } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,17 +10,28 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 
 export function SystemOverview() {
+  const { systemStatistics, fetchSystemStatistics } = useAdminData()
+  const { elections } = useElectionData()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState("2 minutes ago")
   const [systemStatus, setSystemStatus] = useState("operational")
 
-  const handleRefresh = () => {
+  // Calculate real statistics
+  const activeElections = elections?.filter(e => e.status === 'active')?.length || 0
+  const totalVoters = systemStatistics?.totalVoters || 0
+  const totalVotes = systemStatistics?.totalVotes || 0
+  const voterTurnout = totalVoters > 0 ? Math.round((totalVotes / totalVoters) * 100) : 0
+
+  const handleRefresh = async () => {
     setIsRefreshing(true)
-    // Simulate API call
-    setTimeout(() => {
-      setIsRefreshing(false)
+    try {
+      await fetchSystemStatistics()
       setLastUpdated("Just now")
-    }, 1500)
+    } catch (error) {
+      console.error("Failed to refresh statistics:", error)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   return (
@@ -29,8 +42,8 @@ export function SystemOverview() {
           <Activity className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">3</div>
-          <p className="text-xs text-muted-foreground">+1 from last week</p>
+          <div className="text-2xl font-bold">{activeElections}</div>
+          <p className="text-xs text-muted-foreground">Currently running</p>
           <div className="mt-4 flex items-center gap-2">
             <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
               Presidential
@@ -53,16 +66,16 @@ export function SystemOverview() {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">93.5M</div>
+          <div className="text-2xl font-bold">{totalVoters > 0 ? `${(totalVoters / 1000000).toFixed(1)}M` : '0'}</div>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">84.1M active, 9.4M inactive</p>
+            <p className="text-xs text-muted-foreground">Registered voters</p>
           </div>
           <div className="mt-2">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span>Active</span>
-              <span>90%</span>
+              <span>Total Registered</span>
+              <span>{totalVoters.toLocaleString()}</span>
             </div>
-            <Progress value={90} className="h-1" />
+            <Progress value={100} className="h-1" />
           </div>
         </CardContent>
         <CardFooter>
@@ -78,16 +91,16 @@ export function SystemOverview() {
           <Vote className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">21.5M</div>
+          <div className="text-2xl font-bold">{totalVotes > 0 ? `${(totalVotes / 1000000).toFixed(1)}M` : '0'}</div>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">23% of registered voters</p>
+            <p className="text-xs text-muted-foreground">{voterTurnout}% of registered voters</p>
           </div>
           <div className="mt-2">
             <div className="flex items-center justify-between text-xs mb-1">
               <span>Turnout</span>
-              <span>23%</span>
+              <span>{voterTurnout}%</span>
             </div>
-            <Progress value={23} className="h-1" />
+            <Progress value={voterTurnout} className="h-1" />
           </div>
         </CardContent>
         <CardFooter>
