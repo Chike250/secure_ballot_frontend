@@ -491,6 +491,12 @@ export const adminAPI = {
     return response.data;
   },
 
+  // Combined Dashboard Data (single API call)
+  getDashboardData: async () => {
+    const response = await api.get('/admin/dashboard');
+    return response.data;
+  },
+
   // Election Management
   createElection: async (data: {
     electionName: string;

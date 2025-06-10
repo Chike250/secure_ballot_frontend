@@ -34,11 +34,8 @@ export default function AdminDashboardPage() {
     verificationRequests,
     systemStatistics,
     suspiciousActivities,
-    fetchAdminUsers,
-    fetchPollingUnits,
-    fetchVerificationRequests,
-    fetchSystemStatistics,
-    fetchSuspiciousActivities,
+    fetchDashboardData,
+    refreshCriticalData,
     isAdmin
   } = useAdminData()
 
@@ -67,14 +64,10 @@ export default function AdminDashboardPage() {
 
     const loadAdminData = async () => {
       try {
-        await Promise.all([
-          fetchSystemStatistics(),
-          fetchElections(),
-          fetchAdminUsers(),
-          fetchPollingUnits(),
-          fetchVerificationRequests(),
-          fetchSuspiciousActivities(),
-        ])
+        // Single combined API call for all dashboard data
+        await fetchDashboardData()
+        // Also load elections separately since it's from a different hook
+        await fetchElections()
       } catch (err) {
         console.error("Failed to load admin data:", err)
       }
@@ -83,13 +76,10 @@ export default function AdminDashboardPage() {
     // Load initial data
     loadAdminData()
 
-    // Set up auto-refresh interval (30 seconds)
+    // Set up auto-refresh interval (30 seconds) - only refresh critical data
     const interval = setInterval(async () => {
       try {
-        await Promise.all([
-          fetchSystemStatistics(),
-          fetchSuspiciousActivities(),
-        ])
+        await refreshCriticalData()
       } catch (err) {
         console.error("Failed to refresh admin data:", err)
       }

@@ -471,6 +471,54 @@ export const useAdminData = () => {
     }
   };
 
+  // Combined Dashboard Data Fetch
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await adminAPI.getDashboardData();
+      if (response.success) {
+        // Update all state with the combined data
+        const data = response.data;
+        if (data.adminUsers) setAdminUsers(data.adminUsers);
+        if (data.pollingUnits) setPollingUnits(data.pollingUnits);
+        if (data.verificationRequests) setVerificationRequests(data.verificationRequests);
+        if (data.auditLogs) setAuditLogs(data.auditLogs);
+        if (data.systemStatistics) setSystemStatistics(data.systemStatistics);
+        if (data.suspiciousActivities) setSuspiciousActivities(data.suspiciousActivities);
+        
+        addNotification({
+          type: 'success',
+          message: 'Dashboard data loaded successfully!',
+        });
+        return data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to load dashboard data';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Lightweight refresh for real-time data
+  const refreshCriticalData = async () => {
+    try {
+      setError(null);
+      await Promise.all([
+        fetchSystemStatistics(),
+        fetchSuspiciousActivities(),
+      ]);
+    } catch (error: any) {
+      console.error('Failed to refresh critical data:', error);
+    }
+  };
+
   // Election Management
   const createElection = async (data: {
     electionName: string;
@@ -588,6 +636,10 @@ export const useAdminData = () => {
     // Election Management
     createElection,
     addCandidateToElection,
+
+    // Combined Data Loading
+    fetchDashboardData,
+    refreshCriticalData,
 
     // Utility
     clearAdminData,
