@@ -70,15 +70,33 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API
+// Auth API - Updated with new OTP flow and admin login
 export const authAPI = {
-  login: async (identifier: string, password: string) => {
-    const response = await api.post('/auth/login', { identifier, password });
+  // NEW: Voter OTP Authentication Flow
+  requestVoterLogin: async (nin: string, vin: string) => {
+    const response = await api.post('/auth/voter/request-login', { nin, vin });
     return response.data;
   },
 
-  adminLogin: async (email: string, password: string) => {
-    const response = await api.post('/auth/admin-login', { email, password });
+  verifyVoterOTP: async (userId: string, otpCode: string) => {
+    const response = await api.post('/auth/voter/verify-otp', { userId, otpCode });
+    return response.data;
+  },
+
+  resendVoterOTP: async (userId: string) => {
+    const response = await api.post('/auth/voter/resend-otp', { userId });
+    return response.data;
+  },
+
+  // NEW: Admin login with NIN and password (no OTP)
+  adminLogin: async (nin: string, password: string) => {
+    const response = await api.post('/auth/admin/login', { nin, password });
+    return response.data;
+  },
+
+  // DEPRECATED: Legacy login methods (keep for backward compatibility for now)
+  login: async (identifier: string, password: string) => {
+    const response = await api.post('/auth/login', { nin: identifier, vin: password });
     return response.data;
   },
 
@@ -260,6 +278,18 @@ export const voterAPI = {
 
   deactivateAccount: async () => {
     const response = await api.post('/voter/deactivate-account');
+    return response.data;
+  },
+
+  // NEW: Comprehensive dashboard endpoint
+  getDashboard: async (electionId: string, options?: {
+    userId?: string;
+    includeRealTime?: boolean;
+    includeRegionalBreakdown?: boolean;
+  }) => {
+    const response = await api.get(`/voter/dashboard/${electionId}`, {
+      params: options,
+    });
     return response.data;
   },
 };
@@ -538,6 +568,35 @@ export const adminAPI = {
 
   unblockUser: async (userId: string) => {
     const response = await api.post(`/admin/security/unblock-user/${userId}`);
+    return response.data;
+  },
+};
+
+// Public API (no authentication required)
+export const publicAPI = {
+  getElections: async (status = 'active', type?: string, page = 1, limit = 10) => {
+    const response = await axios.get(`${API_URL}/public/elections`, {
+      params: { status, type, page, limit },
+    });
+    return response.data;
+  },
+
+  getPollingUnits: async (regionId?: string, search?: string, page = 1, limit = 50) => {
+    const response = await axios.get(`${API_URL}/public/polling-units`, {
+      params: { regionId, search, page, limit },
+    });
+    return response.data;
+  },
+
+  getPollingUnitById: async (id: string) => {
+    const response = await axios.get(`${API_URL}/public/polling-units/${id}`);
+    return response.data;
+  },
+
+  getNearbyPollingUnits: async (latitude: number, longitude: number, radius = 5, limit = 10) => {
+    const response = await axios.get(`${API_URL}/public/polling-units/nearby`, {
+      params: { latitude, longitude, radius, limit },
+    });
     return response.data;
   },
 };

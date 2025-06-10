@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
-import { useElectionData } from "@/hooks/useElectionData"
+import { publicAPI } from "@/services/api"
 
 interface TimeLeft {
   days: number
@@ -13,8 +13,8 @@ interface TimeLeft {
 
 interface PresidentialElection {
   id: string
-  name: string
-  type: string
+  electionName: string
+  electionType: string
   startDate: string
   endDate: string
   status: string
@@ -22,7 +22,6 @@ interface PresidentialElection {
 
 export function CountdownTimer() {
   const { t } = useLanguage()
-  const { elections, fetchElections, isLoading } = useElectionData()
   
   const [presidentialElection, setPresidentialElection] = useState<PresidentialElection | null>(null)
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({
@@ -32,30 +31,48 @@ export function CountdownTimer() {
     seconds: 0,
   })
   const [countdownTarget, setCountdownTarget] = useState<'start' | 'end'>('start')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Find presidential election from elections list
+  // Fetch presidential election from public API
   useEffect(() => {
-    if (elections.length > 0) {
-      const presidential = elections.find((election: any) => {
-        const electionType = election.electionType || election.type || ''
-        const electionName = election.name || election.electionName || ''
-        return electionType.toLowerCase().includes('president') || 
-               electionType.toLowerCase() === 'presidential' ||
-               electionName.toLowerCase().includes('president')
-      })
-      
-      if (presidential) {
-        // Validate election has required date fields
-        if (presidential.startDate && presidential.endDate) {
-          setPresidentialElection(presidential)
+    const fetchPresidentialElection = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        // Fetch active elections from public API
+        const response = await publicAPI.getElections('active', 'PRESIDENTIAL', 1, 10)
+        
+        if (response.success && response.data?.elections) {
+          const elections = response.data.elections
+          
+          // Find presidential election
+          const presidential = elections.find((election: any) => {
+            const electionType = election.electionType || ''
+            return electionType.toLowerCase() === 'presidential'
+          })
+          
+          if (presidential && presidential.startDate && presidential.endDate) {
+            setPresidentialElection(presidential)
+          } else {
+            console.log('No presidential election found with valid dates')
+            setError('No presidential election scheduled')
+          }
         } else {
-          console.warn('Presidential election found but missing date information:', presidential)
+          console.warn('Failed to fetch elections:', response)
+          setError('Unable to load election data')
         }
-      } else {
-        console.log('No presidential election found in:', elections.map((e: any) => e.electionType || e.type || 'unknown'))
+      } catch (error: any) {
+        console.error('Error fetching presidential election:', error)
+        setError('Failed to load election information')
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [elections])
+
+    fetchPresidentialElection()
+  }, [])
 
   // Calculate countdown target based on election status
   useEffect(() => {
@@ -74,9 +91,6 @@ export function CountdownTimer() {
       setCountdownTarget('end')
     }
   }, [presidentialElection])
-
-  // Remove the automatic refresh - useElectionData already handles auto-fetching
-  // The hook auto-fetches on mount, which is sufficient for the countdown timer
 
   // Main countdown timer effect
   useEffect(() => {
@@ -113,7 +127,7 @@ export function CountdownTimer() {
   }, [presidentialElection, countdownTarget])
 
   // Show loading state while elections are being fetched
-  if (isLoading || !elections.length) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center space-y-4">
         <h3 className="text-lg font-semibold text-foreground">{t("home.countdown.title")}</h3>
@@ -128,6 +142,16 @@ export function CountdownTimer() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground text-center">Loading election data...</p>
+      </div>
+    )
+  }
+
+  // Show error message if API call failed
+  if (error) {
+    return (
+      <div className="flex flex-col items-center space-y-4">
+        <h3 className="text-lg font-semibold text-foreground">{t("home.countdown.title")}</h3>
+        <p className="text-sm text-muted-foreground text-center">{error}</p>
       </div>
     )
   }
@@ -153,7 +177,7 @@ export function CountdownTimer() {
         <h3 className="text-lg font-semibold text-foreground">Presidential Election</h3>
         <div className="text-center">
           <p className="text-lg font-semibold text-green-600 mb-2">Election Completed</p>
-          <p className="text-sm text-muted-foreground">{presidentialElection.name}</p>
+          <p className="text-sm text-muted-foreground">{presidentialElection.electionName}</p>
           <p className="text-xs text-muted-foreground">
             Ended on {endDate.toLocaleDateString()}
           </p>
@@ -165,7 +189,7 @@ export function CountdownTimer() {
   return (
     <div className="flex flex-col items-center space-y-4">
       <h3 className="text-lg font-semibold text-foreground">
-        {presidentialElection.name || 'Presidential Election'}
+        {presidentialElection.electionName || 'Presidential Election'}
       </h3>
       
       <div className="flex items-center justify-center gap-4">

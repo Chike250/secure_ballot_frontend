@@ -19,8 +19,158 @@ export const useAuth = () => {
   const { setLoading, setError, addNotification } = useUIStore();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [otpState, setOtpState] = useState<{
+    userId: string | null;
+    email: string | null;
+    expiresAt: string | null;
+  }>({ userId: null, email: null, expiresAt: null });
 
-  // Login function
+  // NEW: Voter login with OTP flow - Step 1: Request login
+  const requestVoterLogin = async (nin: string, vin: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await authAPI.requestVoterLogin(nin, vin);
+      
+      if (response.success) {
+        const { userId, email, expiresAt } = response.data;
+        
+        // Store OTP state for step 2
+        setOtpState({ userId, email, expiresAt });
+        
+        addNotification({
+          type: 'success',
+          message: response.message || 'OTP sent successfully! Check your email.',
+        });
+        
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Login request failed';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // NEW: Voter login with OTP flow - Step 2: Verify OTP
+  const verifyVoterOTP = async (otpCode: string) => {
+    if (!otpState.userId) {
+      throw new Error('No OTP session found. Please request login again.');
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await authAPI.verifyVoterOTP(otpState.userId, otpCode);
+      
+      if (response.success) {
+        const { token, user: voter } = response.data;
+        
+        // Set auth data
+        setAuth(token, { ...voter, role: 'voter' });
+        
+        // Clear OTP state
+        setOtpState({ userId: null, email: null, expiresAt: null });
+        
+        addNotification({
+          type: 'success',
+          message: 'Login successful!',
+        });
+        
+        router.push('/dashboard');
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'OTP verification failed';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // NEW: Resend OTP
+  const resendVoterOTP = async () => {
+    if (!otpState.userId) {
+      throw new Error('No OTP session found. Please request login again.');
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await authAPI.resendVoterOTP(otpState.userId);
+      
+      if (response.success) {
+        const { userId, email, expiresAt } = response.data;
+        
+        // Update OTP state
+        setOtpState({ userId, email, expiresAt });
+        
+        addNotification({
+          type: 'success',
+          message: 'New OTP sent successfully!',
+        });
+        
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to resend OTP';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // NEW: Admin login with NIN and password (no OTP required)
+  const adminLogin = async (nin: string, password: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await authAPI.adminLogin(nin, password);
+      
+      if (response.success) {
+        const { token, user: admin } = response.data;
+        
+        // Set auth data
+        setAuth(token, { ...admin, role: 'admin' });
+        
+        addNotification({
+          type: 'success',
+          message: 'Admin login successful!',
+        });
+        
+        router.push('/admin/dashboard');
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Admin login failed';
+      setError(errorMessage);
+      addNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // DEPRECATED: Legacy login function (keeping for backward compatibility)
   const login = async (identifier: string, password: string) => {
     try {
       setIsLoading(true);
@@ -48,45 +198,6 @@ export const useAuth = () => {
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Login failed';
-      setError(errorMessage);
-      addNotification({
-        type: 'error',
-        message: errorMessage,
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Admin login function
-  const adminLogin = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await authAPI.adminLogin(email, password);
-      
-      if (response.success) {
-        const { token, admin, requiresMfa } = response.data;
-        
-        // Set auth data
-        setAuth(token, { ...admin, role: 'admin' }, requiresMfa);
-        
-        if (requiresMfa) {
-          // Redirect to MFA verification page
-          router.push('/auth/verify-mfa');
-        } else {
-          addNotification({
-            type: 'success',
-            message: 'Admin login successful!',
-          });
-          router.push('/admin/dashboard');
-        }
-        
-        return response.data;
-      }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Admin login failed';
       setError(errorMessage);
       addNotification({
         type: 'error',
@@ -470,6 +581,12 @@ export const useAuth = () => {
     isAuthenticated,
     requiresMfa,
     isLoading,
+    otpState,
+
+    // NEW: OTP Authentication Actions
+    requestVoterLogin,
+    verifyVoterOTP,
+    resendVoterOTP,
 
     // Actions
     login,

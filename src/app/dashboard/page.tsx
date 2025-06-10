@@ -99,6 +99,7 @@ import { useElections } from "@/hooks/useElections";
 import { useResults } from "@/hooks/useResults";
 import { useDashboard } from "@/hooks/useDashboard";
 import ElectoralMap from "@/components/ui/electoral-map";
+import { voterAPI } from "@/services/api"; // Use direct API for new consolidated endpoint
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -112,8 +113,13 @@ export default function DashboardPage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statistics, setStatistics] = useState<any>(null);
-  const [realTimeData, setRealTimeData] = useState<any>(null);
+
+  // Consolidated dashboard data state
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [isDashboardLoading, setIsDashboardLoading] = useState(false);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+
+  // Filter criteria state
   const [filterCriteria, setFilterCriteria] = useState({
     regions: [],
     minVotes: 0,
@@ -122,7 +128,7 @@ export default function DashboardPage() {
     turnout: [0, 100],
   });
 
-  // Use the API hooks
+  // Use the API hooks (keeping for election management)
   const {
     currentElection,
     elections,
@@ -140,21 +146,50 @@ export default function DashboardPage() {
     checkVotingStatus,
   } = useElectionData();
 
-  // New comprehensive dashboard hook
-  const {
-    dashboardData,
-    isLoading: dashboardLoading,
-    fetchDashboardData,
-    refreshDashboard,
-    getOverviewStats,
-    getCandidates: getDashboardCandidates,
-    getVoteDistribution,
-    getRegionalBreakdown: getDashboardRegionalBreakdown,
-    getTurnoutByRegion,
-    getLiveUpdates,
-    getRecentActivity,
-    getElectionInfo,
-  } = useDashboard();
+  // NEW: Function to fetch consolidated dashboard data
+  const fetchDashboardData = async (electionId: string) => {
+    try {
+      setIsDashboardLoading(true);
+      setDashboardError(null);
+
+      const response = await voterAPI.getDashboard(electionId, {
+        userId: user?.id,
+        includeRealTime: true,
+        includeRegionalBreakdown: true,
+      });
+
+      if (response.success) {
+        setDashboardData(response.data);
+        return response.data;
+      } else {
+        throw new Error(response.message || "Failed to fetch dashboard data");
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch dashboard data";
+      setDashboardError(errorMessage);
+      console.error("Dashboard fetch error:", error);
+
+      // Fallback to individual API calls on error
+      console.log("Falling back to individual API calls...");
+      try {
+        await fetchElectionDetails(electionId);
+        await fetchCandidates(electionId);
+        await checkVotingStatus(electionId);
+
+        // Note: Statistics will be available through the election data hooks
+        await fetchStatistics(electionId);
+        await getRealTimeResults(electionId);
+      } catch (fallbackError) {
+        console.error("Fallback API calls failed:", fallbackError);
+        setError("Failed to load dashboard data");
+      }
+    } finally {
+      setIsDashboardLoading(false);
+    }
+  };
 
   // Election types mapping
   const ELECTION_TYPES_MAP: Record<string, string> = {
@@ -165,10 +200,6 @@ export default function DashboardPage() {
   };
 
   const currentElectionTypeKey = electionType;
-
-  // Additional hooks for more detailed data
-  const { getStatistics, getLiveResults } = useResults();
-  const { fetchElections: fetchElectionsList } = useElections();
 
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(
     null
@@ -198,130 +229,79 @@ export default function DashboardPage() {
     },
   ]);
 
-  // Wait for authentication to be initialized
+  // Consolidated effect for authentication, election selection, and data fetching
   useEffect(() => {
+    // Handle authentication redirect
     if (!isInitialized) return;
-
+    
     if (!isAuthenticated) {
       router.push("/login?from=/dashboard");
+      return;
     }
-  }, [isAuthenticated, isInitialized, router]);
 
-  useEffect(() => {
-    if (!isInitialized || !isAuthenticated) return;
-
-    // If elections array is empty, the auto-fetch should handle it
-    // No need for manual fetch here to avoid re-render loops
+    // Handle election selection and data fetching
     if (elections.length === 0) {
       console.log("Elections array is empty, waiting for auto-fetch...");
-      return; // Exit early, let the auto-fetch handle loading
+      return;
     }
 
     try {
       if (electionType) {
-        // Find election by type and fetch details
-        // Handle both possible field names: 'type' and 'electionType'
+        // Find election by type
         const election = elections.find((e) => {
           const eType = (e as any).electionType || e.type;
           if (!eType) return false;
 
-          // Match against the election type key (e.g., "presidential")
           const normalizedType = eType.toLowerCase();
           return (
             normalizedType.includes(electionType.toLowerCase()) ||
             normalizedType === electionType.toLowerCase() ||
-            (electionType === "presidential" &&
-              normalizedType.includes("president")) ||
-            (electionType === "gubernatorial" &&
-              normalizedType.includes("governor")) ||
-            (electionType === "house-of-reps" &&
-              (normalizedType.includes("house") ||
-                normalizedType.includes("representative"))) ||
-            (electionType === "senatorial" &&
-              (normalizedType.includes("senate") ||
-                normalizedType.includes("senator")))
+            (electionType === "presidential" && normalizedType.includes("president")) ||
+            (electionType === "gubernatorial" && normalizedType.includes("governor")) ||
+            (electionType === "house-of-reps" && (normalizedType.includes("house") || normalizedType.includes("representative"))) ||
+            (electionType === "senatorial" && (normalizedType.includes("senate") || normalizedType.includes("senator")))
           );
         });
-        if (election) {
+
+        if (election && currentElection?.id !== election.id) {
           console.log("Found election for dashboard:", election.id);
-          // Store the election ID for the separate data fetching effect
-          if (currentElection?.id !== election.id) {
-            setCurrentElection(election);
-          }
+          setCurrentElection(election);
         }
       }
     } catch (error) {
       console.error("Dashboard initialization error:", error);
       setError("Failed to initialize dashboard. Please refresh the page.");
     }
-  }, [
-    electionType,
-    isAuthenticated,
-    isInitialized,
-    activeTab
-  ]);
+  }, [electionType, isAuthenticated, isInitialized, elections, currentElection?.id, router]);
 
-  // Separate effect for fetching dashboard data when currentElection changes
+  // Effect for fetching data when current election changes
   useEffect(() => {
     if (!currentElection || !isAuthenticated || !isInitialized) return;
 
     console.log("Fetching dashboard data for election:", currentElection.id);
 
+    // Fetch dashboard data
     fetchDashboardData(currentElection.id)
       .then((dashboardData) => {
         console.log("Dashboard data fetched:", dashboardData);
-        if (dashboardData) {
-          // Update local state with dashboard data
-          setStatistics(dashboardData.statistics);
-          setRealTimeData({
-            pollingUnitsReported:
-              dashboardData.overview.statistics.pollingUnitsReported.split(
-                "/"
-              )[0],
-            totalPollingUnits:
-              dashboardData.overview.statistics.pollingUnitsReported.split(
-                "/"
-              )[1],
-            reportingPercentage:
-              dashboardData.overview.statistics.reportingPercentage,
-          });
-        }
       })
       .catch((error) => {
         console.error("Failed to fetch dashboard data:", error);
         // Fallback to individual API calls
         fetchElectionDetails(currentElection.id);
         fetchCandidates(currentElection.id);
-        checkVotingStatus(currentElection.id);
-
-        // Fetch comprehensive statistics
-        fetchStatistics(currentElection.id)
-          .then((stats: any) => {
-            if (stats) setStatistics(stats);
-          })
-          .catch((err) => console.error("Failed to fetch statistics:", err));
-
-        // Fetch real-time data
-        getRealTimeResults(currentElection.id)
-          .then((realTime: any) => {
-            if (realTime) setRealTimeData(realTime);
-          })
-          .catch((err) =>
-            console.error("Failed to fetch real-time data:", err)
-          );
+        fetchStatistics(currentElection.id);
+        getRealTimeResults(currentElection.id);
       });
 
-    // Still check voting status separately as it's user-specific
+    // Check voting status (user-specific)
     checkVotingStatus(currentElection.id);
-  }, [currentElection?.id, isAuthenticated, isInitialized]);
 
-  useEffect(() => {
-    if (!isInitialized || !isAuthenticated) return;
-
-    if (activeTab === "results" && currentElection) {
+    // Fetch results if on results tab
+    if (activeTab === "results") {
       fetchResults(currentElection.id);
     }
-  }, [activeTab, currentElection?.id, isInitialized, isAuthenticated]);
+  }, [currentElection?.id, isAuthenticated, isInitialized, activeTab]);
 
   const handleCandidateSelect = (candidate: any) => {
     setSelectedCandidateId(candidate.id);
@@ -348,12 +328,9 @@ export default function DashboardPage() {
   };
 
   const getTotalVotes = () => {
-    const overviewStats = getOverviewStats();
-    if (overviewStats) {
-      return overviewStats.totalVotesCast || 0;
-    }
-    if (statistics) {
-      return statistics.totalVotesCast || 0;
+    // Use consolidated dashboard data first
+    if (dashboardData?.overview?.totalVotesCast) {
+      return dashboardData.overview.totalVotesCast;
     }
     if (electionResults) {
       return electionResults.totalVotes;
@@ -362,12 +339,9 @@ export default function DashboardPage() {
   };
 
   const getVoterTurnout = () => {
-    const overviewStats = getOverviewStats();
-    if (overviewStats) {
-      return overviewStats.voterTurnout || 0;
-    }
-    if (statistics) {
-      return statistics.turnoutPercentage || 0;
+    // Use consolidated dashboard data first
+    if (dashboardData?.overview?.voterTurnout) {
+      return dashboardData.overview.voterTurnout;
     }
     if (electionResults && electionResults.turnout) {
       return electionResults.turnout;
@@ -376,12 +350,9 @@ export default function DashboardPage() {
   };
 
   const getValidVotes = () => {
-    const overviewStats = getOverviewStats();
-    if (overviewStats) {
-      return overviewStats.validVotes || 0;
-    }
-    if (statistics) {
-      return statistics.validVotes || 0;
+    // Use consolidated dashboard data first
+    if (dashboardData?.overview?.validVotes) {
+      return dashboardData.overview.validVotes;
     }
     if (electionResults) {
       // Calculate valid votes from candidates
@@ -394,12 +365,9 @@ export default function DashboardPage() {
   };
 
   const getInvalidVotes = () => {
-    const overviewStats = getOverviewStats();
-    if (overviewStats) {
-      return overviewStats.invalidVotes || 0;
-    }
-    if (statistics) {
-      return statistics.invalidVotes || 0;
+    // Use consolidated dashboard data first
+    if (dashboardData?.overview?.invalidVotes) {
+      return dashboardData.overview.invalidVotes;
     }
     const total = getTotalVotes();
     const valid = getValidVotes();
@@ -407,87 +375,98 @@ export default function DashboardPage() {
   };
 
   const getRegisteredVoters = () => {
-    const overviewStats = getOverviewStats();
-    if (overviewStats) {
-      return overviewStats.totalRegisteredVoters || 0;
-    }
-    if (statistics) {
-      return statistics.totalRegisteredVoters || 0;
+    // Use consolidated dashboard data first
+    if (dashboardData?.overview?.totalRegisteredVoters) {
+      return dashboardData.overview.totalRegisteredVoters;
     }
     return 0;
   };
 
   const getPollingUnitsReported = () => {
-    const overviewStats = getOverviewStats();
-    if (overviewStats) {
-      return parseInt(overviewStats.pollingUnitsReported.split("/")[0]) || 0;
-    }
-    if (realTimeData) {
-      return realTimeData.pollingUnitsReported || 0;
+    // Use consolidated dashboard data first
+    if (dashboardData?.overview?.pollingUnitsReported) {
+      return (
+        parseInt(dashboardData.overview.pollingUnitsReported.split("/")[0]) || 0
+      );
     }
     return 0;
   };
 
   const getTotalPollingUnits = () => {
-    const overviewStats = getOverviewStats();
-    if (overviewStats) {
-      return parseInt(overviewStats.pollingUnitsReported.split("/")[1]) || 0;
-    }
-    if (realTimeData) {
-      return realTimeData.totalPollingUnits || 0;
+    // Use consolidated dashboard data first
+    if (dashboardData?.overview?.pollingUnitsReported) {
+      return (
+        parseInt(dashboardData.overview.pollingUnitsReported.split("/")[1]) || 0
+      );
     }
     return 0;
   };
 
   const getReportingPercentage = () => {
-    const overviewStats = getOverviewStats();
-    if (overviewStats) {
-      return overviewStats.reportingPercentage || 0;
-    }
-    if (realTimeData) {
-      return realTimeData.reportingPercentage || 0;
+    // Use consolidated dashboard data first
+    if (dashboardData?.overview?.reportingPercentage) {
+      return dashboardData.overview.reportingPercentage;
     }
     return 0;
   };
 
   const getRegionalBreakdown = () => {
-    const regionalData = getDashboardRegionalBreakdown();
-    if (regionalData && Array.isArray(regionalData) && regionalData.length > 0) {
-      return regionalData;
-    }
-    if (statistics && statistics.regionalBreakdown && Array.isArray(statistics.regionalBreakdown)) {
-      return statistics.regionalBreakdown;
+    // Use consolidated dashboard data first
+    if (
+      dashboardData?.regional?.breakdown &&
+      Array.isArray(dashboardData.regional.breakdown)
+    ) {
+      return dashboardData.regional.breakdown;
     }
     return [];
   };
 
   const getCandidateResults = () => {
-    const dashboardCandidates = getDashboardCandidates();
-    if (dashboardCandidates && Array.isArray(dashboardCandidates) && dashboardCandidates.length > 0) {
-      return dashboardCandidates.map((candidate) => ({
+    // Use consolidated dashboard data first
+    if (dashboardData?.candidates && Array.isArray(dashboardData.candidates)) {
+      return dashboardData.candidates.map((candidate: any) => ({
         ...candidate,
-        name: candidate.fullName,
+        name: candidate.fullName || candidate.candidateName,
         party: candidate.partyName,
         partyCode: candidate.partyCode,
         image: candidate.photoUrl,
+        votes: candidate.votes || 0,
+        percentage: candidate.percentage || 0,
       }));
-    }
-    const voteDistribution = getVoteDistribution();
-    if (voteDistribution && Array.isArray(voteDistribution) && voteDistribution.length > 0) {
-      return voteDistribution.map((candidate) => ({
-        id: candidate.candidateId,
-        name: candidate.candidateName,
-        party: candidate.partyName,
-        partyCode: candidate.partyCode,
-        votes: candidate.votes,
-        percentage: candidate.percentage,
-      }));
-    }
-    if (statistics && statistics.candidateResults && Array.isArray(statistics.candidateResults)) {
-      return statistics.candidateResults;
     }
     // Ensure we always return an array, even if candidates is undefined
     return Array.isArray(candidates) ? candidates : [];
+  };
+
+  // Helper functions for consolidated dashboard data
+  const getRecentActivity = () => {
+    if (
+      dashboardData?.realTime?.recentActivity &&
+      Array.isArray(dashboardData.realTime.recentActivity)
+    ) {
+      return dashboardData.realTime.recentActivity;
+    }
+    return [];
+  };
+
+  const getLiveUpdates = () => {
+    if (
+      dashboardData?.realTime?.liveUpdates &&
+      Array.isArray(dashboardData.realTime.liveUpdates)
+    ) {
+      return dashboardData.realTime.liveUpdates;
+    }
+    return [];
+  };
+
+  const getTurnoutByRegion = () => {
+    if (
+      dashboardData?.regional?.turnoutByRegion &&
+      Array.isArray(dashboardData.regional.turnoutByRegion)
+    ) {
+      return dashboardData.regional.turnoutByRegion;
+    }
+    return [];
   };
 
   const applyFilters = () => {
@@ -721,15 +700,15 @@ export default function DashboardPage() {
                     e.type?.toLowerCase().includes(electionType)
                   );
                   if (election) {
-                    refreshDashboard(election.id);
+                    fetchDashboardData(election.id);
                   }
                 }}
-                disabled={dashboardLoading}
+                disabled={isDashboardLoading}
                 className="rounded-full"
               >
                 <RefreshCw
                   className={`h-4 w-4 ${
-                    dashboardLoading ? "animate-spin" : ""
+                    isDashboardLoading ? "animate-spin" : ""
                   }`}
                 />
               </Button>
@@ -1449,7 +1428,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                    {isLoading || dashboardLoading ? (
+                    {isLoading || isDashboardLoading ? (
                       <div className="space-y-4">
                         {[1, 2, 3, 4].map((i) => (
                           <div
@@ -1493,81 +1472,84 @@ export default function DashboardPage() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {ensureArray(getCandidateResults()).map((candidate: any) => (
-                          <div
-                            key={candidate.id}
-                            className={`flex items-center rounded-lg border p-4 transition-all duration-300 ${
-                              hasVoted[currentElectionTypeKey] === candidate.id
-                                ? "border-green-500 bg-green-500/5"
-                                : hasVoted[currentElectionTypeKey]
-                                ? "opacity-80 hover:bg-muted/30"
-                                : "cursor-pointer hover:bg-muted/50 hover:scale-[1.01] hover:shadow-md"
-                            }`}
-                            onClick={() =>
-                              !hasVoted[currentElectionTypeKey] &&
-                              handleCandidateSelect(candidate)
-                            }
-                          >
-                            <div className="mr-4 h-16 w-16 overflow-hidden rounded-full">
-                              <img
-                                src={candidate.image || "/placeholder.svg"}
-                                alt={candidate.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-semibold flex items-center">
-                                {candidate.name}
-                                {hasVoted[currentElectionTypeKey] ===
-                                  candidate.id && (
-                                  <Check className="ml-2 h-4 w-4 text-green-500" />
-                                )}
-                              </h3>
-                              <p className="text-sm text-muted-foreground">
-                                {candidate.party}
-                              </p>
-                            </div>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="text-right">
-                                    <div className="font-bold">
-                                      {(
-                                        (candidate.votes || 0) / 1000000
-                                      ).toFixed(1)}
-                                      M
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {candidate.percentage || 0}% of votes
-                                    </div>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  side="left"
-                                  className="max-w-xs"
-                                >
-                                  <div className="space-y-2">
-                                    <p className="font-semibold">
-                                      {candidate.name} ({candidate.party})
-                                    </p>
-                                    <p className="text-sm">{candidate.bio}</p>
-                                    <p className="text-sm">
-                                      <span className="font-medium">
-                                        Manifesto:
-                                      </span>{" "}
-                                      {candidate.manifesto ||
-                                        "No manifesto available"}
-                                    </p>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                        {ensureArray(getCandidateResults()).map(
+                          (candidate: any) => (
                             <div
-                              className="ml-4 h-full w-2 rounded-full"
-                              style={{ backgroundColor: candidate.color }}
-                            ></div>
-                          </div>
-                        ))}
+                              key={candidate.id}
+                              className={`flex items-center rounded-lg border p-4 transition-all duration-300 ${
+                                hasVoted[currentElectionTypeKey] ===
+                                candidate.id
+                                  ? "border-green-500 bg-green-500/5"
+                                  : hasVoted[currentElectionTypeKey]
+                                  ? "opacity-80 hover:bg-muted/30"
+                                  : "cursor-pointer hover:bg-muted/50 hover:scale-[1.01] hover:shadow-md"
+                              }`}
+                              onClick={() =>
+                                !hasVoted[currentElectionTypeKey] &&
+                                handleCandidateSelect(candidate)
+                              }
+                            >
+                              <div className="mr-4 h-16 w-16 overflow-hidden rounded-full">
+                                <img
+                                  src={candidate.image || "/placeholder.svg"}
+                                  alt={candidate.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-semibold flex items-center">
+                                  {candidate.name}
+                                  {hasVoted[currentElectionTypeKey] ===
+                                    candidate.id && (
+                                    <Check className="ml-2 h-4 w-4 text-green-500" />
+                                  )}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {candidate.party}
+                                </p>
+                              </div>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="text-right">
+                                      <div className="font-bold">
+                                        {(
+                                          (candidate.votes || 0) / 1000000
+                                        ).toFixed(1)}
+                                        M
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {candidate.percentage || 0}% of votes
+                                      </div>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="left"
+                                    className="max-w-xs"
+                                  >
+                                    <div className="space-y-2">
+                                      <p className="font-semibold">
+                                        {candidate.name} ({candidate.party})
+                                      </p>
+                                      <p className="text-sm">{candidate.bio}</p>
+                                      <p className="text-sm">
+                                        <span className="font-medium">
+                                          Manifesto:
+                                        </span>{" "}
+                                        {candidate.manifesto ||
+                                          "No manifesto available"}
+                                      </p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <div
+                                className="ml-4 h-full w-2 rounded-full"
+                                style={{ backgroundColor: candidate.color }}
+                              ></div>
+                            </div>
+                          )
+                        )}
                       </div>
                     )}
                   </CardContent>
@@ -1608,40 +1590,44 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody>
-                                                      {ensureArray(getCandidateResults()).map((candidate: any) => (
-                            <tr
-                              key={candidate.id}
-                              className="border-b hover:bg-muted/30"
-                            >
-                              <td className="p-2 flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-full overflow-hidden">
-                                  <img
-                                    src={candidate.image || "/placeholder.svg"}
-                                    alt={candidate.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                                <span>{candidate.name}</span>
-                              </td>
-                              <td className="p-2">{candidate.party}</td>
-                              <td className="p-2">
-                                {candidate.manifesto ||
-                                  "No manifesto available"}
-                              </td>
-                              <td className="p-2">
-                                {(candidate.votes || 0).toLocaleString()}
-                              </td>
-                              <td className="p-2">
-                                <div className="flex items-center gap-2">
-                                  <Progress
-                                    value={candidate.percentage || 0}
-                                    className="h-2 w-20"
-                                  />
-                                  <span>{candidate.percentage || 0}%</span>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                          {ensureArray(getCandidateResults()).map(
+                            (candidate: any) => (
+                              <tr
+                                key={candidate.id}
+                                className="border-b hover:bg-muted/30"
+                              >
+                                <td className="p-2 flex items-center gap-2">
+                                  <div className="h-8 w-8 rounded-full overflow-hidden">
+                                    <img
+                                      src={
+                                        candidate.image || "/placeholder.svg"
+                                      }
+                                      alt={candidate.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                  <span>{candidate.name}</span>
+                                </td>
+                                <td className="p-2">{candidate.party}</td>
+                                <td className="p-2">
+                                  {candidate.manifesto ||
+                                    "No manifesto available"}
+                                </td>
+                                <td className="p-2">
+                                  {(candidate.votes || 0).toLocaleString()}
+                                </td>
+                                <td className="p-2">
+                                  <div className="flex items-center gap-2">
+                                    <Progress
+                                      value={candidate.percentage || 0}
+                                      className="h-2 w-20"
+                                    />
+                                    <span>{candidate.percentage || 0}%</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -1845,30 +1831,33 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="space-y-4">
-                                                          {ensureArray(getTurnoutByRegion()).length > 0 ? (
-                              ensureArray(getTurnoutByRegion()).map((region: any) => (
-                                  <div
-                                    key={region.regionName}
-                                    className="space-y-2"
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-sm">
-                                        {region.regionName}
-                                      </span>
-                                      <span className="text-sm font-medium">
-                                        {region.turnoutPercentage.toFixed(1)}%
-                                      </span>
+                              {ensureArray(getTurnoutByRegion()).length > 0 ? (
+                                ensureArray(getTurnoutByRegion()).map(
+                                  (region: any) => (
+                                    <div
+                                      key={region.regionName}
+                                      className="space-y-2"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm">
+                                          {region.regionName}
+                                        </span>
+                                        <span className="text-sm font-medium">
+                                          {region.turnoutPercentage.toFixed(1)}%
+                                        </span>
+                                      </div>
+                                      <Progress
+                                        value={region.turnoutPercentage}
+                                        className="h-2"
+                                      />
+                                      <div className="text-xs text-muted-foreground">
+                                        {region.statesReported}/
+                                        {region.totalStatesInZone} states
+                                        reported
+                                      </div>
                                     </div>
-                                    <Progress
-                                      value={region.turnoutPercentage}
-                                      className="h-2"
-                                    />
-                                    <div className="text-xs text-muted-foreground">
-                                      {region.statesReported}/
-                                      {region.totalStatesInZone} states reported
-                                    </div>
-                                  </div>
-                                ))
+                                  )
+                                )
                               ) : (
                                 // Fallback to static data if API data not available
                                 <>
@@ -2060,14 +2049,12 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>Electoral Map</CardTitle>
                     <CardDescription>
-                      Interactive map showing election results across Nigerian states
+                      Interactive map showing election results across Nigerian
+                      states
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ElectoralMap 
-                      height="500px"
-                      showLegend={true}
-                    />
+                    <ElectoralMap height="500px" showLegend={true} />
                   </CardContent>
                 </Card>
 
@@ -2082,25 +2069,30 @@ export default function DashboardPage() {
                     <CardContent>
                       <div className="space-y-4">
                         {ensureArray(getRegionalBreakdown()).length > 0 ? (
-                          ensureArray(getRegionalBreakdown()).map((region: any) => (
-                            <div key={region.region_name} className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span>{region.region_name}</span>
-                                <span className="font-medium">
-                                  {region.percentage.toFixed(1)}%
-                                </span>
+                          ensureArray(getRegionalBreakdown()).map(
+                            (region: any) => (
+                              <div
+                                key={region.region_name}
+                                className="space-y-2"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span>{region.region_name}</span>
+                                  <span className="font-medium">
+                                    {region.percentage.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <Progress
+                                  value={region.percentage}
+                                  className="h-2"
+                                />
+                                <div className="text-xs text-muted-foreground">
+                                  {region.vote_count.toLocaleString()} votes •{" "}
+                                  {region.states_reported}/
+                                  {region.total_states_in_zone} states reported
+                                </div>
                               </div>
-                              <Progress
-                                value={region.percentage}
-                                className="h-2"
-                              />
-                              <div className="text-xs text-muted-foreground">
-                                {region.vote_count.toLocaleString()} votes •{" "}
-                                {region.states_reported}/
-                                {region.total_states_in_zone} states reported
-                              </div>
-                            </div>
-                          ))
+                            )
+                          )
                         ) : (
                           // Fallback to static data if API data not available
                           <>
