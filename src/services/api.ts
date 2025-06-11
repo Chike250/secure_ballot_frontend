@@ -297,7 +297,7 @@ export const voterAPI = {
 // Election API
 export const electionAPI = {
   getElections: async (status = 'active', type?: string, page = 1, limit = 10) => {
-    const response = await api.get('/elections', {
+    const response = await api.get('public/elections', {
       params: { status, type, page, limit },
     });
     return response.data;
@@ -420,7 +420,7 @@ export const resultsAPI = {
   },
 
   getRealTimeResults: async (electionId: string) => {
-    const response = await api.get(`/results/elections/${electionId}/real-time`);
+    const response = await api.get(`/results/live/${electionId}`);
     return response.data;
   },
 

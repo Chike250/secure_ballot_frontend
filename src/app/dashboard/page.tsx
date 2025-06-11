@@ -95,11 +95,8 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { useAuthStore, useUIStore } from "@/store/useStore";
 import { useElectionData } from "@/hooks/useElectionData";
-import { useElections } from "@/hooks/useElections";
-import { useResults } from "@/hooks/useResults";
-import { useDashboard } from "@/hooks/useDashboard";
 import ElectoralMap from "@/components/ui/electoral-map";
-import { voterAPI } from "@/services/api"; // Use direct API for new consolidated endpoint
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -114,10 +111,11 @@ export default function DashboardPage() {
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Consolidated dashboard data state
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  // Individual loading states
   const [isDashboardLoading, setIsDashboardLoading] = useState(false);
-  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  
+  // Store statistics data
+  const [electionStatistics, setElectionStatistics] = useState<any>(null);
 
   // Filter criteria state
   const [filterCriteria, setFilterCriteria] = useState({
@@ -146,50 +144,7 @@ export default function DashboardPage() {
     checkVotingStatus,
   } = useElectionData();
 
-  // NEW: Function to fetch consolidated dashboard data
-  const fetchDashboardData = async (electionId: string) => {
-    try {
-      setIsDashboardLoading(true);
-      setDashboardError(null);
 
-      const response = await voterAPI.getDashboard(electionId, {
-        userId: user?.id,
-        includeRealTime: true,
-        includeRegionalBreakdown: true,
-      });
-
-      if (response.success) {
-        setDashboardData(response.data);
-        return response.data;
-      } else {
-        throw new Error(response.message || "Failed to fetch dashboard data");
-      }
-    } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to fetch dashboard data";
-      setDashboardError(errorMessage);
-      console.error("Dashboard fetch error:", error);
-
-      // Fallback to individual API calls on error
-      console.log("Falling back to individual API calls...");
-      try {
-        await fetchElectionDetails(electionId);
-        await fetchCandidates(electionId);
-        await checkVotingStatus(electionId);
-
-        // Note: Statistics will be available through the election data hooks
-        await fetchStatistics(electionId);
-        await getRealTimeResults(electionId);
-      } catch (fallbackError) {
-        console.error("Fallback API calls failed:", fallbackError);
-        setError("Failed to load dashboard data");
-      }
-    } finally {
-      setIsDashboardLoading(false);
-    }
-  };
 
   // Election types mapping
   const ELECTION_TYPES_MAP: Record<string, string> = {
@@ -197,6 +152,37 @@ export default function DashboardPage() {
     gubernatorial: "Gubernatorial Election",
     "house-of-reps": "House of Representatives Election",
     senatorial: "Senatorial Election",
+  };
+
+  // Get available election types based on actual elections from API
+  const getAvailableElectionTypes = () => {
+    if (!elections || elections.length === 0) {
+      return {};
+    }
+
+    const availableTypes: Record<string, string> = {};
+    
+      elections.forEach((election) => {
+    const eType = (election as any).electionType || election.type;
+    if (!eType) return;
+
+    const normalizedType = eType.toLowerCase();
+    console.log("📊 Dashboard: Processing election type:", eType, "->", normalizedType);
+      
+          // Map API election types to our type keys
+    if (normalizedType.includes("president")) {
+      availableTypes.presidential = ELECTION_TYPES_MAP.presidential;
+    } else if (normalizedType.includes("governor") || normalizedType.includes("gubernatorial")) {
+      availableTypes.gubernatorial = ELECTION_TYPES_MAP.gubernatorial;
+    } else if (normalizedType.includes("house") || normalizedType.includes("representative")) {
+      availableTypes["house-of-reps"] = ELECTION_TYPES_MAP["house-of-reps"];
+    } else if (normalizedType.includes("senate") || normalizedType.includes("senator")) {
+      availableTypes.senatorial = ELECTION_TYPES_MAP.senatorial;
+    }
+    });
+
+    console.log("📊 Dashboard: Available election types:", availableTypes);
+    return availableTypes;
   };
 
   const currentElectionTypeKey = electionType;
@@ -229,79 +215,96 @@ export default function DashboardPage() {
     },
   ]);
 
-  // Consolidated effect for authentication, election selection, and data fetching
+  // Main dashboard initialization effect
   useEffect(() => {
-    // Handle authentication redirect
-    if (!isInitialized) return;
-    
-    if (!isAuthenticated) {
-      router.push("/login?from=/dashboard");
-      return;
-    }
-
-    // Handle election selection and data fetching
-    if (elections.length === 0) {
-      console.log("Elections array is empty, waiting for auto-fetch...");
-      return;
-    }
-
-    try {
-      if (electionType) {
-        // Find election by type
-        const election = elections.find((e) => {
-          const eType = (e as any).electionType || e.type;
-          if (!eType) return false;
-
-          const normalizedType = eType.toLowerCase();
-          return (
-            normalizedType.includes(electionType.toLowerCase()) ||
-            normalizedType === electionType.toLowerCase() ||
-            (electionType === "presidential" && normalizedType.includes("president")) ||
-            (electionType === "gubernatorial" && normalizedType.includes("governor")) ||
-            (electionType === "house-of-reps" && (normalizedType.includes("house") || normalizedType.includes("representative"))) ||
-            (electionType === "senatorial" && (normalizedType.includes("senate") || normalizedType.includes("senator")))
-          );
-        });
-
-        if (election && currentElection?.id !== election.id) {
-          console.log("Found election for dashboard:", election.id);
-          setCurrentElection(election);
-        }
+    const initializeDashboard = async () => {
+      // Handle authentication redirect
+      if (!isInitialized) return;
+      
+      if (!isAuthenticated) {
+        router.push("/login?from=/dashboard");
+        return;
       }
-    } catch (error) {
-      console.error("Dashboard initialization error:", error);
-      setError("Failed to initialize dashboard. Please refresh the page.");
+
+      try {
+        // Step 1: Get all elections first
+        console.log("📊 Dashboard: Step 1 - Fetching all elections...");
+        await fetchElections();
+        console.log("📊 Dashboard: Elections fetched successfully, total:", elections.length);
+
+        // Step 2: Find the right election by type
+        if (electionType) {
+          console.log("📊 Dashboard: Step 2 - Finding election by type:", electionType);
+          
+          const election = elections.find((e) => {
+            const eType = (e as any).electionType || e.type;
+            if (!eType) return false;
+
+            const normalizedType = eType.toLowerCase();
+            return (
+              normalizedType.includes(electionType.toLowerCase()) ||
+              normalizedType === electionType.toLowerCase() ||
+              (electionType === "presidential" && normalizedType.includes("president")) ||
+              (electionType === "gubernatorial" && (normalizedType.includes("governor") || normalizedType.includes("gubernatorial"))) ||
+              (electionType === "house-of-reps" && (normalizedType.includes("house") || normalizedType.includes("representative"))) ||
+              (electionType === "senatorial" && (normalizedType.includes("senate") || normalizedType.includes("senator")))
+            );
+          });
+
+          if (election) {
+            console.log("📊 Dashboard: Step 3 - Found election:", election.id, election.name);
+            setCurrentElection(election);
+            
+            // Step 3: Fetch individual API data for the election
+            console.log("📊 Dashboard: Step 4 - Fetching individual API data for election ID:", election.id);
+            
+            setIsDashboardLoading(true);
+            try {
+              // Use individual API calls
+              const [detailsResult, candidatesResult, statisticsResult, realTimeResult, votingStatusResult] = await Promise.all([
+                fetchElectionDetails(election.id).catch(e => { console.error("Failed to fetch election details:", e); return null; }),
+                fetchCandidates(election.id).catch(e => { console.error("Failed to fetch candidates:", e); return null; }),
+                fetchStatistics(election.id).catch(e => { console.error("Failed to fetch statistics:", e); return null; }),
+                getRealTimeResults(election.id).catch(e => { console.error("Failed to fetch real-time results:", e); return null; }),
+                checkVotingStatus(election.id).catch(e => { console.error("Failed to check voting status:", e); return null; })
+              ]);
+              
+              // Store statistics data if successful
+              if (statisticsResult) {
+                console.log("📊 Dashboard: Statistics data received:", statisticsResult);
+                setElectionStatistics(statisticsResult);
+              }
+              
+              console.log("📊 Dashboard: Individual API calls completed successfully");
+            } catch (error) {
+              console.error("📊 Dashboard: Individual API calls failed:", error);
+              setError("Failed to load dashboard data");
+            } finally {
+              setIsDashboardLoading(false);
+            }
+
+            // Fetch results if on results tab
+            if (activeTab === "results") {
+              console.log("📊 Dashboard: Fetching results for results tab");
+              await fetchResults(election.id).catch(e => console.error("Failed to fetch results:", e));
+            }
+            
+          } else {
+            console.warn("📊 Dashboard: No election found for type:", electionType);
+            setError(`No ${ELECTION_TYPES_MAP[electionType] || electionType} election found`);
+          }
+        }
+      } catch (error) {
+        console.error("📊 Dashboard: Critical initialization error:", error);
+        setError("Failed to initialize dashboard. Please refresh the page.");
+      }
+    };
+
+    // Only run initialization if we have the required conditions
+    if (isInitialized && electionType) {
+      initializeDashboard();
     }
-  }, [electionType, isAuthenticated, isInitialized, elections, currentElection?.id, router]);
-
-  // Effect for fetching data when current election changes
-  useEffect(() => {
-    if (!currentElection || !isAuthenticated || !isInitialized) return;
-
-    console.log("Fetching dashboard data for election:", currentElection.id);
-
-    // Fetch dashboard data
-    fetchDashboardData(currentElection.id)
-      .then((dashboardData) => {
-        console.log("Dashboard data fetched:", dashboardData);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch dashboard data:", error);
-        // Fallback to individual API calls
-        fetchElectionDetails(currentElection.id);
-        fetchCandidates(currentElection.id);
-        fetchStatistics(currentElection.id);
-        getRealTimeResults(currentElection.id);
-      });
-
-    // Check voting status (user-specific)
-    checkVotingStatus(currentElection.id);
-
-    // Fetch results if on results tab
-    if (activeTab === "results") {
-      fetchResults(currentElection.id);
-    }
-  }, [currentElection?.id, isAuthenticated, isInitialized, activeTab]);
+  }, [electionType, isAuthenticated, isInitialized, activeTab]);
 
   const handleCandidateSelect = (candidate: any) => {
     setSelectedCandidateId(candidate.id);
@@ -328,21 +331,36 @@ export default function DashboardPage() {
   };
 
   const getTotalVotes = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.overview?.totalVotesCast) {
-      return dashboardData.overview.totalVotesCast;
+    // First check statistics data
+    if (electionStatistics?.votingStatistics?.totalVotesCast) {
+      console.log("📊 Dashboard: Total votes from statistics:", electionStatistics.votingStatistics.totalVotesCast);
+      return electionStatistics.votingStatistics.totalVotesCast;
     }
+    
+    // Fallback to election results
     if (electionResults) {
+      console.log("📊 Dashboard: Total votes from election results:", electionResults.totalVotes);
       return electionResults.totalVotes;
     }
+    
+    // Calculate from candidates as fallback
+    const candidatesArray = Array.isArray(candidates) ? candidates : [];
+    const candidateVotes = candidatesArray.reduce((total, candidate) => total + (candidate.votes || 0), 0);
+    if (candidateVotes > 0) {
+      console.log("📊 Dashboard: Total votes calculated from candidates:", candidateVotes);
+      return candidateVotes;
+    }
+    console.log("📊 Dashboard: No total votes data available");
     return 0;
   };
 
   const getVoterTurnout = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.overview?.voterTurnout) {
-      return dashboardData.overview.voterTurnout;
+    // First check statistics data
+    if (electionStatistics?.votingStatistics?.voterTurnoutPercentage) {
+      return electionStatistics.votingStatistics.voterTurnoutPercentage;
     }
+    
+    // Fallback to election results
     if (electionResults && electionResults.turnout) {
       return electionResults.turnout;
     }
@@ -350,13 +368,15 @@ export default function DashboardPage() {
   };
 
   const getValidVotes = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.overview?.validVotes) {
-      return dashboardData.overview.validVotes;
+    // First check statistics data
+    if (electionStatistics?.votingStatistics?.validVotes) {
+      return electionStatistics.votingStatistics.validVotes;
     }
+    
+    // Fallback to calculating from candidates
     if (electionResults) {
-      // Calculate valid votes from candidates
-      return candidates.reduce(
+      const candidatesArray = Array.isArray(candidates) ? candidates : [];
+      return candidatesArray.reduce(
         (total, candidate) => total + (candidate.votes || 0),
         0
       );
@@ -365,107 +385,137 @@ export default function DashboardPage() {
   };
 
   const getInvalidVotes = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.overview?.invalidVotes) {
-      return dashboardData.overview.invalidVotes;
+    // First check statistics data
+    if (electionStatistics?.votingStatistics?.invalidVotes) {
+      return electionStatistics.votingStatistics.invalidVotes;
     }
+    
+    // Fallback to election results
+    if (electionResults && (electionResults as any).invalidVotes) {
+      return (electionResults as any).invalidVotes;
+    }
+    
+    // Calculate from total and valid votes
     const total = getTotalVotes();
     const valid = getValidVotes();
     return total - valid;
   };
 
   const getRegisteredVoters = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.overview?.totalRegisteredVoters) {
-      return dashboardData.overview.totalRegisteredVoters;
+    // First check statistics data
+    if (electionStatistics?.votingStatistics?.totalRegisteredVoters) {
+      return electionStatistics.votingStatistics.totalRegisteredVoters;
+    }
+    
+    // Fallback to current election
+    if (currentElection && (currentElection as any).totalRegisteredVoters) {
+      return (currentElection as any).totalRegisteredVoters;
     }
     return 0;
   };
 
   const getPollingUnitsReported = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.overview?.pollingUnitsReported) {
-      return (
-        parseInt(dashboardData.overview.pollingUnitsReported.split("/")[0]) || 0
-      );
+    // First check statistics data
+    if (electionStatistics?.pollingUnitStatistics?.pollingUnitsReported) {
+      return electionStatistics.pollingUnitStatistics.pollingUnitsReported;
+    }
+    
+    // Fallback to election results
+    if (electionResults && (electionResults as any).pollingUnitsReported) {
+      return (electionResults as any).pollingUnitsReported;
     }
     return 0;
   };
 
   const getTotalPollingUnits = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.overview?.pollingUnitsReported) {
-      return (
-        parseInt(dashboardData.overview.pollingUnitsReported.split("/")[1]) || 0
-      );
+    // First check statistics data
+    if (electionStatistics?.pollingUnitStatistics?.totalPollingUnits) {
+      return electionStatistics.pollingUnitStatistics.totalPollingUnits;
+    }
+    
+    // Fallback to current election
+    if (currentElection && (currentElection as any).totalPollingUnits) {
+      return (currentElection as any).totalPollingUnits;
     }
     return 0;
   };
 
   const getReportingPercentage = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.overview?.reportingPercentage) {
-      return dashboardData.overview.reportingPercentage;
+    // First check statistics data
+    if (electionStatistics?.pollingUnitStatistics?.reportingPercentage) {
+      return electionStatistics.pollingUnitStatistics.reportingPercentage;
     }
-    return 0;
+    
+    // Fallback to election results
+    if (electionResults && (electionResults as any).reportingPercentage) {
+      return (electionResults as any).reportingPercentage;
+    }
+    
+    // Calculate from reported and total polling units
+    const reported = getPollingUnitsReported();
+    const total = getTotalPollingUnits();
+    return total > 0 ? Math.round((reported / total) * 100) : 0;
   };
 
   const getRegionalBreakdown = () => {
-    // Use consolidated dashboard data first
-    if (
-      dashboardData?.regional?.breakdown &&
-      Array.isArray(dashboardData.regional.breakdown)
-    ) {
-      return dashboardData.regional.breakdown;
+    if (electionResults && (electionResults as any).regionalBreakdown) {
+      return (electionResults as any).regionalBreakdown;
     }
     return [];
   };
 
   const getCandidateResults = () => {
-    // Use consolidated dashboard data first
-    if (dashboardData?.candidates && Array.isArray(dashboardData.candidates)) {
-      return dashboardData.candidates.map((candidate: any) => ({
-        ...candidate,
-        name: candidate.fullName || candidate.candidateName,
-        party: candidate.partyName,
+    // First check statistics data for candidate results
+    if (electionStatistics?.candidateStatistics && Array.isArray(electionStatistics.candidateStatistics)) {
+      console.log("📊 Dashboard: Using candidate statistics data:", electionStatistics.candidateStatistics.length);
+      return electionStatistics.candidateStatistics.map((candidate: any) => ({
+        id: candidate.candidateId,
+        name: candidate.name,
+        party: candidate.party,
         partyCode: candidate.partyCode,
-        image: candidate.photoUrl,
-        votes: candidate.votes || 0,
-        percentage: candidate.percentage || 0,
+        votes: candidate.votes,
+        percentage: candidate.percentage,
+        rank: candidate.rank,
+        // Keep original fields
+        ...candidate
       }));
     }
-    // Ensure we always return an array, even if candidates is undefined
-    return Array.isArray(candidates) ? candidates : [];
+    
+    // Fallback to candidates from election store
+    const fallbackCandidates = Array.isArray(candidates) ? candidates : [];
+    console.log("📊 Dashboard: Using candidates data:", fallbackCandidates.length);
+    return fallbackCandidates;
   };
 
-  // Helper functions for consolidated dashboard data
-  const getRecentActivity = () => {
-    if (
-      dashboardData?.realTime?.recentActivity &&
-      Array.isArray(dashboardData.realTime.recentActivity)
-    ) {
-      return dashboardData.realTime.recentActivity;
+  // Filter candidates based on search term
+  const getFilteredCandidates = () => {
+    const allCandidates = getCandidateResults();
+    
+    if (!searchTerm) {
+      return allCandidates;
     }
+    
+    const searchLower = searchTerm.toLowerCase();
+    return allCandidates.filter((candidate: any) => 
+      candidate.name?.toLowerCase().includes(searchLower) ||
+      candidate.party?.toLowerCase().includes(searchLower) ||
+      candidate.partyCode?.toLowerCase().includes(searchLower)
+    );
+  };
+
+  // Helper functions for real-time data
+  const getRecentActivity = () => {
+    // Return empty array for now - this would come from real-time results
     return [];
   };
 
   const getLiveUpdates = () => {
-    if (
-      dashboardData?.realTime?.liveUpdates &&
-      Array.isArray(dashboardData.realTime.liveUpdates)
-    ) {
-      return dashboardData.realTime.liveUpdates;
-    }
+    // Return empty array for now - this would come from real-time results  
     return [];
   };
 
   const getTurnoutByRegion = () => {
-    if (
-      dashboardData?.regional?.turnoutByRegion &&
-      Array.isArray(dashboardData.regional.turnoutByRegion)
-    ) {
-      return dashboardData.regional.turnoutByRegion;
-    }
+    // Return empty array for now - this would come from regional results
     return [];
   };
 
@@ -613,31 +663,40 @@ export default function DashboardPage() {
               <SidebarGroupLabel>Elections</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {Object.entries(ELECTION_TYPES_MAP).map(
-                    ([typeKey, title]) => (
-                      <SidebarMenuItem key={typeKey}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={currentElectionTypeKey === typeKey}
-                          onClick={() => changeElectionType(typeKey)}
-                        >
-                          <button className="flex items-center justify-between w-full">
-                            <div className="flex items-center">
-                              <Users className="mr-2 h-4 w-4" />
-                              <span>{(title as string).split(" ")[0]}</span>
-                            </div>
-                            {hasVoted[typeKey] && (
-                              <Badge
-                                variant="outline"
-                                className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
-                              >
-                                <Check className="mr-1 h-3 w-3" /> Voted
-                              </Badge>
-                            )}
-                          </button>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                  {Object.entries(getAvailableElectionTypes()).length > 0 ? (
+                    Object.entries(getAvailableElectionTypes()).map(
+                      ([typeKey, title]) => (
+                        <SidebarMenuItem key={typeKey}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={currentElectionTypeKey === typeKey}
+                            onClick={() => changeElectionType(typeKey)}
+                          >
+                            <button className="flex items-center justify-between w-full">
+                              <div className="flex items-center">
+                                <Users className="mr-2 h-4 w-4" />
+                                <span>{(title as string).split(" ")[0]}</span>
+                              </div>
+                              {hasVoted[typeKey] && (
+                                <Badge
+                                  variant="outline"
+                                  className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
+                                >
+                                  <Check className="mr-1 h-3 w-3" /> Voted
+                                </Badge>
+                              )}
+                            </button>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )
                     )
+                  ) : (
+                    <SidebarMenuItem>
+                      <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
+                        <Users className="mr-2 h-4 w-4" />
+                        {elections.length === 0 ? "Loading elections..." : "No elections available"}
+                      </div>
+                    </SidebarMenuItem>
                   )}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -695,12 +754,31 @@ export default function DashboardPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => {
+                onClick={async () => {
                   const election = elections.find((e) =>
                     e.type?.toLowerCase().includes(electionType)
                   );
                   if (election) {
-                    fetchDashboardData(election.id);
+                    setIsDashboardLoading(true);
+                    try {
+                      const [detailsResult, candidatesResult, statisticsResult, realTimeResult, votingStatusResult] = await Promise.all([
+                        fetchElectionDetails(election.id),
+                        fetchCandidates(election.id),
+                        fetchStatistics(election.id),
+                        getRealTimeResults(election.id),
+                        checkVotingStatus(election.id)
+                      ]);
+                      
+                      // Store statistics data if successful
+                      if (statisticsResult) {
+                        console.log("📊 Dashboard: Refresh - Statistics data received:", statisticsResult);
+                        setElectionStatistics(statisticsResult);
+                      }
+                    } catch (error) {
+                      console.error("Failed to refresh dashboard:", error);
+                    } finally {
+                      setIsDashboardLoading(false);
+                    }
                   }
                 }}
                 disabled={isDashboardLoading}
@@ -1448,31 +1526,36 @@ export default function DashboardPage() {
                           </div>
                         ))}
                       </div>
-                    ) : ensureArray(candidates).length === 0 ? (
+                    ) : ensureArray(getFilteredCandidates()).length === 0 ? (
                       <div className="text-center py-8">
                         <div className="mx-auto w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
                           <Search className="h-6 w-6 text-muted-foreground" />
                         </div>
                         <h3 className="text-lg font-medium">
-                          No candidates found
+                          {searchTerm 
+                            ? `No candidates found for "${searchTerm}"`
+                            : "No candidates found"
+                          }
                         </h3>
                         <p className="text-muted-foreground mt-1">
-                          Try a different search term
+                          {searchTerm 
+                            ? "Try a different search term or clear the search"
+                            : "No candidates are available for this election"
+                          }
                         </p>
-                        <Button
-                          variant="outline"
-                          className="mt-4"
-                          onClick={() => {
-                            setSearchTerm("");
-                            // Reset search results
-                          }}
-                        >
-                          Clear search
-                        </Button>
+                        {searchTerm && (
+                          <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={() => setSearchTerm("")}
+                          >
+                            Clear search
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {ensureArray(getCandidateResults()).map(
+                        {ensureArray(getFilteredCandidates()).map(
                           (candidate: any) => (
                             <div
                               key={candidate.id}
@@ -1489,13 +1572,17 @@ export default function DashboardPage() {
                                 handleCandidateSelect(candidate)
                               }
                             >
-                              <div className="mr-4 h-16 w-16 overflow-hidden rounded-full">
-                                <img
-                                  src={candidate.image || "/placeholder.svg"}
-                                  alt={candidate.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              </div>
+                              <Avatar className="mr-4 h-16 w-16">
+                                <AvatarImage src={candidate.image} alt={candidate.name} />
+                                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
+                                  {candidate.name
+                                    ?.split(" ")
+                                    .map((word: string) => word.charAt(0))
+                                    .join("")
+                                    .toUpperCase()
+                                    .slice(0, 2) || "?"}
+                                </AvatarFallback>
+                              </Avatar>
                               <div className="flex-1">
                                 <h3 className="font-semibold flex items-center">
                                   {candidate.name}
@@ -1590,22 +1677,24 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {ensureArray(getCandidateResults()).map(
+                          {ensureArray(getFilteredCandidates()).map(
                             (candidate: any) => (
                               <tr
                                 key={candidate.id}
                                 className="border-b hover:bg-muted/30"
                               >
                                 <td className="p-2 flex items-center gap-2">
-                                  <div className="h-8 w-8 rounded-full overflow-hidden">
-                                    <img
-                                      src={
-                                        candidate.image || "/placeholder.svg"
-                                      }
-                                      alt={candidate.name}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={candidate.image} alt={candidate.name} />
+                                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs">
+                                      {candidate.name
+                                        ?.split(" ")
+                                        .map((word: string) => word.charAt(0))
+                                        .join("")
+                                        .toUpperCase()
+                                        .slice(0, 2) || "?"}
+                                    </AvatarFallback>
+                                  </Avatar>
                                   <span>{candidate.name}</span>
                                 </td>
                                 <td className="p-2">{candidate.party}</td>
@@ -2272,17 +2361,20 @@ export default function DashboardPage() {
                   <div className="flex items-center space-x-4 py-4">
                     {selectedCandidateId && (
                       <>
-                        <div className="h-16 w-16 overflow-hidden rounded-full">
-                          <img
-                            src={
-                              candidates.find(
-                                (c) => c.id === selectedCandidateId
-                              )?.image || "/placeholder.svg"
-                            }
-                            alt="Selected candidate"
-                            className="h-full w-full object-cover"
+                        <Avatar className="h-16 w-16">
+                          <AvatarImage 
+                            src={candidates.find((c) => c.id === selectedCandidateId)?.image} 
+                            alt="Selected candidate" 
                           />
-                        </div>
+                          <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
+                            {candidates.find((c) => c.id === selectedCandidateId)?.name
+                              ?.split(" ")
+                              .map((word: string) => word.charAt(0))
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2) || "?"}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <h4 className="font-medium">
                             {

@@ -336,9 +336,9 @@ export default function ProfilePage() {
                   <Check className="mr-1 h-3 w-3" /> 
                   {profile?.verification !== null || authUser?.isVerified ? "Verified Voter" : "Verification Pending"}
                 </Badge>
-                <Button variant="outline" className="w-full" onClick={() => setIsEditing(!isEditing)}>
+                {/* <Button variant="outline" className="w-full" onClick={() => setIsEditing(!isEditing)}>
                   {isEditing ? "Cancel Editing" : "Edit Profile"}
-                </Button>
+                </Button> */}
               </div>
             </CardContent>
           </Card>
