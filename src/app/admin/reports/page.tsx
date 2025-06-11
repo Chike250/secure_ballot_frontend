@@ -1,79 +1,121 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { ArrowLeft, Download, FileText, BarChart3, PieChart, TrendingUp } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AdminLayout } from "@/components/admin/admin-layout"
-import { useAdminData } from "@/hooks/useAdminData"
-import { useElectionData } from "@/hooks/useElectionData"
-import { useAuthStore } from "@/store/useStore"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Download,
+  FileText,
+  BarChart3,
+  PieChart,
+  TrendingUp,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AdminLayout } from "@/components/admin/admin-layout";
+import { useAdminData } from "@/hooks/useAdminData";
+import { useElectionData } from "@/hooks/useElectionData";
+import { useAuthStore } from "@/store/useStore";
+import { useRouter } from "next/navigation";
 
 export default function AdminReportsPage() {
-  const router = useRouter()
-  const { user, isAuthenticated } = useAuthStore()
-  const { isAdmin, systemStatistics, fetchSystemStatistics } = useAdminData()
-  const { elections, fetchElections } = useElectionData()
-  const [generatingReport, setGeneratingReport] = useState<string | null>(null)
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+  const { isAdmin, systemStatistics, fetchSystemStatistics } = useAdminData();
+  const { elections, fetchElections } = useElectionData();
+  const [generatingReport, setGeneratingReport] = useState<string | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
 
-  // Redirect if not authenticated or not admin
+  // Optimized useEffect for authentication, redirect, and data loading
   useEffect(() => {
+    // Handle authentication and redirect first
     if (!isAuthenticated) {
-      router.push("/admin/login")
-      return
+      router.push("/admin/login");
+      return;
     }
-    
-    if (!isAdmin) {
-      router.push("/dashboard")
-      return
-    }
-  }, [isAuthenticated, isAdmin, router])
 
-  // Load data on mount
-  useEffect(() => {
-    if (isAuthenticated && isAdmin) {
-      fetchSystemStatistics()
-      fetchElections()
+    if (!isAdmin) {
+      router.push("/dashboard");
+      return;
     }
-  }, [isAuthenticated, isAdmin, fetchSystemStatistics, fetchElections])
+
+    // Prevent multiple simultaneous calls
+    if (isInitialLoading) {
+      return;
+    }
+
+    // Check if we already have essential data
+    const hasEssentialData =
+      systemStatistics || (elections && elections.length > 0);
+    if (hasEssentialData) {
+      return;
+    }
+
+    // Load data if authenticated, admin, and no data exists
+    const loadReportsData = async () => {
+      setIsInitialLoading(true);
+      try {
+        await Promise.all([fetchSystemStatistics(), fetchElections()]);
+      } catch (err) {
+        console.error("Failed to load reports data:", err);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+
+    loadReportsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAdmin]); // Removed router and function dependencies
 
   const generateReport = async (reportType: string) => {
-    setGeneratingReport(reportType)
+    setGeneratingReport(reportType);
     try {
       // Simulate report generation
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // In a real app, this would call an API to generate the report
-      console.log(`Generating ${reportType} report...`)
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Create a mock CSV download
-      const mockData = reportType === 'election' 
-        ? `Election Name,Type,Status,Start Date,End Date,Total Votes\n${elections?.map(e => 
-            `${e.name},${e.type},${e.status},${e.startDate},${e.endDate},0`
-          ).join('\n') || ''}`
-        : reportType === 'voter'
-        ? `Name,VIN,State,LGA,Registration Date,Status\nJohn Doe,12345678901,Lagos,Ikeja,2024-01-15,Verified\nJane Smith,12345678902,Ogun,Abeokuta,2024-01-16,Pending`
-        : `Metric,Value,Date\nTotal Voters,${systemStatistics?.totalVoters || 0},${new Date().toISOString()}\nTotal Votes,${systemStatistics?.totalVotes || 0},${new Date().toISOString()}`
-      
+      const mockData =
+        reportType === "election"
+          ? `Election Name,Type,Status,Start Date,End Date,Total Votes\n${
+              elections
+                ?.map(
+                  (e) =>
+                    `${e.name},${e.type},${e.status},${e.startDate},${e.endDate},0`
+                )
+                .join("\n") || ""
+            }`
+          : reportType === "voter"
+          ? `Name,VIN,State,LGA,Registration Date,Status\nJohn Doe,12345678901,Lagos,Ikeja,2024-01-15,Verified\nJane Smith,12345678902,Ogun,Abeokuta,2024-01-16,Pending`
+          : `Metric,Value,Date\nTotal Voters,${
+              systemStatistics?.totalVoters || 0
+            },${new Date().toISOString()}\nTotal Votes,${
+              systemStatistics?.totalVotes || 0
+            },${new Date().toISOString()}`;
+
       // Create and trigger download
-      const blob = new Blob([mockData], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      
+      const blob = new Blob([mockData], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${reportType}_report_${
+        new Date().toISOString().split("T")[0]
+      }.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
-      console.error(`Failed to generate ${reportType} report:`, error)
+      console.error(`Failed to generate ${reportType} report:`, error);
     } finally {
-      setGeneratingReport(null)
+      setGeneratingReport(null);
     }
-  }
+  };
 
   if (!isAuthenticated || !isAdmin) {
     return (
@@ -83,7 +125,7 @@ export default function AdminReportsPage() {
           <p>Loading reports...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -98,10 +140,13 @@ export default function AdminReportsPage() {
                   Back to Dashboard
                 </Link>
               </Button>
-              <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Reports & Analytics
+              </h1>
             </div>
             <p className="text-muted-foreground">
-              Generate comprehensive reports and analyze electoral data and system performance.
+              Generate comprehensive reports and analyze electoral data and
+              system performance.
             </p>
           </div>
         </div>
@@ -113,7 +158,9 @@ export default function AdminReportsPage() {
                 <BarChart3 className="h-5 w-5" />
                 Election Reports
               </CardTitle>
-              <CardDescription>Detailed election statistics and results</CardDescription>
+              <CardDescription>
+                Detailed election statistics and results
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-sm">
@@ -124,12 +171,12 @@ export default function AdminReportsPage() {
                   <li>• Candidate performance metrics</li>
                 </ul>
               </div>
-              <Button 
-                className="w-full" 
-                onClick={() => generateReport('election')}
-                disabled={generatingReport === 'election'}
+              <Button
+                className="w-full"
+                onClick={() => generateReport("election")}
+                disabled={generatingReport === "election"}
               >
-                {generatingReport === 'election' ? (
+                {generatingReport === "election" ? (
                   <>
                     <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                     Generating...
@@ -150,7 +197,9 @@ export default function AdminReportsPage() {
                 <PieChart className="h-5 w-5" />
                 Voter Analytics
               </CardTitle>
-              <CardDescription>Voter registration and participation data</CardDescription>
+              <CardDescription>
+                Voter registration and participation data
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-sm">
@@ -161,12 +210,12 @@ export default function AdminReportsPage() {
                   <li>• Geographic distribution</li>
                 </ul>
               </div>
-              <Button 
-                className="w-full" 
-                onClick={() => generateReport('voter')}
-                disabled={generatingReport === 'voter'}
+              <Button
+                className="w-full"
+                onClick={() => generateReport("voter")}
+                disabled={generatingReport === "voter"}
               >
-                {generatingReport === 'voter' ? (
+                {generatingReport === "voter" ? (
                   <>
                     <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                     Generating...
@@ -187,7 +236,9 @@ export default function AdminReportsPage() {
                 <TrendingUp className="h-5 w-5" />
                 System Analytics
               </CardTitle>
-              <CardDescription>System performance and security metrics</CardDescription>
+              <CardDescription>
+                System performance and security metrics
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-sm">
@@ -198,12 +249,12 @@ export default function AdminReportsPage() {
                   <li>• Performance metrics</li>
                 </ul>
               </div>
-              <Button 
-                className="w-full" 
-                onClick={() => generateReport('system')}
-                disabled={generatingReport === 'system'}
+              <Button
+                className="w-full"
+                onClick={() => generateReport("system")}
+                disabled={generatingReport === "system"}
               >
-                {generatingReport === 'system' ? (
+                {generatingReport === "system" ? (
                   <>
                     <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                     Generating...
@@ -227,22 +278,37 @@ export default function AdminReportsPage() {
           <CardContent>
             <div className="grid gap-6 md:grid-cols-4">
               <div className="text-center">
-                <div className="text-2xl font-bold">{elections?.length || 0}</div>
+                <div className="text-2xl font-bold">
+                  {elections?.length || 0}
+                </div>
                 <p className="text-sm text-muted-foreground">Total Elections</p>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">{systemStatistics?.totalVoters?.toLocaleString() || '0'}</div>
-                <p className="text-sm text-muted-foreground">Registered Voters</p>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{systemStatistics?.totalVotes?.toLocaleString() || '0'}</div>
-                <p className="text-sm text-muted-foreground">Total Votes Cast</p>
+                <div className="text-2xl font-bold">
+                  {systemStatistics?.totalVoters?.toLocaleString() || "0"}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Registered Voters
+                </p>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold">
-                  {systemStatistics?.totalVoters && systemStatistics?.totalVotes 
-                    ? Math.round((systemStatistics.totalVotes / systemStatistics.totalVoters) * 100)
-                    : 0}%
+                  {systemStatistics?.totalVotes?.toLocaleString() || "0"}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Total Votes Cast
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">
+                  {systemStatistics?.totalVoters && systemStatistics?.totalVotes
+                    ? Math.round(
+                        (systemStatistics.totalVotes /
+                          systemStatistics.totalVoters) *
+                          100
+                      )
+                    : 0}
+                  %
                 </div>
                 <p className="text-sm text-muted-foreground">Average Turnout</p>
               </div>
@@ -253,19 +319,24 @@ export default function AdminReportsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Custom Reports</CardTitle>
-            <CardDescription>Generate custom reports based on specific criteria</CardDescription>
+            <CardDescription>
+              Generate custom reports based on specific criteria
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Custom report builder coming soon</p>
+              <p className="text-muted-foreground">
+                Custom report builder coming soon
+              </p>
               <p className="text-sm text-muted-foreground mt-2">
-                This will allow you to create custom reports with specific filters and parameters
+                This will allow you to create custom reports with specific
+                filters and parameters
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
     </AdminLayout>
-  )
-} 
+  );
+}

@@ -19,17 +19,16 @@ export async function withRateLimit<T>(
     try {
       return await apiCall();
     } catch (error: any) {
-      const isRateLimit = 
-        error.message?.includes('TOO_MANY_REQUESTS') ||
-        error.code === 'TOO_MANY_REQUESTS' ||
+      const isRateLimit =
+        error.message?.includes("TOO_MANY_REQUESTS") ||
+        error.code === "TOO_MANY_REQUESTS" ||
         error.status === 429;
 
       if (isRateLimit && attempt < maxRetries) {
         // Calculate delay with exponential backoff
         const delay = baseDelay * Math.pow(backoffMultiplier, attempt);
-        console.log(`Rate limit hit, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
 
@@ -39,14 +38,14 @@ export async function withRateLimit<T>(
   }
 
   // This should never be reached, but TypeScript needs it
-  throw new Error('Max retries exceeded');
+  throw new Error("Max retries exceeded");
 }
 
 /**
  * Adds a delay between sequential API calls to prevent rate limiting
  */
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -70,13 +69,15 @@ export async function processWithDelay<T, R>(
       }
     } catch (error) {
       console.error(`Failed to process item at index ${i}:`, error);
-      
+
       // For rate limiting, we might want to stop processing
-      if (error instanceof Error && error.message?.includes('TOO_MANY_REQUESTS')) {
-        console.warn('Rate limit reached, stopping batch processing');
+      if (
+        error instanceof Error &&
+        error.message?.includes("TOO_MANY_REQUESTS")
+      ) {
         break;
       }
-      
+
       // For other errors, continue processing but add the error to results
       throw error;
     }
@@ -125,7 +126,7 @@ export class RateLimitQueue {
         try {
           await apiCall();
         } catch (error) {
-          console.error('Queue processing error:', error);
+          console.error("Queue processing error:", error);
         }
 
         // Add delay between calls
@@ -137,4 +138,4 @@ export class RateLimitQueue {
 
     this.processing = false;
   }
-} 
+}

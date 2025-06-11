@@ -736,6 +736,31 @@ export const adminAPI = {
     );
     return response.data;
   },
+
+  // Get current admin user profile
+  getAdminProfile: async () => {
+    const response = await api.get("/admin/profile");
+    return response.data;
+  },
+
+  // Update admin user profile
+  updateAdminProfile: async (data: {
+    fullName?: string;
+    phoneNumber?: string;
+    jobTitle?: string;
+    department?: string;
+    bio?: string;
+    location?: string;
+  }) => {
+    const response = await api.put("/admin/profile", data);
+    return response.data;
+  },
+
+  // Admin logout
+  logout: async () => {
+    const response = await api.post("/admin/logout");
+    return response.data;
+  },
 };
 
 // Public API (no authentication required)

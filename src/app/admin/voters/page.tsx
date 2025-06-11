@@ -1,40 +1,79 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { ArrowLeft, Search, Download, Upload, MoreHorizontal, User, MapPin, CheckCircle, XCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { AdminLayout } from "@/components/admin/admin-layout"
-import { useAdminData } from "@/hooks/useAdminData"
-import { useAuthStore } from "@/store/useStore"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Search,
+  Download,
+  Upload,
+  MoreHorizontal,
+  User,
+  MapPin,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { AdminLayout } from "@/components/admin/admin-layout";
+import { useAdminData } from "@/hooks/useAdminData";
+import { useAuthStore } from "@/store/useStore";
+import { useRouter } from "next/navigation";
 
 export default function AdminVotersPage() {
-  const router = useRouter()
-  const { user, isAuthenticated } = useAuthStore()
-  const { isAdmin, systemStatistics, fetchSystemStatistics } = useAdminData()
-  const [searchTerm, setSearchTerm] = useState("")
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+  const { isAdmin, systemStatistics, fetchSystemStatistics } = useAdminData();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
 
-  // Combined useEffect for authentication, redirect, and data loading
+  // Optimized useEffect for authentication, redirect, and data loading
   useEffect(() => {
     // Handle authentication and redirect first
     if (!isAuthenticated) {
-      router.push("/admin/login")
-      return
-    }
-    
-    if (!isAdmin) {
-      router.push("/dashboard")
-      return
+      router.push("/admin/login");
+      return;
     }
 
-    // Load statistics if authenticated and admin
-    fetchSystemStatistics()
+    if (!isAdmin) {
+      router.push("/dashboard");
+      return;
+    }
+
+    // Prevent multiple simultaneous calls
+    if (isInitialLoading) {
+      return;
+    }
+
+    // Check if we already have essential data
+    const hasEssentialData = systemStatistics;
+    if (hasEssentialData) {
+      return;
+    }
+
+    // Load statistics if authenticated, admin, and no data exists
+    const loadVotersData = async () => {
+      setIsInitialLoading(true);
+      try {
+        await fetchSystemStatistics();
+      } catch (err) {
+        console.error("Failed to load voters data:", err);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+
+    loadVotersData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isAdmin, router])
+  }, [isAuthenticated, isAdmin]); // Removed router dependency
 
   if (!isAuthenticated || !isAdmin) {
     return (
@@ -44,7 +83,7 @@ export default function AdminVotersPage() {
           <p>Loading voters...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -59,10 +98,13 @@ export default function AdminVotersPage() {
                   Back to Dashboard
                 </Link>
               </Button>
-              <h1 className="text-3xl font-bold tracking-tight">Voter Management</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Voter Management
+              </h1>
             </div>
             <p className="text-muted-foreground">
-              Manage voter registrations, verify identities, and monitor voter activity.
+              Manage voter registrations, verify identities, and monitor voter
+              activity.
             </p>
           </div>
           <div className="flex gap-2">
@@ -80,11 +122,15 @@ export default function AdminVotersPage() {
         <div className="grid gap-6 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Voters</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Voters
+              </CardTitle>
               <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{systemStatistics?.totalVoters?.toLocaleString() || '0'}</div>
+              <div className="text-2xl font-bold">
+                {systemStatistics?.totalVoters?.toLocaleString() || "0"}
+              </div>
               <p className="text-xs text-muted-foreground">Registered voters</p>
             </CardContent>
           </Card>
@@ -95,7 +141,9 @@ export default function AdminVotersPage() {
               <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{systemStatistics?.verifiedVoters?.toLocaleString() || '0'}</div>
+              <div className="text-2xl font-bold">
+                {systemStatistics?.verifiedVoters?.toLocaleString() || "0"}
+              </div>
               <p className="text-xs text-muted-foreground">Identity verified</p>
             </CardContent>
           </Card>
@@ -106,18 +154,26 @@ export default function AdminVotersPage() {
               <XCircle className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{systemStatistics?.pendingVerification?.toLocaleString() || '0'}</div>
-              <p className="text-xs text-muted-foreground">Awaiting verification</p>
+              <div className="text-2xl font-bold">
+                {systemStatistics?.pendingVerification?.toLocaleString() || "0"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Awaiting verification
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Today</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Active Today
+              </CardTitle>
               <User className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{systemStatistics?.activeToday?.toLocaleString() || '0'}</div>
+              <div className="text-2xl font-bold">
+                {systemStatistics?.activeToday?.toLocaleString() || "0"}
+              </div>
               <p className="text-xs text-muted-foreground">Logged in today</p>
             </CardContent>
           </Card>
@@ -138,7 +194,9 @@ export default function AdminVotersPage() {
         <Card>
           <CardHeader>
             <CardTitle>Voter List</CardTitle>
-            <CardDescription>Manage registered voters and their verification status</CardDescription>
+            <CardDescription>
+              Manage registered voters and their verification status
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -173,101 +231,125 @@ export default function AdminVotersPage() {
                   <div className="col-span-2">Last Activity</div>
                   <div className="col-span-1">Actions</div>
                 </div>
-                
+
                 {/* Sample voter data */}
                 {[
                   {
-                    id: '1',
-                    name: 'John Doe',
-                    vin: '12345678901',
-                    phone: '+234 801 234 5678',
-                    state: 'Lagos',
-                    lga: 'Ikeja',
-                    registrationDate: '2024-01-15',
-                    status: 'verified',
-                    lastActivity: '2024-01-20'
+                    id: "1",
+                    name: "John Doe",
+                    vin: "12345678901",
+                    phone: "+234 801 234 5678",
+                    state: "Lagos",
+                    lga: "Ikeja",
+                    registrationDate: "2024-01-15",
+                    status: "verified",
+                    lastActivity: "2024-01-20",
                   },
                   {
-                    id: '2',
-                    name: 'Jane Smith',
-                    vin: '12345678902',
-                    phone: '+234 802 345 6789',
-                    state: 'Ogun',
-                    lga: 'Abeokuta',
-                    registrationDate: '2024-01-16',
-                    status: 'pending',
-                    lastActivity: '2024-01-19'
+                    id: "2",
+                    name: "Jane Smith",
+                    vin: "12345678902",
+                    phone: "+234 802 345 6789",
+                    state: "Ogun",
+                    lga: "Abeokuta",
+                    registrationDate: "2024-01-16",
+                    status: "pending",
+                    lastActivity: "2024-01-19",
                   },
                   {
-                    id: '3',
-                    name: 'Ahmed Hassan',
-                    vin: '12345678903',
-                    phone: '+234 803 456 7890',
-                    state: 'Kano',
-                    lga: 'Kano Municipal',
-                    registrationDate: '2024-01-17',
-                    status: 'verified',
-                    lastActivity: '2024-01-21'
-                  }
-                ].filter((voter) => 
-                  voter.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  voter.vin.includes(searchTerm) ||
-                  voter.phone.includes(searchTerm)
-                ).map((voter) => (
-                  <div key={voter.id} className="grid grid-cols-12 gap-4 p-4 border-t hover:bg-muted/30">
-                    <div className="col-span-3">
-                      <div>
-                        <p className="font-medium">{voter.name}</p>
-                        <p className="text-xs text-muted-foreground">VIN: {voter.vin}</p>
-                        <p className="text-xs text-muted-foreground">{voter.phone}</p>
+                    id: "3",
+                    name: "Ahmed Hassan",
+                    vin: "12345678903",
+                    phone: "+234 803 456 7890",
+                    state: "Kano",
+                    lga: "Kano Municipal",
+                    registrationDate: "2024-01-17",
+                    status: "verified",
+                    lastActivity: "2024-01-21",
+                  },
+                ]
+                  .filter(
+                    (voter) =>
+                      voter.name
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                      voter.vin.includes(searchTerm) ||
+                      voter.phone.includes(searchTerm)
+                  )
+                  .map((voter) => (
+                    <div
+                      key={voter.id}
+                      className="grid grid-cols-12 gap-4 p-4 border-t hover:bg-muted/30"
+                    >
+                      <div className="col-span-3">
+                        <div>
+                          <p className="font-medium">{voter.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            VIN: {voter.vin}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {voter.phone}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <div>
+                          <p className="text-sm">{voter.state}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {voter.lga}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-sm">
+                          {new Date(
+                            voter.registrationDate
+                          ).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <Badge
+                          variant={
+                            voter.status === "verified" ? "default" : "outline"
+                          }
+                          className={
+                            voter.status === "verified"
+                              ? "bg-green-500 hover:bg-green-500/80"
+                              : "text-yellow-600 border-yellow-600"
+                          }
+                        >
+                          {voter.status === "verified" ? (
+                            <>
+                              <CheckCircle className="mr-1 h-3 w-3" />
+                              Verified
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="mr-1 h-3 w-3" />
+                              Pending
+                            </>
+                          )}
+                        </Badge>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-sm">
+                          {new Date(voter.lastActivity).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="col-span-1">
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="col-span-2">
-                      <div>
-                        <p className="text-sm">{voter.state}</p>
-                        <p className="text-xs text-muted-foreground">{voter.lga}</p>
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-sm">{new Date(voter.registrationDate).toLocaleDateString()}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <Badge 
-                        variant={voter.status === 'verified' ? 'default' : 'outline'}
-                        className={voter.status === 'verified' 
-                          ? 'bg-green-500 hover:bg-green-500/80' 
-                          : 'text-yellow-600 border-yellow-600'
-                        }
-                      >
-                        {voter.status === 'verified' ? (
-                          <>
-                            <CheckCircle className="mr-1 h-3 w-3" />
-                            Verified
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="mr-1 h-3 w-3" />
-                            Pending
-                          </>
-                        )}
-                      </Badge>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-sm">{new Date(voter.lastActivity).toLocaleDateString()}</p>
-                    </div>
-                    <div className="col-span-1">
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
 
               {/* Pagination */}
               <div className="flex items-center justify-between pt-4">
                 <p className="text-sm text-muted-foreground">
-                  Showing 3 of {systemStatistics?.totalVoters?.toLocaleString() || 0} voters
+                  Showing 3 of{" "}
+                  {systemStatistics?.totalVoters?.toLocaleString() || 0} voters
                 </p>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" disabled>
@@ -283,5 +365,5 @@ export default function AdminVotersPage() {
         </Card>
       </div>
     </AdminLayout>
-  )
-} 
+  );
+}

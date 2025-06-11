@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import Cookies from 'js-cookie';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import Cookies from "js-cookie";
 
 interface User {
   id: string;
@@ -9,11 +9,11 @@ interface User {
   fullName?: string;
   phoneNumber?: string;
   email?: string;
-  role: 'voter' | 'admin';
+  role: "voter" | "admin";
   isVerified: boolean;
   isActive: boolean;
   dateOfBirth?: string;
-  gender?: 'Male' | 'Female';
+  gender?: "Male" | "Female";
   state?: string;
   lga?: string;
   ward?: string;
@@ -21,7 +21,14 @@ interface User {
   registrationDate?: string;
   lastLogin?: string;
   // Admin specific fields
-  adminRole?: 'SystemAdministrator' | 'ElectoralCommissioner' | 'SecurityOfficer' | 'SystemAuditor' | 'RegionalElectoralOfficer' | 'ElectionManager' | 'ResultVerificationOfficer';
+  adminRole?:
+    | "SystemAdministrator"
+    | "ElectoralCommissioner"
+    | "SecurityOfficer"
+    | "SystemAuditor"
+    | "RegionalElectoralOfficer"
+    | "ElectionManager"
+    | "ResultVerificationOfficer";
 }
 
 interface AuthState {
@@ -35,7 +42,11 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void;
   setMfaRequired: (required: boolean) => void;
   setInitialized: (initialized: boolean) => void;
-  validateAndSetAuth: (token: string, user: User, requiresMfa?: boolean) => void;
+  validateAndSetAuth: (
+    token: string,
+    user: User,
+    requiresMfa?: boolean
+  ) => void;
 }
 
 const cookieStorage = {
@@ -43,12 +54,11 @@ const cookieStorage = {
     try {
       const value = Cookies.get(name);
       if (!value) return null;
-      
+
       // Try to parse the value to ensure it's valid JSON
       JSON.parse(value);
       return value;
     } catch (error) {
-      console.warn(`Failed to parse cookie ${name}:`, error);
       // Remove corrupted cookie
       Cookies.remove(name);
       return null;
@@ -58,10 +68,10 @@ const cookieStorage = {
     try {
       // Validate that the value is valid JSON before storing
       JSON.parse(value);
-      Cookies.set(name, value, { 
-        expires: 30/1440, // 30 minutes (30/1440 days)
-        secure: process.env.NODE_ENV === 'production', // Only use secure in production
-        sameSite: 'strict' // Protect against CSRF
+      Cookies.set(name, value, {
+        expires: 30 / 1440, // 30 minutes (30/1440 days)
+        secure: process.env.NODE_ENV === "production", // Only use secure in production
+        sameSite: "strict", // Protect against CSRF
       });
     } catch (error) {
       console.error(`Failed to store cookie ${name}:`, error);
@@ -70,9 +80,7 @@ const cookieStorage = {
   removeItem: (name: string) => {
     try {
       Cookies.remove(name);
-    } catch (error) {
-      console.warn(`Failed to remove cookie ${name}:`, error);
-    }
+    } catch (error) {}
   },
 };
 
@@ -84,33 +92,36 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       requiresMfa: false,
       isInitialized: false,
-      setAuth: (token, user, requiresMfa = false) => set({ 
-        token, 
-        user, 
-        isAuthenticated: true, 
-        requiresMfa 
-      }),
-      logout: () => set({ 
-        token: null, 
-        user: null, 
-        isAuthenticated: false, 
-        requiresMfa: false 
-      }),
+      setAuth: (token, user, requiresMfa = false) =>
+        set({
+          token,
+          user,
+          isAuthenticated: true,
+          requiresMfa,
+        }),
+      logout: () =>
+        set({
+          token: null,
+          user: null,
+          isAuthenticated: false,
+          requiresMfa: false,
+        }),
       updateUser: (userData) =>
         set((state) => ({
           user: state.user ? { ...state.user, ...userData } : null,
         })),
       setMfaRequired: (required) => set({ requiresMfa: required }),
       setInitialized: (initialized) => set({ isInitialized: initialized }),
-      validateAndSetAuth: (token, user, requiresMfa = false) => set({ 
-        token, 
-        user, 
-        isAuthenticated: true, 
-        requiresMfa 
-      }),
+      validateAndSetAuth: (token, user, requiresMfa = false) =>
+        set({
+          token,
+          user,
+          isAuthenticated: true,
+          requiresMfa,
+        }),
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       storage: createJSONStorage(() => cookieStorage),
     }
   )
@@ -122,11 +133,13 @@ interface Election {
   description: string;
   startDate: string;
   endDate: string;
-  type: 'presidential' | 'gubernatorial' | 'senate' | 'house' | 'local';
-  status: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled';
+  type: "presidential" | "gubernatorial" | "senate" | "house" | "local";
+  status: "draft" | "scheduled" | "active" | "completed" | "cancelled";
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
+  candidates?: any[];
+  candidateCount?: number;
 }
 
 interface Candidate {
@@ -176,14 +189,15 @@ export const useElectionStore = create<ElectionState>()(
       },
       setCandidates: (candidates) => set({ candidates }),
       setResults: (results) => set({ results }),
-      clearElectionData: () => set({ 
-        currentElection: null, 
-        candidates: [], 
-        results: null 
-      }),
+      clearElectionData: () =>
+        set({
+          currentElection: null,
+          candidates: [],
+          results: null,
+        }),
     }),
     {
-      name: 'election-storage',
+      name: "election-storage",
     }
   )
 );
@@ -207,31 +221,32 @@ export const useVotingStore = create<VotingState>()(
       votingStatus: {},
       eligibility: {},
       voteReceipts: {},
-      setHasVoted: (electionId, candidateId) => 
-        set((state) => ({ 
-          hasVoted: { ...state.hasVoted, [electionId]: candidateId } 
+      setHasVoted: (electionId, candidateId) =>
+        set((state) => ({
+          hasVoted: { ...state.hasVoted, [electionId]: candidateId },
         })),
-      setVotingStatus: (electionId, status) => 
-        set((state) => ({ 
-          votingStatus: { ...state.votingStatus, [electionId]: status } 
+      setVotingStatus: (electionId, status) =>
+        set((state) => ({
+          votingStatus: { ...state.votingStatus, [electionId]: status },
         })),
-      setEligibility: (electionId, eligibility) => 
-        set((state) => ({ 
-          eligibility: { ...state.eligibility, [electionId]: eligibility } 
+      setEligibility: (electionId, eligibility) =>
+        set((state) => ({
+          eligibility: { ...state.eligibility, [electionId]: eligibility },
         })),
-      setVoteReceipt: (electionId, receiptCode) => 
-        set((state) => ({ 
-          voteReceipts: { ...state.voteReceipts, [electionId]: receiptCode } 
+      setVoteReceipt: (electionId, receiptCode) =>
+        set((state) => ({
+          voteReceipts: { ...state.voteReceipts, [electionId]: receiptCode },
         })),
-      clearVotingData: () => set({ 
-        hasVoted: {}, 
-        votingStatus: {}, 
-        eligibility: {}, 
-        voteReceipts: {} 
-      }),
+      clearVotingData: () =>
+        set({
+          hasVoted: {},
+          votingStatus: {},
+          eligibility: {},
+          voteReceipts: {},
+        }),
     }),
     {
-      name: 'voting-storage',
+      name: "voting-storage",
     }
   )
 );
@@ -241,13 +256,15 @@ interface UIState {
   error: string | null;
   notifications: Array<{
     id: string;
-    type: 'success' | 'error' | 'warning' | 'info';
+    type: "success" | "error" | "warning" | "info";
     message: string;
     timestamp: number;
   }>;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  addNotification: (notification: Omit<UIState['notifications'][0], 'id' | 'timestamp'>) => void;
+  addNotification: (
+    notification: Omit<UIState["notifications"][0], "id" | "timestamp">
+  ) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
 }
@@ -258,7 +275,7 @@ export const useUIStore = create<UIState>()((set) => ({
   notifications: [],
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
-  addNotification: (notification) => 
+  addNotification: (notification) =>
     set((state) => ({
       notifications: [
         ...state.notifications,
@@ -269,7 +286,7 @@ export const useUIStore = create<UIState>()((set) => ({
         },
       ],
     })),
-  removeNotification: (id) => 
+  removeNotification: (id) =>
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     })),
@@ -314,15 +331,16 @@ export const useVoterStore = create<VoterState>()(
       setPollingUnit: (pollingUnit) => set({ pollingUnit }),
       setVerificationStatus: (status) => set({ verificationStatus: status }),
       setVoteHistory: (history) => set({ voteHistory: history }),
-      clearVoterData: () => set({ 
-        profile: null, 
-        pollingUnit: null, 
-        verificationStatus: null, 
-        voteHistory: [] 
-      }),
+      clearVoterData: () =>
+        set({
+          profile: null,
+          pollingUnit: null,
+          verificationStatus: null,
+          voteHistory: [],
+        }),
     }),
     {
-      name: 'voter-storage',
+      name: "voter-storage",
     }
   )
 );
@@ -354,21 +372,24 @@ export const useAdminStore = create<AdminState>()(
       suspiciousActivities: [],
       setAdminUsers: (users) => set({ adminUsers: users }),
       setPollingUnits: (units) => set({ pollingUnits: units }),
-      setVerificationRequests: (requests) => set({ verificationRequests: requests }),
+      setVerificationRequests: (requests) =>
+        set({ verificationRequests: requests }),
       setAuditLogs: (logs) => set({ auditLogs: logs }),
       setSystemStatistics: (stats) => set({ systemStatistics: stats }),
-      setSuspiciousActivities: (activities) => set({ suspiciousActivities: activities }),
-      clearAdminData: () => set({ 
-        adminUsers: [], 
-        pollingUnits: [], 
-        verificationRequests: [], 
-        auditLogs: [], 
-        systemStatistics: null, 
-        suspiciousActivities: [] 
-      }),
+      setSuspiciousActivities: (activities) =>
+        set({ suspiciousActivities: activities }),
+      clearAdminData: () =>
+        set({
+          adminUsers: [],
+          pollingUnits: [],
+          verificationRequests: [],
+          auditLogs: [],
+          systemStatistics: null,
+          suspiciousActivities: [],
+        }),
     }),
     {
-      name: 'admin-storage',
+      name: "admin-storage",
     }
   )
-); 
+);

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAdminStore, useUIStore, useAuthStore } from '@/store/useStore';
-import { adminAPI } from '@/services/api';
+import { useState, useEffect, useCallback } from "react";
+import { useAdminStore, useUIStore, useAuthStore } from "@/store/useStore";
+import { adminAPI } from "@/services/api";
 
 export const useAdminData = () => {
-  const { 
+  const {
     adminUsers,
     pollingUnits,
     verificationRequests,
@@ -16,19 +16,24 @@ export const useAdminData = () => {
     setAuditLogs,
     setSystemStatistics,
     setSuspiciousActivities,
-    clearAdminData
+    clearAdminData,
   } = useAdminStore();
-  
+
   const { user } = useAuthStore();
   const { setLoading, setError, addNotification } = useUIStore();
-  
+
   const [isLoading, setIsLoading] = useState(false);
 
   // Check if user is admin
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === "admin";
 
   // Admin User Management
-  const fetchAdminUsers = async (role?: string, status = 'active', page = 1, limit = 50) => {
+  const fetchAdminUsers = async (
+    role?: string,
+    status = "active",
+    page = 1,
+    limit = 50
+  ) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -38,10 +43,11 @@ export const useAdminData = () => {
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch admin users';
+      const errorMessage =
+        error.response?.data?.message || "Failed to fetch admin users";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
     } finally {
@@ -62,18 +68,19 @@ export const useAdminData = () => {
       const response = await adminAPI.createAdminUser(data);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Admin user created successfully!',
+          type: "success",
+          message: "Admin user created successfully!",
         });
         // Refresh admin users list
         await fetchAdminUsers();
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to create admin user';
+      const errorMessage =
+        error.response?.data?.message || "Failed to create admin user";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -89,18 +96,19 @@ export const useAdminData = () => {
       const response = await adminAPI.updateAdminUser(id, data);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Admin user updated successfully!',
+          type: "success",
+          message: "Admin user updated successfully!",
         });
         // Refresh admin users list
         await fetchAdminUsers();
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to update admin user';
+      const errorMessage =
+        error.response?.data?.message || "Failed to update admin user";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -116,18 +124,19 @@ export const useAdminData = () => {
       const response = await adminAPI.deleteAdminUser(id);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Admin user deleted successfully!',
+          type: "success",
+          message: "Admin user deleted successfully!",
         });
         // Refresh admin users list
         await fetchAdminUsers();
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to delete admin user';
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete admin user";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -137,12 +146,23 @@ export const useAdminData = () => {
   };
 
   // Polling Unit Management
-  const fetchPollingUnits = async (state?: string, lga?: string, page = 1, limit = 50) => {
+  const fetchPollingUnits = async (
+    state?: string,
+    lga?: string,
+    page = 1,
+    limit = 50
+  ) => {
     try {
       setIsLoading(true);
       setError(null);
       if (state) {
-        const response = await adminAPI.getRegionalPollingUnits(state, page, limit, undefined, lga);
+        const response = await adminAPI.getRegionalPollingUnits(
+          state,
+          page,
+          limit,
+          undefined,
+          lga
+        );
         if (response.success) {
           setPollingUnits(response.data);
           return response.data;
@@ -156,10 +176,11 @@ export const useAdminData = () => {
         }
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch polling units';
+      const errorMessage =
+        error.response?.data?.message || "Failed to fetch polling units";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
     } finally {
@@ -174,18 +195,19 @@ export const useAdminData = () => {
       const response = await adminAPI.createPollingUnit(data);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Polling unit created successfully!',
+          type: "success",
+          message: "Polling unit created successfully!",
         });
         // Refresh polling units list
         await fetchPollingUnits();
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to create polling unit';
+      const errorMessage =
+        error.response?.data?.message || "Failed to create polling unit";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -201,18 +223,19 @@ export const useAdminData = () => {
       const response = await adminAPI.updatePollingUnit(id, data);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Polling unit updated successfully!',
+          type: "success",
+          message: "Polling unit updated successfully!",
         });
         // Refresh polling units list
         await fetchPollingUnits();
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to update polling unit';
+      const errorMessage =
+        error.response?.data?.message || "Failed to update polling unit";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -228,18 +251,19 @@ export const useAdminData = () => {
       const response = await adminAPI.deletePollingUnit(id);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Polling unit deleted successfully!',
+          type: "success",
+          message: "Polling unit deleted successfully!",
         });
         // Refresh polling units list
         await fetchPollingUnits();
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to delete polling unit';
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete polling unit";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -249,26 +273,31 @@ export const useAdminData = () => {
   };
 
   // Verification Management - wrap with useCallback
-  const fetchVerificationRequests = useCallback(async (status?: string, page = 1, limit = 50) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await adminAPI.getPendingVerifications(page, limit);
-      if (response.success) {
-        setVerificationRequests(response.data);
-        return response.data;
+  const fetchVerificationRequests = useCallback(
+    async (status?: string, page = 1, limit = 50) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await adminAPI.getPendingVerifications(page, limit);
+        if (response.success) {
+          setVerificationRequests(response.data);
+          return response.data;
+        }
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.message ||
+          "Failed to fetch verification requests";
+        setError(errorMessage);
+        addNotification({
+          type: "error",
+          message: errorMessage,
+        });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch verification requests';
-      setError(errorMessage);
-      addNotification({
-        type: 'error',
-        message: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setError, addNotification, setVerificationRequests]);
+    },
+    [setError, addNotification, setVerificationRequests]
+  );
 
   const approveVerification = async (id: string) => {
     try {
@@ -277,18 +306,19 @@ export const useAdminData = () => {
       const response = await adminAPI.approveVerification(id);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Verification approved successfully!',
+          type: "success",
+          message: "Verification approved successfully!",
         });
         // Refresh verification requests
         await fetchVerificationRequests();
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to approve verification';
+      const errorMessage =
+        error.response?.data?.message || "Failed to approve verification";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -304,18 +334,19 @@ export const useAdminData = () => {
       const response = await adminAPI.rejectVerification(id, reason);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Verification rejected successfully!',
+          type: "success",
+          message: "Verification rejected successfully!",
         });
         // Refresh verification requests
         await fetchVerificationRequests();
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to reject verification';
+      const errorMessage =
+        error.response?.data?.message || "Failed to reject verification";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -325,26 +356,35 @@ export const useAdminData = () => {
   };
 
   // Audit Logs - wrap with useCallback
-  const fetchAuditLogs = useCallback(async (userId?: string, actionType?: string, page = 1, limit = 50) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await adminAPI.getAuditLogs(userId, actionType, page, limit);
-      if (response.success) {
-        setAuditLogs(response.data);
-        return response.data;
+  const fetchAuditLogs = useCallback(
+    async (userId?: string, actionType?: string, page = 1, limit = 50) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await adminAPI.getAuditLogs(
+          userId,
+          actionType,
+          page,
+          limit
+        );
+        if (response.success) {
+          setAuditLogs(response.data);
+          return response.data;
+        }
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.message || "Failed to fetch audit logs";
+        setError(errorMessage);
+        addNotification({
+          type: "error",
+          message: errorMessage,
+        });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch audit logs';
-      setError(errorMessage);
-      addNotification({
-        type: 'error',
-        message: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setError, addNotification, setAuditLogs]);
+    },
+    [setError, addNotification, setAuditLogs]
+  );
 
   // System Statistics - wrap with useCallback to prevent infinite loops
   const fetchSystemStatistics = useCallback(async () => {
@@ -358,10 +398,11 @@ export const useAdminData = () => {
         return response.data.systemStatistics;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch system statistics';
+      const errorMessage =
+        error.response?.data?.message || "Failed to fetch system statistics";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
     } finally {
@@ -370,37 +411,40 @@ export const useAdminData = () => {
   }, [setError, addNotification, setSystemStatistics]);
 
   // Security - wrap with useCallback
-  const fetchSuspiciousActivities = useCallback(async (page = 1, limit = 50) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Get suspicious activities from dashboard API or security logs
-      const response = await adminAPI.getDashboardData();
-      if (response.success && response.data.suspiciousActivities) {
-        setSuspiciousActivities(response.data.suspiciousActivities);
-        return response.data.suspiciousActivities;
+  const fetchSuspiciousActivities = useCallback(
+    async (page = 1, limit = 50) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        // Get suspicious activities from dashboard API or security logs
+        const response = await adminAPI.getDashboardData();
+        if (response.success && response.data.suspiciousActivities) {
+          setSuspiciousActivities(response.data.suspiciousActivities);
+          return response.data.suspiciousActivities;
+        }
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.message ||
+          "Failed to fetch suspicious activities";
+        setError(errorMessage);
+        addNotification({
+          type: "error",
+          message: errorMessage,
+        });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch suspicious activities';
-      setError(errorMessage);
-      addNotification({
-        type: 'error',
-        message: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setError, addNotification, setSuspiciousActivities]);
+    },
+    [setError, addNotification, setSuspiciousActivities]
+  );
 
   // User blocking functionality not available in current API
   const blockUser = async (userId: string, reason: string) => {
-    console.warn('Block user functionality not available in current API');
-    throw new Error('Block user functionality not available');
+    throw new Error("Block user functionality not available");
   };
 
   const unblockUser = async (userId: string) => {
-    console.warn('Unblock user functionality not available in current API');
-    throw new Error('Unblock user functionality not available');
+    throw new Error("Unblock user functionality not available");
   };
 
   // System Settings Management (Local Storage Only - No API Available)
@@ -408,20 +452,20 @@ export const useAdminData = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Store in localStorage since no API endpoint exists for system settings
-      localStorage.setItem('admin-system-settings', JSON.stringify(settings));
-      
+      localStorage.setItem("admin-system-settings", JSON.stringify(settings));
+
       addNotification({
-        type: 'success',
-        message: 'System settings updated successfully!',
+        type: "success",
+        message: "System settings updated successfully!",
       });
       return { success: true, data: settings };
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to update system settings';
+      const errorMessage = error.message || "Failed to update system settings";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -433,10 +477,10 @@ export const useAdminData = () => {
   const getSystemSettings = async () => {
     try {
       // Get from localStorage since no API endpoint exists for system settings
-      const settings = localStorage.getItem('admin-system-settings');
+      const settings = localStorage.getItem("admin-system-settings");
       return settings ? JSON.parse(settings) : null;
     } catch (error: any) {
-      console.error('Failed to get system settings:', error);
+      console.error("Failed to get system settings:", error);
       return null;
     }
   };
@@ -452,40 +496,49 @@ export const useAdminData = () => {
         const data = response.data;
         if (data.adminUsers) setAdminUsers(data.adminUsers);
         if (data.pollingUnits) setPollingUnits(data.pollingUnits);
-        if (data.verificationRequests) setVerificationRequests(data.verificationRequests);
+        if (data.verificationRequests)
+          setVerificationRequests(data.verificationRequests);
         if (data.auditLogs) setAuditLogs(data.auditLogs);
         if (data.systemStatistics) setSystemStatistics(data.systemStatistics);
-        if (data.suspiciousActivities) setSuspiciousActivities(data.suspiciousActivities);
-        
+        if (data.suspiciousActivities)
+          setSuspiciousActivities(data.suspiciousActivities);
+
         addNotification({
-          type: 'success',
-          message: 'Dashboard data loaded successfully!',
+          type: "success",
+          message: "Dashboard data loaded successfully!",
         });
         return data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to load dashboard data';
+      const errorMessage =
+        error.response?.data?.message || "Failed to load dashboard data";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [setError, addNotification, setAdminUsers, setPollingUnits, setVerificationRequests, setAuditLogs, setSystemStatistics, setSuspiciousActivities]);
+  }, [
+    setError,
+    addNotification,
+    setAdminUsers,
+    setPollingUnits,
+    setVerificationRequests,
+    setAuditLogs,
+    setSystemStatistics,
+    setSuspiciousActivities,
+  ]);
 
   // Lightweight refresh for real-time data
   const refreshCriticalData = async () => {
     try {
       setError(null);
-      await Promise.all([
-        fetchSystemStatistics(),
-        fetchSuspiciousActivities(),
-      ]);
+      await Promise.all([fetchSystemStatistics(), fetchSuspiciousActivities()]);
     } catch (error: any) {
-      console.error('Failed to refresh critical data:', error);
+      console.error("Failed to refresh critical data:", error);
     }
   };
 
@@ -504,16 +557,17 @@ export const useAdminData = () => {
       const response = await adminAPI.createElection(data);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Election created successfully!',
+          type: "success",
+          message: "Election created successfully!",
         });
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to create election';
+      const errorMessage =
+        error.response?.data?.message || "Failed to create election";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -522,31 +576,35 @@ export const useAdminData = () => {
     }
   };
 
-  const addCandidateToElection = async (electionId: string, data: {
-    fullName: string;
-    partyCode: string;
-    partyName: string;
-    bio?: string;
-    photoUrl?: string;
-    position?: string;
-    manifesto?: string;
-  }) => {
+  const addCandidateToElection = async (
+    electionId: string,
+    data: {
+      fullName: string;
+      partyCode: string;
+      partyName: string;
+      bio?: string;
+      photoUrl?: string;
+      position?: string;
+      manifesto?: string;
+    }
+  ) => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await adminAPI.addCandidateToElection(electionId, data);
       if (response.success) {
         addNotification({
-          type: 'success',
-          message: 'Candidate added successfully!',
+          type: "success",
+          message: "Candidate added successfully!",
         });
         return response.data;
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to add candidate';
+      const errorMessage =
+        error.response?.data?.message || "Failed to add candidate";
       setError(errorMessage);
       addNotification({
-        type: 'error',
+        type: "error",
         message: errorMessage,
       });
       throw error;
@@ -617,7 +675,9 @@ export const useAdminData = () => {
     // Computed values
     totalAdminUsers: adminUsers?.length || 0,
     totalPollingUnits: pollingUnits?.length || 0,
-    pendingVerifications: Array.isArray(verificationRequests) ? verificationRequests.filter(req => req.status === 'pending').length : 0,
+    pendingVerifications: Array.isArray(verificationRequests)
+      ? verificationRequests.filter((req) => req.status === "pending").length
+      : 0,
     totalSuspiciousActivities: suspiciousActivities?.length || 0,
   };
-}; 
+};

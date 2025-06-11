@@ -59,7 +59,7 @@ const ELECTION_TYPES_MAP: Record<string, string> = {
 // Also support the old naming for backward compatibility
 const ELECTION_TYPE_ALIASES: Record<string, string> = {
   "house-of-reps": "house",
-  "senatorial": "senate",
+  senatorial: "senate",
 };
 
 export default function VotePage() {
@@ -73,16 +73,16 @@ export default function VotePage() {
 
   // Helper function to generate initials from candidate name
   const getInitials = (name: string | undefined | null) => {
-    if (!name || typeof name !== 'string') {
-      return '??'; // Fallback for missing names
+    if (!name || typeof name !== "string") {
+      return "??"; // Fallback for missing names
     }
     return name
       .trim()
-      .split(' ')
-      .filter(word => word.length > 0) // Filter out empty strings
-      .map(word => word.charAt(0).toUpperCase())
+      .split(" ")
+      .filter((word) => word.length > 0) // Filter out empty strings
+      .map((word) => word.charAt(0).toUpperCase())
       .slice(0, 2) // Take only first 2 initials
-      .join('');
+      .join("");
   };
 
   // Use the voting hook
@@ -162,30 +162,19 @@ export default function VotePage() {
 
   // Load election data when election type changes
   useEffect(() => {
-    
     if (isAuthenticated && electionType && electionList.length > 0) {
-      electionList.forEach((election: any, index) => {
-        console.log(`Election ${index}:`, {
-          id: election.id,
-          name: election.name,
-          electionName: election.electionName, // API field
-          type: election.type,
-          electionType: election.electionType, // API field  
-          description: election.description,
-          status: election.status,
-          fullObject: election
-        });
-      });
+      electionList.forEach((election: any, index) => {});
 
       // Find election by type
-      const normalizedElectionType = ELECTION_TYPE_ALIASES[electionType] || electionType;
-      
+      const normalizedElectionType =
+        ELECTION_TYPE_ALIASES[electionType] || electionType;
+
       const election = electionList.find((e: any) => {
         const apiElectionType = e.electionType?.toLowerCase(); // API uses electionType
         const apiElectionName = e.electionName?.toLowerCase(); // API uses electionName
         const searchType = normalizedElectionType.toLowerCase();
         const originalType = electionType.toLowerCase();
-        
+
         return (
           apiElectionType === searchType ||
           apiElectionType === originalType ||
@@ -206,14 +195,7 @@ export default function VotePage() {
           fetchResults(election.id);
         }
       } else {
-        console.log('❌ No election found for type:', electionType);
       }
-    } else {
-      console.log('⏳ Waiting for conditions:', {
-        isAuthenticated,
-        electionType,
-        electionListLength: electionList.length
-      });
     }
   }, [
     electionType,
@@ -259,19 +241,20 @@ export default function VotePage() {
     try {
       // Store the voted candidate info before clearing selection
       const candidateInfo = findCandidate(selectedCandidate);
-      
+
       const result = await castVote(currentElection.id, selectedCandidate);
 
       if (result.success) {
         // Store the voted candidate for the success dialog
         setVotedCandidate(candidateInfo);
-        
+
         // Handle different receipt code response structures
-        const receiptCode = result.receiptCode || (result as any).data?.receiptCode;
+        const receiptCode =
+          result.receiptCode || (result as any).data?.receiptCode;
         if (receiptCode) {
           setReceiptCode(receiptCode);
         }
-        
+
         setShowSuccessDialog(true);
         // Clear the selected candidate after successful vote
         setSelectedCandidate(null);
@@ -466,9 +449,12 @@ export default function VotePage() {
                                   className="object-cover"
                                 />
                               ) : (
-                                <div 
+                                <div
                                   className="w-full h-full flex items-center justify-center text-white font-semibold text-lg"
-                                  style={{ backgroundColor: candidate.color || '#6B7280' }}
+                                  style={{
+                                    backgroundColor:
+                                      candidate.color || "#6B7280",
+                                  }}
                                 >
                                   {getInitials(candidate.name)}
                                 </div>
@@ -476,7 +462,7 @@ export default function VotePage() {
                             </div>
                             <div className="flex-1">
                               <CardTitle className="text-lg">
-                                {candidate.name || 'Unknown Candidate'}
+                                {candidate.name || "Unknown Candidate"}
                               </CardTitle>
                               <CardDescription className="flex items-center gap-2">
                                 <Badge
@@ -527,7 +513,10 @@ export default function VotePage() {
                                 <div></div>
                               )
                             ) : (
-                              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                              <div
+                                className="flex items-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <RadioGroup
                                   value={selectedCandidate?.toString() || ""}
                                   onValueChange={(value) => {
@@ -620,9 +609,11 @@ export default function VotePage() {
                                 className="object-cover"
                               />
                             ) : (
-                              <div 
+                              <div
                                 className="w-full h-full flex items-center justify-center text-white font-semibold text-sm"
-                                style={{ backgroundColor: candidate.color || '#6B7280' }}
+                                style={{
+                                  backgroundColor: candidate.color || "#6B7280",
+                                }}
                               >
                                 {getInitials(candidate.name)}
                               </div>
@@ -630,7 +621,9 @@ export default function VotePage() {
                           </div>
                         </div>
                         <div className="col-span-3 flex flex-col justify-center">
-                          <span className="font-medium">{candidate.name || 'Unknown Candidate'}</span>
+                          <span className="font-medium">
+                            {candidate.name || "Unknown Candidate"}
+                          </span>
                           <span className="text-xs text-muted-foreground">
                             {candidate.bio?.split(" ").slice(0, 3).join(" ") ||
                               "No bio available"}
@@ -909,9 +902,12 @@ export default function VotePage() {
                     className="object-cover"
                   />
                 ) : (
-                  <div 
+                  <div
                     className="w-full h-full flex items-center justify-center text-white font-semibold text-xl"
-                    style={{ backgroundColor: findCandidate(selectedCandidate)?.color || '#6B7280' }}
+                    style={{
+                      backgroundColor:
+                        findCandidate(selectedCandidate)?.color || "#6B7280",
+                    }}
                   >
                     {getInitials(findCandidate(selectedCandidate)?.name)}
                   </div>
@@ -1011,9 +1007,11 @@ export default function VotePage() {
                   className="object-cover"
                 />
               ) : (
-                <div 
+                <div
                   className="w-full h-full flex items-center justify-center text-white font-semibold text-xl"
-                  style={{ backgroundColor: votedCandidate?.color || '#6B7280' }}
+                  style={{
+                    backgroundColor: votedCandidate?.color || "#6B7280",
+                  }}
                 >
                   {getInitials(votedCandidate?.name)}
                 </div>
@@ -1029,9 +1027,7 @@ export default function VotePage() {
             </p>
             <div className="text-center space-y-1 mb-4">
               <p className="font-medium">You voted for:</p>
-              <p className="text-lg font-bold">
-                {votedCandidate?.name}
-              </p>
+              <p className="text-lg font-bold">{votedCandidate?.name}</p>
               <Badge
                 className="mt-1"
                 style={{

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/useStore"
 import { useAuth } from "@/hooks/useAuth"
 import Link from "next/link"
+import ReactAvatar from "react-avatar"
 import { Bell, LogOut, Menu, Settings, User, Shield, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,7 +27,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 
 export function AdminHeader() {
@@ -215,18 +215,26 @@ export function AdminHeader() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Admin" />
-                  <AvatarFallback>JA</AvatarFallback>
-                </Avatar>
+                <ReactAvatar
+                  name={user?.fullName || "Admin User"}
+                  src={(user as any)?.profileImage || (user as any)?.avatar}
+                  size="32"
+                  round={true}
+                  color="#22c55e"
+                  fgColor="#ffffff"
+                  textSizeRatio={2}
+                  className="border border-border/20"
+                />
                 <span className="sr-only">User menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>
                 <div className="flex flex-col">
-                  <span>John Adebayo</span>
-                  <span className="text-xs text-muted-foreground">Chief Electoral Officer</span>
+                  <span>{user?.fullName || "Admin User"}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {(user as any)?.jobTitle || (user as any)?.adminType || "Administrator"}
+                  </span>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

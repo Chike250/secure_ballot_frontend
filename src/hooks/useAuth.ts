@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '@/store/useStore';
-import { authAPI } from '@/services/api';
+import { authAPI, adminAPI } from '@/services/api';
 
 export const useAuth = () => {
   const router = useRouter();
@@ -446,7 +446,12 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      await authAPI.logout();
+      // Use admin logout endpoint for admin users, regular logout for others
+      if (user?.role === 'admin') {
+        await adminAPI.logout();
+      } else {
+        await authAPI.logout();
+      }
     } catch (error) {
       // Even if logout API fails, clear local state
       console.error('Logout API failed:', error);
@@ -456,7 +461,12 @@ export const useAuth = () => {
         type: 'success',
         message: 'Logged out successfully!',
       });
-      router.push('/');
+      // Redirect admin users to admin login, others to home
+      if (user?.role === 'admin') {
+        router.push('/admin/login');
+      } else {
+        router.push('/');
+      }
       setIsLoading(false);
     }
   };

@@ -66,7 +66,16 @@ export function SystemOverview() {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalVoters > 0 ? `${(totalVoters / 1000000).toFixed(1)}M` : '0'}</div>
+          <div className="text-2xl font-bold">
+            {totalVoters > 0 
+              ? totalVoters >= 1000000 
+                ? `${(totalVoters / 1000000).toFixed(1)}M`
+                : totalVoters >= 1000
+                ? `${(totalVoters / 1000).toFixed(1)}K`
+                : totalVoters.toLocaleString()
+              : '0'
+            }
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">Registered voters</p>
           </div>
@@ -91,7 +100,16 @@ export function SystemOverview() {
           <Vote className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalVotes > 0 ? `${(totalVotes / 1000000).toFixed(1)}M` : '0'}</div>
+          <div className="text-2xl font-bold">
+            {totalVotes > 0 
+              ? totalVotes >= 1000000 
+                ? `${(totalVotes / 1000000).toFixed(1)}M`
+                : totalVotes >= 1000
+                ? `${(totalVotes / 1000).toFixed(1)}K`
+                : totalVotes.toLocaleString()
+              : '0'
+            }
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">{voterTurnout}% of registered voters</p>
           </div>

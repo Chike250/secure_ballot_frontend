@@ -1,31 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 interface CookieOptions {
   expires?: number | Date;
   path?: string;
   domain?: string;
   secure?: boolean;
-  sameSite?: 'strict' | 'lax' | 'none';
+  sameSite?: "strict" | "lax" | "none";
 }
 
-export function useCookie<T>(key: string, initialValue: T, options: CookieOptions = {}) {
+export function useCookie<T>(
+  key: string,
+  initialValue: T,
+  options: CookieOptions = {}
+) {
   // Get from cookie then
   // parse stored json or return initialValue
   const readValue = () => {
     // Prevent build error "window is undefined" but keep working
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return initialValue;
     }
 
     try {
-      const cookies = document.cookie.split(';');
+      const cookies = document.cookie.split(";");
       const cookie = cookies.find((c) => c.trim().startsWith(`${key}=`));
       if (!cookie) return initialValue;
 
-      const value = cookie.split('=')[1];
-      return value ? (JSON.parse(decodeURIComponent(value)) as T) : initialValue;
+      const value = cookie.split("=")[1];
+      return value
+        ? (JSON.parse(decodeURIComponent(value)) as T)
+        : initialValue;
     } catch (error) {
-      console.warn(`Error reading cookie "${key}":`, error);
       return initialValue;
     }
   };
@@ -46,27 +51,26 @@ export function useCookie<T>(key: string, initialValue: T, options: CookieOption
       setStoredValue(valueToStore);
 
       // Save to cookie
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         const cookieValue = encodeURIComponent(JSON.stringify(valueToStore));
         let cookieString = `${key}=${cookieValue}`;
 
         if (options.expires) {
-          const expires = options.expires instanceof Date
-            ? options.expires
-            : new Date(Date.now() + options.expires * 1000);
+          const expires =
+            options.expires instanceof Date
+              ? options.expires
+              : new Date(Date.now() + options.expires * 1000);
           cookieString += `; expires=${expires.toUTCString()}`;
         }
 
         if (options.path) cookieString += `; path=${options.path}`;
         if (options.domain) cookieString += `; domain=${options.domain}`;
-        if (options.secure) cookieString += '; secure';
+        if (options.secure) cookieString += "; secure";
         if (options.sameSite) cookieString += `; samesite=${options.sameSite}`;
 
         document.cookie = cookieString;
       }
-    } catch (error) {
-      console.warn(`Error setting cookie "${key}":`, error);
-    }
+    } catch (error) {}
   };
 
   const removeValue = () => {
@@ -75,14 +79,12 @@ export function useCookie<T>(key: string, initialValue: T, options: CookieOption
       setStoredValue(initialValue);
 
       // Remove from cookie
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT${
-          options.path ? `; path=${options.path}` : ''
-        }${options.domain ? `; domain=${options.domain}` : ''}`;
+          options.path ? `; path=${options.path}` : ""
+        }${options.domain ? `; domain=${options.domain}` : ""}`;
       }
-    } catch (error) {
-      console.warn(`Error removing cookie "${key}":`, error);
-    }
+    } catch (error) {}
   };
 
   useEffect(() => {
@@ -90,4 +92,4 @@ export function useCookie<T>(key: string, initialValue: T, options: CookieOption
   }, []);
 
   return [storedValue, setValue, removeValue] as const;
-} 
+}

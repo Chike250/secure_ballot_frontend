@@ -88,18 +88,31 @@ export const useElectionData = () => {
       try {
         setIsLoading(true);
         setError(null);
-        console.log("fetchElections: Making API call with params:", {
-          status,
-          type,
-        });
+
         const response = await electionAPI.getElections(status, type);
 
         if (response.success) {
           const electionsList = response.data.elections || response.data || [];
-          console.log("fetchElections: Setting elections:", electionsList);
-          setElections(electionsList);
-        } else {
-          console.log("fetchElections: Response not successful:", response);
+
+          // Map API data to store interface format
+          const mappedElections = electionsList.map((election: any) => ({
+            id: election.id,
+            name: election.electionName, // API uses 'electionName', store expects 'name'
+            description: election.description || "",
+            startDate: election.startDate,
+            endDate: election.endDate,
+            type: election.electionType.toLowerCase(), // API uses 'electionType', store expects 'type'
+            status: election.status,
+            createdBy: election.createdBy,
+            createdAt: election.createdAt,
+            updatedAt: election.updatedAt,
+            // Include candidates data from API
+            candidates: election.candidates || [],
+            candidateCount:
+              election.candidateCount || election.candidates?.length || 0,
+          }));
+
+          setElections(mappedElections);
         }
       } catch (error: any) {
         console.error("fetchElections: API call failed:", error);
@@ -208,41 +221,40 @@ export const useElectionData = () => {
   const checkVotingStatus = useCallback(
     async (electionId: string) => {
       try {
-        console.log(`🗳️ [ElectionData] Checking voting status for election ${electionId}`);
         const response = await electionAPI.getVotingStatus(electionId);
-        console.log(`📊 [ElectionData] Voting status response:`, response);
-        
+
         if (response.success) {
           // Handle different response structures
           const statusData = response.data || response;
-          console.log(`🔍 [ElectionData] Processing status data:`, statusData);
-          
+
           // Store the raw voting status data
           setVotingStatus(electionId, statusData);
-          
+
           // Determine if user has voted based on the response
           const hasVoted = statusData.hasVoted === true;
-          console.log(`✅ [ElectionData] User has voted: ${hasVoted}`);
-          
+
           if (hasVoted) {
             // If voted, try to get the candidate ID from various possible fields
-            const candidateId = statusData.candidateId || 
-                              statusData.votedCandidateId || 
-                              statusData.candidate?.id || 
-                              'voted'; // Fallback to indicate they voted
-            console.log(`🎯 [ElectionData] Setting hasVoted with candidateId: ${candidateId}`);
+            const candidateId =
+              statusData.candidateId ||
+              statusData.votedCandidateId ||
+              statusData.candidate?.id ||
+              "voted"; // Fallback to indicate they voted
             setHasVoted(electionId, candidateId);
           } else {
-            console.log(`❌ [ElectionData] Setting hasVoted to null (not voted)`);
             setHasVoted(electionId, null);
           }
-          
+
           return statusData;
         }
       } catch (error: any) {
         console.error("Failed to check voting status:", error);
         // Don't fail silently - set status to indicate unknown state
-        setVotingStatus(electionId, { hasVoted: false, isEligible: false, error: true });
+        setVotingStatus(electionId, {
+          hasVoted: false,
+          isEligible: false,
+          error: true,
+        });
         setHasVoted(electionId, null);
       }
     },
@@ -335,19 +347,11 @@ export const useElectionData = () => {
 
   // Auto-fetch elections on mount (with throttling to prevent multiple calls)
   useEffect(() => {
-    console.log(
-      "useElectionData: Auto-fetch effect running, calling fetchElections..."
-    );
-    
     // Add a small delay to prevent multiple rapid calls on initial mount
     const timeoutId = setTimeout(() => {
-      fetchElections()
-        .then(() => {
-          console.log("useElectionData: Auto-fetch completed successfully");
-        })
-        .catch((error: any) => {
-          console.error("useElectionData: Auto-fetch failed:", error);
-        });
+      fetchElections().catch((error: any) => {
+        console.error("useElectionData: Auto-fetch failed:", error);
+      });
     }, 100);
 
     return () => clearTimeout(timeoutId);

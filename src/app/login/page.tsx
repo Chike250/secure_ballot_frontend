@@ -165,7 +165,6 @@ export default function LoginPage() {
       const result = await verifyVoterOTP(otp);
       if (result) {
         // OTP verification successful - redirect will be handled by the auth hook
-        console.log("OTP verification successful");
       }
     } catch (error) {
       console.error("OTP verification failed:", error);
@@ -180,7 +179,6 @@ export default function LoginPage() {
         // Clear current OTP and show success message
         setOtp("");
         setFormTouched({ ...formTouched, otp: false });
-        console.log("OTP resent successfully");
       }
     } catch (error) {
       console.error("Resend OTP failed:", error);

@@ -1,73 +1,98 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { ArrowLeft, Save, AlertCircle, Shield, Database, Users, Clock, Globe, Mail, Lock, CheckCircle } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
-import { AdminLayout } from "@/components/admin/admin-layout"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
-import { useAuthStore, useUIStore } from "@/store/useStore"
-import { useAdminData } from "@/hooks/useAdminData"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Save,
+  AlertCircle,
+  Shield,
+  Database,
+  Users,
+  Clock,
+  Globe,
+  Mail,
+  Lock,
+  CheckCircle,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { AdminLayout } from "@/components/admin/admin-layout";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuthStore, useUIStore } from "@/store/useStore";
+import { useAdminData } from "@/hooks/useAdminData";
+import { useRouter } from "next/navigation";
 
 interface SystemSettings {
-  systemName: string
-  timezone: string
-  dateFormat: string
-  language: string
-  darkMode: boolean
-  compactMode: boolean
-  showHelpTips: boolean
-  maintenanceMode: boolean
-  registrationEnabled: boolean
+  systemName: string;
+  timezone: string;
+  dateFormat: string;
+  language: string;
+  darkMode: boolean;
+  compactMode: boolean;
+  showHelpTips: boolean;
+  maintenanceMode: boolean;
+  registrationEnabled: boolean;
 }
 
 interface SecuritySettings {
-  twoFactorRequired: boolean
-  sessionTimeout: number
-  passwordExpiry: number
-  maxLoginAttempts: number
-  ipWhitelisting: boolean
-  auditLogging: boolean
-  suspiciousActivityDetection: boolean
-  dataEncryption: boolean
+  twoFactorRequired: boolean;
+  sessionTimeout: number;
+  passwordExpiry: number;
+  maxLoginAttempts: number;
+  ipWhitelisting: boolean;
+  auditLogging: boolean;
+  suspiciousActivityDetection: boolean;
+  dataEncryption: boolean;
 }
 
 interface NotificationSettings {
-  emailNotifications: boolean
-  smsNotifications: boolean
-  pushNotifications: boolean
-  securityAlerts: boolean
-  systemAlerts: boolean
-  electionAlerts: boolean
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  pushNotifications: boolean;
+  securityAlerts: boolean;
+  systemAlerts: boolean;
+  electionAlerts: boolean;
 }
 
 interface BackupSettings {
-  automaticBackup: boolean
-  backupFrequency: string
-  retentionPeriod: number
-  cloudBackup: boolean
-  backupVerification: boolean
+  automaticBackup: boolean;
+  backupFrequency: string;
+  retentionPeriod: number;
+  cloudBackup: boolean;
+  backupVerification: boolean;
 }
 
 export default function AdminSettingsPage() {
-  const router = useRouter()
-  const { user, isAuthenticated } = useAuthStore()
-  const { isLoading, error, setError } = useUIStore()
-  const { isAdmin, updateSystemSettings, getSystemSettings } = useAdminData()
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+  const { isLoading, error, setError } = useUIStore();
+  const { isAdmin, updateSystemSettings, getSystemSettings } = useAdminData();
 
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
-  const [activeTab, setActiveTab] = useState("general")
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState("general");
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
     systemName: "Secure Ballot Admin",
@@ -79,7 +104,7 @@ export default function AdminSettingsPage() {
     showHelpTips: true,
     maintenanceMode: false,
     registrationEnabled: true,
-  })
+  });
 
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     twoFactorRequired: true,
@@ -90,16 +115,17 @@ export default function AdminSettingsPage() {
     auditLogging: true,
     suspiciousActivityDetection: true,
     dataEncryption: true,
-  })
+  });
 
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-    emailNotifications: true,
-    smsNotifications: false,
-    pushNotifications: true,
-    securityAlerts: true,
-    systemAlerts: true,
-    electionAlerts: true,
-  })
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings>({
+      emailNotifications: true,
+      smsNotifications: false,
+      pushNotifications: true,
+      securityAlerts: true,
+      systemAlerts: true,
+      electionAlerts: true,
+    });
 
   const [backupSettings, setBackupSettings] = useState<BackupSettings>({
     automaticBackup: true,
@@ -107,92 +133,123 @@ export default function AdminSettingsPage() {
     retentionPeriod: 30,
     cloudBackup: true,
     backupVerification: true,
-  })
+  });
 
-  // Redirect if not authenticated or not admin
+  // Optimized useEffect for authentication, redirect, and settings loading
   useEffect(() => {
+    // Handle authentication and redirect first
     if (!isAuthenticated) {
-      router.push("/admin/login")
-      return
+      router.push("/admin/login");
+      return;
     }
-    
-    if (!isAdmin) {
-      router.push("/dashboard")
-      return
-    }
-  }, [isAuthenticated, isAdmin, router])
 
-  // Load settings from API/localStorage on mount
-  useEffect(() => {
-    const loadSettings = async () => {
+    if (!isAdmin) {
+      router.push("/dashboard");
+      return;
+    }
+
+    // Prevent multiple simultaneous calls
+    if (isInitialLoading || isLoading) {
+      return;
+    }
+
+    // Check if we already have settings data (system name is a good indicator)
+    const hasEssentialData =
+      systemSettings.systemName !== "Secure Ballot Admin";
+    if (hasEssentialData) {
+      return;
+    }
+
+    // Load settings if authenticated, admin, and no data exists
+    const loadSettingsData = async () => {
+      setIsInitialLoading(true);
       try {
         // Load system settings using admin API
-        const savedSystemSettings = await getSystemSettings()
+        const savedSystemSettings = await getSystemSettings();
         if (savedSystemSettings) {
-          setSystemSettings(savedSystemSettings)
+          setSystemSettings(savedSystemSettings);
         }
 
         // Load other settings from localStorage for now
-        const savedSecuritySettings = localStorage.getItem("admin-security-settings")
-        const savedNotificationSettings = localStorage.getItem("admin-notification-settings")
-        const savedBackupSettings = localStorage.getItem("admin-backup-settings")
+        const savedSecuritySettings = localStorage.getItem(
+          "admin-security-settings"
+        );
+        const savedNotificationSettings = localStorage.getItem(
+          "admin-notification-settings"
+        );
+        const savedBackupSettings = localStorage.getItem(
+          "admin-backup-settings"
+        );
 
         if (savedSecuritySettings) {
-          setSecuritySettings(JSON.parse(savedSecuritySettings))
+          setSecuritySettings(JSON.parse(savedSecuritySettings));
         }
         if (savedNotificationSettings) {
-          setNotificationSettings(JSON.parse(savedNotificationSettings))
+          setNotificationSettings(JSON.parse(savedNotificationSettings));
         }
         if (savedBackupSettings) {
-          setBackupSettings(JSON.parse(savedBackupSettings))
+          setBackupSettings(JSON.parse(savedBackupSettings));
         }
       } catch (err) {
-        console.error("Failed to load settings:", err)
+        console.error("Failed to load settings:", err);
+      } finally {
+        setIsInitialLoading(false);
       }
-    }
+    };
 
-    if (isAuthenticated && isAdmin) {
-      loadSettings()
-    }
-  }, [isAuthenticated, isAdmin, getSystemSettings])
+    loadSettingsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAdmin]); // Removed router and getSystemSettings dependencies
 
   const handleSystemChange = (key: keyof SystemSettings, value: any) => {
-    setSystemSettings(prev => ({ ...prev, [key]: value }))
-  }
+    setSystemSettings((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleSecurityChange = (key: keyof SecuritySettings, value: any) => {
-    setSecuritySettings(prev => ({ ...prev, [key]: value }))
-  }
+    setSecuritySettings((prev) => ({ ...prev, [key]: value }));
+  };
 
-  const handleNotificationChange = (key: keyof NotificationSettings, value: any) => {
-    setNotificationSettings(prev => ({ ...prev, [key]: value }))
-  }
+  const handleNotificationChange = (
+    key: keyof NotificationSettings,
+    value: any
+  ) => {
+    setNotificationSettings((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleBackupChange = (key: keyof BackupSettings, value: any) => {
-    setBackupSettings(prev => ({ ...prev, [key]: value }))
-  }
+    setBackupSettings((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleSave = async () => {
-    setIsSaving(true)
-    setError(null)
+    setIsSaving(true);
+    setError(null);
 
     try {
       // Save system settings using admin API
-      await updateSystemSettings(systemSettings)
+      await updateSystemSettings(systemSettings);
 
       // Save other settings to localStorage for now
-      localStorage.setItem("admin-security-settings", JSON.stringify(securitySettings))
-      localStorage.setItem("admin-notification-settings", JSON.stringify(notificationSettings))
-      localStorage.setItem("admin-backup-settings", JSON.stringify(backupSettings))
+      localStorage.setItem(
+        "admin-security-settings",
+        JSON.stringify(securitySettings)
+      );
+      localStorage.setItem(
+        "admin-notification-settings",
+        JSON.stringify(notificationSettings)
+      );
+      localStorage.setItem(
+        "admin-backup-settings",
+        JSON.stringify(backupSettings)
+      );
 
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
-      setError(err.message || "Failed to save settings")
+      setError(err.message || "Failed to save settings");
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   if (!isAuthenticated || !isAdmin) {
     return (
@@ -202,7 +259,7 @@ export default function AdminSettingsPage() {
           <p>Loading admin settings...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -236,10 +293,14 @@ export default function AdminSettingsPage() {
           <div>
             <h1 className="text-3xl font-bold">System Settings</h1>
             <p className="text-muted-foreground">
-              Configure system-wide settings and preferences for the voting platform
+              Configure system-wide settings and preferences for the voting
+              platform
             </p>
           </div>
-          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+          <Badge
+            variant="outline"
+            className="bg-green-500/10 text-green-500 border-green-500/20"
+          >
             Administrator
           </Badge>
         </div>
@@ -256,7 +317,9 @@ export default function AdminSettingsPage() {
           <Alert className="bg-green-500/10 border-green-500/20 text-green-600">
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Success</AlertTitle>
-            <AlertDescription>All settings have been saved successfully.</AlertDescription>
+            <AlertDescription>
+              All settings have been saved successfully.
+            </AlertDescription>
           </Alert>
         )}
 
@@ -276,30 +339,49 @@ export default function AdminSettingsPage() {
                     <Globe className="h-5 w-5" />
                     System Configuration
                   </CardTitle>
-                  <CardDescription>Basic system settings and regional preferences</CardDescription>
+                  <CardDescription>
+                    Basic system settings and regional preferences
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="systemName">System Name</Label>
-                      <Input 
-                        id="systemName" 
+                      <Input
+                        id="systemName"
                         value={systemSettings.systemName}
-                        onChange={(e) => handleSystemChange("systemName", e.target.value)}
+                        onChange={(e) =>
+                          handleSystemChange("systemName", e.target.value)
+                        }
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="timezone">Timezone</Label>
-                      <Select value={systemSettings.timezone} onValueChange={(value) => handleSystemChange("timezone", value)}>
+                      <Select
+                        value={systemSettings.timezone}
+                        onValueChange={(value) =>
+                          handleSystemChange("timezone", value)
+                        }
+                      >
                         <SelectTrigger id="timezone">
                           <SelectValue placeholder="Select timezone" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="africa-lagos">Africa/Lagos (GMT+1)</SelectItem>
-                          <SelectItem value="africa-cairo">Africa/Cairo (GMT+2)</SelectItem>
-                          <SelectItem value="africa-nairobi">Africa/Nairobi (GMT+3)</SelectItem>
-                          <SelectItem value="europe-london">Europe/London (GMT+0)</SelectItem>
-                          <SelectItem value="america-new_york">America/New_York (GMT-5)</SelectItem>
+                          <SelectItem value="africa-lagos">
+                            Africa/Lagos (GMT+1)
+                          </SelectItem>
+                          <SelectItem value="africa-cairo">
+                            Africa/Cairo (GMT+2)
+                          </SelectItem>
+                          <SelectItem value="africa-nairobi">
+                            Africa/Nairobi (GMT+3)
+                          </SelectItem>
+                          <SelectItem value="europe-london">
+                            Europe/London (GMT+0)
+                          </SelectItem>
+                          <SelectItem value="america-new_york">
+                            America/New_York (GMT-5)
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -308,7 +390,12 @@ export default function AdminSettingsPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="language">Interface Language</Label>
-                      <Select value={systemSettings.language} onValueChange={(value) => handleSystemChange("language", value)}>
+                      <Select
+                        value={systemSettings.language}
+                        onValueChange={(value) =>
+                          handleSystemChange("language", value)
+                        }
+                      >
                         <SelectTrigger id="language">
                           <SelectValue placeholder="Select language" />
                         </SelectTrigger>
@@ -323,7 +410,12 @@ export default function AdminSettingsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="dateFormat">Date Format</Label>
-                      <Select value={systemSettings.dateFormat} onValueChange={(value) => handleSystemChange("dateFormat", value)}>
+                      <Select
+                        value={systemSettings.dateFormat}
+                        onValueChange={(value) =>
+                          handleSystemChange("dateFormat", value)
+                        }
+                      >
                         <SelectTrigger id="dateFormat">
                           <SelectValue placeholder="Select date format" />
                         </SelectTrigger>
@@ -339,36 +431,50 @@ export default function AdminSettingsPage() {
                   <Separator />
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Interface Preferences</h3>
+                    <h3 className="text-lg font-medium">
+                      Interface Preferences
+                    </h3>
                     <div className="grid gap-6">
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Dark Mode</Label>
-                          <p className="text-sm text-muted-foreground">Enable dark mode for all users</p>
+                          <p className="text-sm text-muted-foreground">
+                            Enable dark mode for all users
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={systemSettings.darkMode}
-                          onCheckedChange={(checked) => handleSystemChange("darkMode", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSystemChange("darkMode", checked)
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Compact Mode</Label>
-                          <p className="text-sm text-muted-foreground">Reduce spacing for a more compact interface</p>
+                          <p className="text-sm text-muted-foreground">
+                            Reduce spacing for a more compact interface
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={systemSettings.compactMode}
-                          onCheckedChange={(checked) => handleSystemChange("compactMode", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSystemChange("compactMode", checked)
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Show Help Tips</Label>
-                          <p className="text-sm text-muted-foreground">Display helpful tooltips throughout the interface</p>
+                          <p className="text-sm text-muted-foreground">
+                            Display helpful tooltips throughout the interface
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={systemSettings.showHelpTips}
-                          onCheckedChange={(checked) => handleSystemChange("showHelpTips", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSystemChange("showHelpTips", checked)
+                          }
                         />
                       </div>
                     </div>
@@ -382,21 +488,29 @@ export default function AdminSettingsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Maintenance Mode</Label>
-                          <p className="text-sm text-muted-foreground">Disable public access to the system</p>
+                          <p className="text-sm text-muted-foreground">
+                            Disable public access to the system
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={systemSettings.maintenanceMode}
-                          onCheckedChange={(checked) => handleSystemChange("maintenanceMode", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSystemChange("maintenanceMode", checked)
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Voter Registration</Label>
-                          <p className="text-sm text-muted-foreground">Allow new voter registrations</p>
+                          <p className="text-sm text-muted-foreground">
+                            Allow new voter registrations
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={systemSettings.registrationEnabled}
-                          onCheckedChange={(checked) => handleSystemChange("registrationEnabled", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSystemChange("registrationEnabled", checked)
+                          }
                         />
                       </div>
                     </div>
@@ -412,7 +526,9 @@ export default function AdminSettingsPage() {
                     <Shield className="h-5 w-5" />
                     Security Settings
                   </CardTitle>
-                  <CardDescription>Configure authentication and security measures</CardDescription>
+                  <CardDescription>
+                    Configure authentication and security measures
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
@@ -421,42 +537,67 @@ export default function AdminSettingsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Require Two-Factor Authentication</Label>
-                          <p className="text-sm text-muted-foreground">Force 2FA for all admin accounts</p>
+                          <p className="text-sm text-muted-foreground">
+                            Force 2FA for all admin accounts
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={securitySettings.twoFactorRequired}
-                          onCheckedChange={(checked) => handleSecurityChange("twoFactorRequired", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSecurityChange("twoFactorRequired", checked)
+                          }
                         />
                       </div>
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                          <Input 
-                            id="sessionTimeout" 
+                          <Label htmlFor="sessionTimeout">
+                            Session Timeout (minutes)
+                          </Label>
+                          <Input
+                            id="sessionTimeout"
                             type="number"
                             value={securitySettings.sessionTimeout}
-                            onChange={(e) => handleSecurityChange("sessionTimeout", parseInt(e.target.value) || 30)}
+                            onChange={(e) =>
+                              handleSecurityChange(
+                                "sessionTimeout",
+                                parseInt(e.target.value) || 30
+                              )
+                            }
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="passwordExpiry">Password Expiry (days)</Label>
-                          <Input 
-                            id="passwordExpiry" 
+                          <Label htmlFor="passwordExpiry">
+                            Password Expiry (days)
+                          </Label>
+                          <Input
+                            id="passwordExpiry"
                             type="number"
                             value={securitySettings.passwordExpiry}
-                            onChange={(e) => handleSecurityChange("passwordExpiry", parseInt(e.target.value) || 90)}
+                            onChange={(e) =>
+                              handleSecurityChange(
+                                "passwordExpiry",
+                                parseInt(e.target.value) || 90
+                              )
+                            }
                           />
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="maxLoginAttempts">Max Login Attempts</Label>
-                        <Input 
-                          id="maxLoginAttempts" 
+                        <Label htmlFor="maxLoginAttempts">
+                          Max Login Attempts
+                        </Label>
+                        <Input
+                          id="maxLoginAttempts"
                           type="number"
                           value={securitySettings.maxLoginAttempts}
-                          onChange={(e) => handleSecurityChange("maxLoginAttempts", parseInt(e.target.value) || 3)}
+                          onChange={(e) =>
+                            handleSecurityChange(
+                              "maxLoginAttempts",
+                              parseInt(e.target.value) || 3
+                            )
+                          }
                           className="w-32"
                         />
                       </div>
@@ -471,41 +612,60 @@ export default function AdminSettingsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>IP Whitelisting</Label>
-                          <p className="text-sm text-muted-foreground">Restrict access to specific IP addresses</p>
+                          <p className="text-sm text-muted-foreground">
+                            Restrict access to specific IP addresses
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={securitySettings.ipWhitelisting}
-                          onCheckedChange={(checked) => handleSecurityChange("ipWhitelisting", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSecurityChange("ipWhitelisting", checked)
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Audit Logging</Label>
-                          <p className="text-sm text-muted-foreground">Log all admin actions and system events</p>
+                          <p className="text-sm text-muted-foreground">
+                            Log all admin actions and system events
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={securitySettings.auditLogging}
-                          onCheckedChange={(checked) => handleSecurityChange("auditLogging", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSecurityChange("auditLogging", checked)
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Suspicious Activity Detection</Label>
-                          <p className="text-sm text-muted-foreground">Monitor and alert on unusual patterns</p>
+                          <p className="text-sm text-muted-foreground">
+                            Monitor and alert on unusual patterns
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={securitySettings.suspiciousActivityDetection}
-                          onCheckedChange={(checked) => handleSecurityChange("suspiciousActivityDetection", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSecurityChange(
+                              "suspiciousActivityDetection",
+                              checked
+                            )
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Data Encryption</Label>
-                          <p className="text-sm text-muted-foreground">Encrypt sensitive data at rest</p>
+                          <p className="text-sm text-muted-foreground">
+                            Encrypt sensitive data at rest
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={securitySettings.dataEncryption}
-                          onCheckedChange={(checked) => handleSecurityChange("dataEncryption", checked)}
+                          onCheckedChange={(checked) =>
+                            handleSecurityChange("dataEncryption", checked)
+                          }
                         />
                       </div>
                     </div>
@@ -521,40 +681,65 @@ export default function AdminSettingsPage() {
                     <Mail className="h-5 w-5" />
                     Notification Settings
                   </CardTitle>
-                  <CardDescription>Configure system-wide notification preferences</CardDescription>
+                  <CardDescription>
+                    Configure system-wide notification preferences
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Notification Channels</h3>
+                    <h3 className="text-lg font-medium">
+                      Notification Channels
+                    </h3>
                     <div className="grid gap-6">
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Email Notifications</Label>
-                          <p className="text-sm text-muted-foreground">Send notifications via email</p>
+                          <p className="text-sm text-muted-foreground">
+                            Send notifications via email
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={notificationSettings.emailNotifications}
-                          onCheckedChange={(checked) => handleNotificationChange("emailNotifications", checked)}
+                          onCheckedChange={(checked) =>
+                            handleNotificationChange(
+                              "emailNotifications",
+                              checked
+                            )
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>SMS Notifications</Label>
-                          <p className="text-sm text-muted-foreground">Send critical alerts via SMS</p>
+                          <p className="text-sm text-muted-foreground">
+                            Send critical alerts via SMS
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={notificationSettings.smsNotifications}
-                          onCheckedChange={(checked) => handleNotificationChange("smsNotifications", checked)}
+                          onCheckedChange={(checked) =>
+                            handleNotificationChange(
+                              "smsNotifications",
+                              checked
+                            )
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Push Notifications</Label>
-                          <p className="text-sm text-muted-foreground">Browser push notifications</p>
+                          <p className="text-sm text-muted-foreground">
+                            Browser push notifications
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={notificationSettings.pushNotifications}
-                          onCheckedChange={(checked) => handleNotificationChange("pushNotifications", checked)}
+                          onCheckedChange={(checked) =>
+                            handleNotificationChange(
+                              "pushNotifications",
+                              checked
+                            )
+                          }
                         />
                       </div>
                     </div>
@@ -568,31 +753,43 @@ export default function AdminSettingsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Security Alerts</Label>
-                          <p className="text-sm text-muted-foreground">Authentication & access violations</p>
+                          <p className="text-sm text-muted-foreground">
+                            Authentication & access violations
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={notificationSettings.securityAlerts}
-                          onCheckedChange={(checked) => handleNotificationChange("securityAlerts", checked)}
+                          onCheckedChange={(checked) =>
+                            handleNotificationChange("securityAlerts", checked)
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>System Alerts</Label>
-                          <p className="text-sm text-muted-foreground">Server health & performance issues</p>
+                          <p className="text-sm text-muted-foreground">
+                            Server health & performance issues
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={notificationSettings.systemAlerts}
-                          onCheckedChange={(checked) => handleNotificationChange("systemAlerts", checked)}
+                          onCheckedChange={(checked) =>
+                            handleNotificationChange("systemAlerts", checked)
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Election Alerts</Label>
-                          <p className="text-sm text-muted-foreground">Election status & results updates</p>
+                          <p className="text-sm text-muted-foreground">
+                            Election status & results updates
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={notificationSettings.electionAlerts}
-                          onCheckedChange={(checked) => handleNotificationChange("electionAlerts", checked)}
+                          onCheckedChange={(checked) =>
+                            handleNotificationChange("electionAlerts", checked)
+                          }
                         />
                       </div>
                     </div>
@@ -608,27 +805,42 @@ export default function AdminSettingsPage() {
                     <Database className="h-5 w-5" />
                     Backup & Recovery
                   </CardTitle>
-                  <CardDescription>Configure data backup and disaster recovery settings</CardDescription>
+                  <CardDescription>
+                    Configure data backup and disaster recovery settings
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Backup Configuration</h3>
+                    <h3 className="text-lg font-medium">
+                      Backup Configuration
+                    </h3>
                     <div className="grid gap-6">
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Automatic Backup</Label>
-                          <p className="text-sm text-muted-foreground">Enable scheduled automatic backups</p>
+                          <p className="text-sm text-muted-foreground">
+                            Enable scheduled automatic backups
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={backupSettings.automaticBackup}
-                          onCheckedChange={(checked) => handleBackupChange("automaticBackup", checked)}
+                          onCheckedChange={(checked) =>
+                            handleBackupChange("automaticBackup", checked)
+                          }
                         />
                       </div>
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="backupFrequency">Backup Frequency</Label>
-                          <Select value={backupSettings.backupFrequency} onValueChange={(value) => handleBackupChange("backupFrequency", value)}>
+                          <Label htmlFor="backupFrequency">
+                            Backup Frequency
+                          </Label>
+                          <Select
+                            value={backupSettings.backupFrequency}
+                            onValueChange={(value) =>
+                              handleBackupChange("backupFrequency", value)
+                            }
+                          >
                             <SelectTrigger id="backupFrequency">
                               <SelectValue placeholder="Select frequency" />
                             </SelectTrigger>
@@ -641,12 +853,19 @@ export default function AdminSettingsPage() {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="retentionPeriod">Retention Period (days)</Label>
-                          <Input 
-                            id="retentionPeriod" 
+                          <Label htmlFor="retentionPeriod">
+                            Retention Period (days)
+                          </Label>
+                          <Input
+                            id="retentionPeriod"
                             type="number"
                             value={backupSettings.retentionPeriod}
-                            onChange={(e) => handleBackupChange("retentionPeriod", parseInt(e.target.value) || 30)}
+                            onChange={(e) =>
+                              handleBackupChange(
+                                "retentionPeriod",
+                                parseInt(e.target.value) || 30
+                              )
+                            }
                           />
                         </div>
                       </div>
@@ -654,21 +873,29 @@ export default function AdminSettingsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Cloud Backup</Label>
-                          <p className="text-sm text-muted-foreground">Store backups in cloud storage</p>
+                          <p className="text-sm text-muted-foreground">
+                            Store backups in cloud storage
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={backupSettings.cloudBackup}
-                          onCheckedChange={(checked) => handleBackupChange("cloudBackup", checked)}
+                          onCheckedChange={(checked) =>
+                            handleBackupChange("cloudBackup", checked)
+                          }
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Backup Verification</Label>
-                          <p className="text-sm text-muted-foreground">Verify backup integrity automatically</p>
+                          <p className="text-sm text-muted-foreground">
+                            Verify backup integrity automatically
+                          </p>
                         </div>
-                        <Switch 
+                        <Switch
                           checked={backupSettings.backupVerification}
-                          onCheckedChange={(checked) => handleBackupChange("backupVerification", checked)}
+                          onCheckedChange={(checked) =>
+                            handleBackupChange("backupVerification", checked)
+                          }
                         />
                       </div>
                     </div>
@@ -694,9 +921,13 @@ export default function AdminSettingsPage() {
                     <Database className="h-4 w-4" />
                     <AlertTitle>Backup Status</AlertTitle>
                     <AlertDescription>
-                      Last backup: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+                      Last backup: {new Date().toLocaleDateString()} at{" "}
+                      {new Date().toLocaleTimeString()}
                       <br />
-                      Next scheduled backup: {new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString()}
+                      Next scheduled backup:{" "}
+                      {new Date(
+                        Date.now() + 24 * 60 * 60 * 1000
+                      ).toLocaleDateString()}
                     </AlertDescription>
                   </Alert>
                 </CardContent>
@@ -706,5 +937,5 @@ export default function AdminSettingsPage() {
         </Tabs>
       </div>
     </AdminLayout>
-  )
+  );
 }

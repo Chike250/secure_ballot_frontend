@@ -113,7 +113,8 @@ export default function DashboardPage() {
 
   // Individual loading states
   const [isDashboardLoading, setIsDashboardLoading] = useState(false);
-  
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+
   // Store statistics data
   const [electionStatistics, setElectionStatistics] = useState<any>(null);
 
@@ -144,8 +145,6 @@ export default function DashboardPage() {
     checkVotingStatus,
   } = useElectionData();
 
-
-
   // Election types mapping
   const ELECTION_TYPES_MAP: Record<string, string> = {
     presidential: "Presidential Election",
@@ -161,27 +160,33 @@ export default function DashboardPage() {
     }
 
     const availableTypes: Record<string, string> = {};
-    
-      elections.forEach((election) => {
-    const eType = (election as any).electionType || election.type;
-    if (!eType) return;
 
-    const normalizedType = eType.toLowerCase();
-    console.log("📊 Dashboard: Processing election type:", eType, "->", normalizedType);
-      
-          // Map API election types to our type keys
-    if (normalizedType.includes("president")) {
-      availableTypes.presidential = ELECTION_TYPES_MAP.presidential;
-    } else if (normalizedType.includes("governor") || normalizedType.includes("gubernatorial")) {
-      availableTypes.gubernatorial = ELECTION_TYPES_MAP.gubernatorial;
-    } else if (normalizedType.includes("house") || normalizedType.includes("representative")) {
-      availableTypes["house-of-reps"] = ELECTION_TYPES_MAP["house-of-reps"];
-    } else if (normalizedType.includes("senate") || normalizedType.includes("senator")) {
-      availableTypes.senatorial = ELECTION_TYPES_MAP.senatorial;
-    }
+    elections.forEach((election) => {
+      const eType = (election as any).electionType || election.type;
+      if (!eType) return;
+
+      const normalizedType = eType.toLowerCase();
+      // Map API election types to our type keys
+      if (normalizedType.includes("president")) {
+        availableTypes.presidential = ELECTION_TYPES_MAP.presidential;
+      } else if (
+        normalizedType.includes("governor") ||
+        normalizedType.includes("gubernatorial")
+      ) {
+        availableTypes.gubernatorial = ELECTION_TYPES_MAP.gubernatorial;
+      } else if (
+        normalizedType.includes("house") ||
+        normalizedType.includes("representative")
+      ) {
+        availableTypes["house-of-reps"] = ELECTION_TYPES_MAP["house-of-reps"];
+      } else if (
+        normalizedType.includes("senate") ||
+        normalizedType.includes("senator")
+      ) {
+        availableTypes.senatorial = ELECTION_TYPES_MAP.senatorial;
+      }
     });
 
-    console.log("📊 Dashboard: Available election types:", availableTypes);
     return availableTypes;
   };
 
@@ -215,27 +220,42 @@ export default function DashboardPage() {
     },
   ]);
 
-  // Main dashboard initialization effect
+  // Optimized dashboard initialization effect
   useEffect(() => {
     const initializeDashboard = async () => {
       // Handle authentication redirect
       if (!isInitialized) return;
-      
+
       if (!isAuthenticated) {
         router.push("/login?from=/dashboard");
         return;
       }
 
+      // Prevent multiple simultaneous calls
+      if (isInitialLoading || isDashboardLoading) {
+        return;
+      }
+
+      // Check if we already have essential data
+      const hasEssentialData =
+        elections &&
+        elections.length > 0 &&
+        currentElection &&
+        (candidates.length > 0 || electionStatistics);
+      if (hasEssentialData) {
+        return;
+      }
+
       try {
-        // Step 1: Get all elections first
-        console.log("📊 Dashboard: Step 1 - Fetching all elections...");
-        await fetchElections();
-        console.log("📊 Dashboard: Elections fetched successfully, total:", elections.length);
+        setIsInitialLoading(true);
+
+        // Step 1: Get all elections first (only if we don't have them)
+        if (!elections || elections.length === 0) {
+          await fetchElections();
+        }
 
         // Step 2: Find the right election by type
         if (electionType) {
-          console.log("📊 Dashboard: Step 2 - Finding election by type:", electionType);
-          
           const election = elections.find((e) => {
             const eType = (e as any).electionType || e.type;
             if (!eType) return false;
@@ -244,59 +264,87 @@ export default function DashboardPage() {
             return (
               normalizedType.includes(electionType.toLowerCase()) ||
               normalizedType === electionType.toLowerCase() ||
-              (electionType === "presidential" && normalizedType.includes("president")) ||
-              (electionType === "gubernatorial" && (normalizedType.includes("governor") || normalizedType.includes("gubernatorial"))) ||
-              (electionType === "house-of-reps" && (normalizedType.includes("house") || normalizedType.includes("representative"))) ||
-              (electionType === "senatorial" && (normalizedType.includes("senate") || normalizedType.includes("senator")))
+              (electionType === "presidential" &&
+                normalizedType.includes("president")) ||
+              (electionType === "gubernatorial" &&
+                (normalizedType.includes("governor") ||
+                  normalizedType.includes("gubernatorial"))) ||
+              (electionType === "house-of-reps" &&
+                (normalizedType.includes("house") ||
+                  normalizedType.includes("representative"))) ||
+              (electionType === "senatorial" &&
+                (normalizedType.includes("senate") ||
+                  normalizedType.includes("senator")))
             );
           });
 
           if (election) {
-            console.log("📊 Dashboard: Step 3 - Found election:", election.id, election.name);
-            setCurrentElection(election);
-            
-            // Step 3: Fetch individual API data for the election
-            console.log("📊 Dashboard: Step 4 - Fetching individual API data for election ID:", election.id);
-            
-            setIsDashboardLoading(true);
-            try {
-              // Use individual API calls
-              const [detailsResult, candidatesResult, statisticsResult, realTimeResult, votingStatusResult] = await Promise.all([
-                fetchElectionDetails(election.id).catch(e => { console.error("Failed to fetch election details:", e); return null; }),
-                fetchCandidates(election.id).catch(e => { console.error("Failed to fetch candidates:", e); return null; }),
-                fetchStatistics(election.id).catch(e => { console.error("Failed to fetch statistics:", e); return null; }),
-                getRealTimeResults(election.id).catch(e => { console.error("Failed to fetch real-time results:", e); return null; }),
-                checkVotingStatus(election.id).catch(e => { console.error("Failed to check voting status:", e); return null; })
-              ]);
-              
-              // Store statistics data if successful
-              if (statisticsResult) {
-                console.log("📊 Dashboard: Statistics data received:", statisticsResult);
-                setElectionStatistics(statisticsResult);
-              }
-              
-              console.log("📊 Dashboard: Individual API calls completed successfully");
-            } catch (error) {
-              console.error("📊 Dashboard: Individual API calls failed:", error);
-              setError("Failed to load dashboard data");
-            } finally {
-              setIsDashboardLoading(false);
+            // Only set current election if it's different
+            if (!currentElection || currentElection.id !== election.id) {
+              setCurrentElection(election);
             }
 
-            // Fetch results if on results tab
-            if (activeTab === "results") {
-              console.log("📊 Dashboard: Fetching results for results tab");
-              await fetchResults(election.id).catch(e => console.error("Failed to fetch results:", e));
+            // Step 4: Fetch individual API data for the election (only if we don't have essential data)
+            const needsData = !candidates.length && !electionStatistics;
+            if (needsData) {
+              try {
+                // Use individual API calls
+                const [
+                  detailsResult,
+                  candidatesResult,
+                  statisticsResult,
+                  realTimeResult,
+                  votingStatusResult,
+                ] = await Promise.all([
+                  fetchElectionDetails(election.id).catch((e) => {
+                    console.error("Failed to fetch election details:", e);
+                    return null;
+                  }),
+                  fetchCandidates(election.id).catch((e) => {
+                    console.error("Failed to fetch candidates:", e);
+                    return null;
+                  }),
+                  fetchStatistics(election.id).catch((e) => {
+                    console.error("Failed to fetch statistics:", e);
+                    return null;
+                  }),
+                  getRealTimeResults(election.id).catch((e) => {
+                    console.error("Failed to fetch real-time results:", e);
+                    return null;
+                  }),
+                  checkVotingStatus(election.id).catch((e) => {
+                    console.error("Failed to check voting status:", e);
+                    return null;
+                  }),
+                ]);
+
+                // Store statistics data if successful
+                if (statisticsResult) {
+                  setElectionStatistics(statisticsResult);
+                }
+              } catch (error) {
+                setError("Failed to load dashboard data");
+              }
+
+              // Fetch results if on results tab
+              if (activeTab === "results") {
+                await fetchResults(election.id).catch((e) =>
+                  console.error("Failed to fetch results:", e)
+                );
+              }
             }
-            
           } else {
-            console.warn("📊 Dashboard: No election found for type:", electionType);
-            setError(`No ${ELECTION_TYPES_MAP[electionType] || electionType} election found`);
+            setError(
+              `No ${
+                ELECTION_TYPES_MAP[electionType] || electionType
+              } election found`
+            );
           }
         }
       } catch (error) {
-        console.error("📊 Dashboard: Critical initialization error:", error);
         setError("Failed to initialize dashboard. Please refresh the page.");
+      } finally {
+        setIsInitialLoading(false);
       }
     };
 
@@ -304,7 +352,8 @@ export default function DashboardPage() {
     if (isInitialized && electionType) {
       initializeDashboard();
     }
-  }, [electionType, isAuthenticated, isInitialized, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [electionType, isAuthenticated, isInitialized]); // Removed activeTab dependency
 
   const handleCandidateSelect = (candidate: any) => {
     setSelectedCandidateId(candidate.id);
@@ -333,24 +382,23 @@ export default function DashboardPage() {
   const getTotalVotes = () => {
     // First check statistics data
     if (electionStatistics?.votingStatistics?.totalVotesCast) {
-      console.log("📊 Dashboard: Total votes from statistics:", electionStatistics.votingStatistics.totalVotesCast);
       return electionStatistics.votingStatistics.totalVotesCast;
     }
-    
+
     // Fallback to election results
     if (electionResults) {
-      console.log("📊 Dashboard: Total votes from election results:", electionResults.totalVotes);
       return electionResults.totalVotes;
     }
-    
+
     // Calculate from candidates as fallback
     const candidatesArray = Array.isArray(candidates) ? candidates : [];
-    const candidateVotes = candidatesArray.reduce((total, candidate) => total + (candidate.votes || 0), 0);
+    const candidateVotes = candidatesArray.reduce(
+      (total, candidate) => total + (candidate.votes || 0),
+      0
+    );
     if (candidateVotes > 0) {
-      console.log("📊 Dashboard: Total votes calculated from candidates:", candidateVotes);
       return candidateVotes;
     }
-    console.log("📊 Dashboard: No total votes data available");
     return 0;
   };
 
@@ -359,7 +407,7 @@ export default function DashboardPage() {
     if (electionStatistics?.votingStatistics?.voterTurnoutPercentage) {
       return electionStatistics.votingStatistics.voterTurnoutPercentage;
     }
-    
+
     // Fallback to election results
     if (electionResults && electionResults.turnout) {
       return electionResults.turnout;
@@ -372,7 +420,7 @@ export default function DashboardPage() {
     if (electionStatistics?.votingStatistics?.validVotes) {
       return electionStatistics.votingStatistics.validVotes;
     }
-    
+
     // Fallback to calculating from candidates
     if (electionResults) {
       const candidatesArray = Array.isArray(candidates) ? candidates : [];
@@ -389,12 +437,12 @@ export default function DashboardPage() {
     if (electionStatistics?.votingStatistics?.invalidVotes) {
       return electionStatistics.votingStatistics.invalidVotes;
     }
-    
+
     // Fallback to election results
     if (electionResults && (electionResults as any).invalidVotes) {
       return (electionResults as any).invalidVotes;
     }
-    
+
     // Calculate from total and valid votes
     const total = getTotalVotes();
     const valid = getValidVotes();
@@ -406,7 +454,7 @@ export default function DashboardPage() {
     if (electionStatistics?.votingStatistics?.totalRegisteredVoters) {
       return electionStatistics.votingStatistics.totalRegisteredVoters;
     }
-    
+
     // Fallback to current election
     if (currentElection && (currentElection as any).totalRegisteredVoters) {
       return (currentElection as any).totalRegisteredVoters;
@@ -419,7 +467,7 @@ export default function DashboardPage() {
     if (electionStatistics?.pollingUnitStatistics?.pollingUnitsReported) {
       return electionStatistics.pollingUnitStatistics.pollingUnitsReported;
     }
-    
+
     // Fallback to election results
     if (electionResults && (electionResults as any).pollingUnitsReported) {
       return (electionResults as any).pollingUnitsReported;
@@ -432,7 +480,7 @@ export default function DashboardPage() {
     if (electionStatistics?.pollingUnitStatistics?.totalPollingUnits) {
       return electionStatistics.pollingUnitStatistics.totalPollingUnits;
     }
-    
+
     // Fallback to current election
     if (currentElection && (currentElection as any).totalPollingUnits) {
       return (currentElection as any).totalPollingUnits;
@@ -445,12 +493,12 @@ export default function DashboardPage() {
     if (electionStatistics?.pollingUnitStatistics?.reportingPercentage) {
       return electionStatistics.pollingUnitStatistics.reportingPercentage;
     }
-    
+
     // Fallback to election results
     if (electionResults && (electionResults as any).reportingPercentage) {
       return (electionResults as any).reportingPercentage;
     }
-    
+
     // Calculate from reported and total polling units
     const reported = getPollingUnitsReported();
     const total = getTotalPollingUnits();
@@ -466,8 +514,10 @@ export default function DashboardPage() {
 
   const getCandidateResults = () => {
     // First check statistics data for candidate results
-    if (electionStatistics?.candidateStatistics && Array.isArray(electionStatistics.candidateStatistics)) {
-      console.log("📊 Dashboard: Using candidate statistics data:", electionStatistics.candidateStatistics.length);
+    if (
+      electionStatistics?.candidateStatistics &&
+      Array.isArray(electionStatistics.candidateStatistics)
+    ) {
       return electionStatistics.candidateStatistics.map((candidate: any) => ({
         id: candidate.candidateId,
         name: candidate.name,
@@ -477,29 +527,30 @@ export default function DashboardPage() {
         percentage: candidate.percentage,
         rank: candidate.rank,
         // Keep original fields
-        ...candidate
+        ...candidate,
       }));
     }
-    
+
     // Fallback to candidates from election store
     const fallbackCandidates = Array.isArray(candidates) ? candidates : [];
-    console.log("📊 Dashboard: Using candidates data:", fallbackCandidates.length);
+
     return fallbackCandidates;
   };
 
   // Filter candidates based on search term
   const getFilteredCandidates = () => {
     const allCandidates = getCandidateResults();
-    
+
     if (!searchTerm) {
       return allCandidates;
     }
-    
+
     const searchLower = searchTerm.toLowerCase();
-    return allCandidates.filter((candidate: any) => 
-      candidate.name?.toLowerCase().includes(searchLower) ||
-      candidate.party?.toLowerCase().includes(searchLower) ||
-      candidate.partyCode?.toLowerCase().includes(searchLower)
+    return allCandidates.filter(
+      (candidate: any) =>
+        candidate.name?.toLowerCase().includes(searchLower) ||
+        candidate.party?.toLowerCase().includes(searchLower) ||
+        candidate.partyCode?.toLowerCase().includes(searchLower)
     );
   };
 
@@ -510,7 +561,7 @@ export default function DashboardPage() {
   };
 
   const getLiveUpdates = () => {
-    // Return empty array for now - this would come from real-time results  
+    // Return empty array for now - this would come from real-time results
     return [];
   };
 
@@ -694,7 +745,9 @@ export default function DashboardPage() {
                     <SidebarMenuItem>
                       <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
                         <Users className="mr-2 h-4 w-4" />
-                        {elections.length === 0 ? "Loading elections..." : "No elections available"}
+                        {elections.length === 0
+                          ? "Loading elections..."
+                          : "No elections available"}
                       </div>
                     </SidebarMenuItem>
                   )}
@@ -758,35 +811,59 @@ export default function DashboardPage() {
                   const election = elections.find((e) =>
                     e.type?.toLowerCase().includes(electionType)
                   );
-                  if (election) {
+                  if (election && !isDashboardLoading && !isInitialLoading) {
                     setIsDashboardLoading(true);
                     try {
-                      const [detailsResult, candidatesResult, statisticsResult, realTimeResult, votingStatusResult] = await Promise.all([
-                        fetchElectionDetails(election.id),
-                        fetchCandidates(election.id),
-                        fetchStatistics(election.id),
-                        getRealTimeResults(election.id),
-                        checkVotingStatus(election.id)
+                      const [
+                        detailsResult,
+                        candidatesResult,
+                        statisticsResult,
+                        realTimeResult,
+                        votingStatusResult,
+                      ] = await Promise.all([
+                        fetchElectionDetails(election.id).catch((e) => {
+                          console.error("Failed to fetch election details:", e);
+                          return null;
+                        }),
+                        fetchCandidates(election.id).catch((e) => {
+                          console.error("Failed to fetch candidates:", e);
+                          return null;
+                        }),
+                        fetchStatistics(election.id).catch((e) => {
+                          console.error("Failed to fetch statistics:", e);
+                          return null;
+                        }),
+                        getRealTimeResults(election.id).catch((e) => {
+                          console.error(
+                            "Failed to fetch real-time results:",
+                            e
+                          );
+                          return null;
+                        }),
+                        checkVotingStatus(election.id).catch((e) => {
+                          console.error("Failed to check voting status:", e);
+                          return null;
+                        }),
                       ]);
-                      
+
                       // Store statistics data if successful
                       if (statisticsResult) {
-                        console.log("📊 Dashboard: Refresh - Statistics data received:", statisticsResult);
                         setElectionStatistics(statisticsResult);
                       }
                     } catch (error) {
                       console.error("Failed to refresh dashboard:", error);
+                      setError("Failed to refresh dashboard data");
                     } finally {
                       setIsDashboardLoading(false);
                     }
                   }
                 }}
-                disabled={isDashboardLoading}
+                disabled={isDashboardLoading || isInitialLoading}
                 className="rounded-full"
               >
                 <RefreshCw
                   className={`h-4 w-4 ${
-                    isDashboardLoading ? "animate-spin" : ""
+                    isDashboardLoading || isInitialLoading ? "animate-spin" : ""
                   }`}
                 />
               </Button>
@@ -1506,7 +1583,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                    {isLoading || isDashboardLoading ? (
+                    {isLoading || isDashboardLoading || isInitialLoading ? (
                       <div className="space-y-4">
                         {[1, 2, 3, 4].map((i) => (
                           <div
@@ -1532,16 +1609,14 @@ export default function DashboardPage() {
                           <Search className="h-6 w-6 text-muted-foreground" />
                         </div>
                         <h3 className="text-lg font-medium">
-                          {searchTerm 
+                          {searchTerm
                             ? `No candidates found for "${searchTerm}"`
-                            : "No candidates found"
-                          }
+                            : "No candidates found"}
                         </h3>
                         <p className="text-muted-foreground mt-1">
-                          {searchTerm 
+                          {searchTerm
                             ? "Try a different search term or clear the search"
-                            : "No candidates are available for this election"
-                          }
+                            : "No candidates are available for this election"}
                         </p>
                         {searchTerm && (
                           <Button
@@ -1573,7 +1648,10 @@ export default function DashboardPage() {
                               }
                             >
                               <Avatar className="mr-4 h-16 w-16">
-                                <AvatarImage src={candidate.image} alt={candidate.name} />
+                                <AvatarImage
+                                  src={candidate.image}
+                                  alt={candidate.name}
+                                />
                                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
                                   {candidate.name
                                     ?.split(" ")
@@ -1685,7 +1763,10 @@ export default function DashboardPage() {
                               >
                                 <td className="p-2 flex items-center gap-2">
                                   <Avatar className="h-8 w-8">
-                                    <AvatarImage src={candidate.image} alt={candidate.name} />
+                                    <AvatarImage
+                                      src={candidate.image}
+                                      alt={candidate.name}
+                                    />
                                     <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs">
                                       {candidate.name
                                         ?.split(" ")
@@ -2362,13 +2443,18 @@ export default function DashboardPage() {
                     {selectedCandidateId && (
                       <>
                         <Avatar className="h-16 w-16">
-                          <AvatarImage 
-                            src={candidates.find((c) => c.id === selectedCandidateId)?.image} 
-                            alt="Selected candidate" 
+                          <AvatarImage
+                            src={
+                              candidates.find(
+                                (c) => c.id === selectedCandidateId
+                              )?.image
+                            }
+                            alt="Selected candidate"
                           />
                           <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
-                            {candidates.find((c) => c.id === selectedCandidateId)?.name
-                              ?.split(" ")
+                            {candidates
+                              .find((c) => c.id === selectedCandidateId)
+                              ?.name?.split(" ")
                               .map((word: string) => word.charAt(0))
                               .join("")
                               .toUpperCase()

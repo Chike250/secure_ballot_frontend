@@ -1,21 +1,20 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { SearchIcon, Filter } from "lucide-react"
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SearchIcon, Filter } from "lucide-react";
 
 export function Search() {
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     // In a real application, this would trigger a search API call
-    console.log("Searching for:", searchQuery)
-  }
+  };
 
   return (
     <Card>
@@ -58,5 +57,5 @@ export function Search() {
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }
