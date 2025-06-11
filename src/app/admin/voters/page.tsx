@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { AdminHeader } from "@/components/admin/admin-header"
+import { AdminLayout } from "@/components/admin/admin-layout"
 import { useAdminData } from "@/hooks/useAdminData"
 import { useAuthStore } from "@/store/useStore"
 import { useRouter } from "next/navigation"
@@ -18,8 +18,9 @@ export default function AdminVotersPage() {
   const { isAdmin, systemStatistics, fetchSystemStatistics } = useAdminData()
   const [searchTerm, setSearchTerm] = useState("")
 
-  // Redirect if not authenticated or not admin
+  // Combined useEffect for authentication, redirect, and data loading
   useEffect(() => {
+    // Handle authentication and redirect first
     if (!isAuthenticated) {
       router.push("/admin/login")
       return
@@ -29,14 +30,11 @@ export default function AdminVotersPage() {
       router.push("/dashboard")
       return
     }
-  }, [isAuthenticated, isAdmin, router])
 
-  // Load statistics on mount
-  useEffect(() => {
-    if (isAuthenticated && isAdmin) {
-      fetchSystemStatistics()
-    }
-  }, [isAuthenticated, isAdmin, fetchSystemStatistics])
+    // Load statistics if authenticated and admin
+    fetchSystemStatistics()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAdmin, router])
 
   if (!isAuthenticated || !isAdmin) {
     return (
@@ -50,9 +48,8 @@ export default function AdminVotersPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AdminHeader />
-      <div className="flex-1 space-y-8 p-6 md:p-8">
+    <AdminLayout>
+      <div className="space-y-8 p-6 md:p-8">
         <div className="flex items-center justify-between">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -212,7 +209,7 @@ export default function AdminVotersPage() {
                     status: 'verified',
                     lastActivity: '2024-01-21'
                   }
-                ].filter(voter => 
+                ].filter((voter) => 
                   voter.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   voter.vin.includes(searchTerm) ||
                   voter.phone.includes(searchTerm)
@@ -285,6 +282,6 @@ export default function AdminVotersPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminLayout>
   )
 } 

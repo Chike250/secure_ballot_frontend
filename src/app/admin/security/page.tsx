@@ -6,7 +6,7 @@ import { ArrowLeft, Shield, AlertTriangle, Eye, Lock, Activity, RefreshCw } from
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AdminHeader } from "@/components/admin/admin-header"
+import { AdminLayout } from "@/components/admin/admin-layout"
 import { useAdminData } from "@/hooks/useAdminData"
 import { useAuthStore } from "@/store/useStore"
 import { useRouter } from "next/navigation"
@@ -64,9 +64,8 @@ export default function AdminSecurityPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AdminHeader />
-      <div className="flex-1 space-y-8 p-6 md:p-8">
+    <AdminLayout>
+      <div className="space-y-8 p-6 md:p-8">
         <div className="flex items-center justify-between">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -231,6 +230,6 @@ export default function AdminSecurityPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminLayout>
   )
 } 

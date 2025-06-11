@@ -8,14 +8,14 @@ import { ElectionManagement } from "@/components/admin/election-management"
 import { VoterOverview } from "@/components/admin/voter-overview"
 import { AuditLogs } from "@/components/admin/audit-logs"
 import { NotificationsAlerts } from "@/components/admin/notifications-alerts"
-import { AdminHeader } from "@/components/admin/admin-header"
+import { AdminLayout } from "@/components/admin/admin-layout"
 import { ElectionControl } from "@/components/admin/election-control"
 import { SecurityPanel } from "@/components/admin/security-panel"
 import { TrafficMonitoring } from "@/components/admin/traffic-monitoring"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, Plus, FileText, Users, Database, Settings, BarChart3 } from "lucide-react"
+import { AlertCircle, Plus, FileText, Users, Database, Settings, BarChart3, RefreshCw } from "lucide-react"
 import { useAdminData } from "@/hooks/useAdminData"
 import { useElectionData } from "@/hooks/useElectionData"
 import { useAuthStore, useUIStore } from "@/store/useStore"
@@ -26,6 +26,7 @@ export default function AdminDashboardPage() {
   const { user, isAuthenticated } = useAuthStore()
   const { error } = useUIStore()
   const [activeTab, setActiveTab] = useState("overview")
+  const [isReloading, setIsReloading] = useState(false)
 
   // Admin data hooks
   const {
@@ -35,7 +36,6 @@ export default function AdminDashboardPage() {
     systemStatistics,
     suspiciousActivities,
     fetchDashboardData,
-    refreshCriticalData,
     isAdmin
   } = useAdminData()
 
@@ -45,8 +45,24 @@ export default function AdminDashboardPage() {
     fetchElections
   } = useElectionData()
 
-  // Redirect if not authenticated or not admin
+  // Manual reload function
+  const handleReload = async () => {
+    setIsReloading(true)
+    try {
+      await Promise.all([
+        fetchDashboardData(),
+        fetchElections()
+      ])
+    } catch (err) {
+      console.error("Failed to reload admin data:", err)
+    } finally {
+      setIsReloading(false)
+    }
+  }
+
+  // Single useEffect for authentication, redirect, and data loading
   useEffect(() => {
+    // Handle authentication and redirect
     if (!isAuthenticated) {
       router.push("/admin/login")
       return
@@ -56,12 +72,8 @@ export default function AdminDashboardPage() {
       router.push("/dashboard") // Redirect regular users to normal dashboard
       return
     }
-  }, [isAuthenticated, isAdmin, router])
 
-  // Load initial data and set up auto-refresh
-  useEffect(() => {
-    if (!isAuthenticated || !isAdmin) return
-
+    // Load initial data if authenticated and admin
     const loadAdminData = async () => {
       try {
         // Single combined API call for all dashboard data
@@ -73,22 +85,9 @@ export default function AdminDashboardPage() {
       }
     }
 
-    // Load initial data
     loadAdminData()
-
-    // Set up auto-refresh interval (30 seconds) - only refresh critical data
-    const interval = setInterval(async () => {
-      try {
-        await refreshCriticalData()
-      } catch (err) {
-        console.error("Failed to refresh admin data:", err)
-      }
-    }, 30000)
-
-    // Cleanup interval on unmount
-    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isAdmin])
+  }, [isAuthenticated, isAdmin, router])
 
   if (!isAuthenticated || !isAdmin) {
     return (
@@ -115,9 +114,8 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AdminHeader />
-      <div className="flex-1 space-y-8 p-6 md:p-8">
+    <AdminLayout>
+      <div className="space-y-8 p-6 md:p-8">
         <div className="flex items-center justify-between">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -131,7 +129,7 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {systemStatistics && (
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1">
@@ -146,6 +144,24 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleReload}
+              disabled={isReloading}
+            >
+              {isReloading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Reloading...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Reload
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
@@ -240,6 +256,6 @@ export default function AdminDashboardPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </AdminLayout>
   )
 }

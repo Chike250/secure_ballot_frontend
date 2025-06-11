@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { AdminHeader } from "@/components/admin/admin-header"
+import { AdminLayout } from "@/components/admin/admin-layout"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
@@ -206,9 +206,8 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AdminHeader />
-      <div className="flex-1 space-y-8 p-6 md:p-8">
+    <AdminLayout>
+      <div className="space-y-8 p-6 md:p-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
@@ -706,6 +705,6 @@ export default function AdminSettingsPage() {
           </div>
         </Tabs>
       </div>
-    </div>
+    </AdminLayout>
   )
 }

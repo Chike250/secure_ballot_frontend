@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Users, UserCheck, UserX, Search, Filter, Download, MoreHorizontal } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -57,6 +58,38 @@ const mockVoters = [
 ]
 
 export function VoterOverview() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [regionFilter, setRegionFilter] = useState("all")
+
+  // Filter mock data based on search and filters
+  const filteredVoters = mockVoters.filter((voter) => {
+    const matchesSearch = 
+      voter.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      voter.vin.includes(searchTerm) ||
+      voter.pollingUnit.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = statusFilter === "all" || voter.status === statusFilter
+    
+    const matchesRegion = regionFilter === "all" || (() => {
+      const state = voter.pollingUnit.split('/')[0].toLowerCase()
+      switch (regionFilter) {
+        case "north":
+          return ["kano", "kaduna"].includes(state)
+        case "south":
+          return ["lagos", "oyo", "osun"].includes(state)
+        case "east":
+          return ["enugu", "anambra", "imo"].includes(state)
+        case "west":
+          return ["lagos", "oyo", "osun", "ogun"].includes(state)
+        default:
+          return true
+      }
+    })()
+    
+    return matchesSearch && matchesStatus && matchesRegion
+  })
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -187,10 +220,15 @@ export function VoterOverview() {
             <div className="flex flex-col gap-4 sm:flex-row">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search voters by name or VIN..." className="pl-8" />
+                <Input 
+                  placeholder="Search voters by name, VIN, or polling unit..." 
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
               <div className="flex gap-2">
-                <Select defaultValue="all">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[130px]">
                     <div className="flex items-center gap-2">
                       <Filter className="h-4 w-4" />
@@ -204,7 +242,7 @@ export function VoterOverview() {
                   </SelectContent>
                 </Select>
 
-                <Select defaultValue="all">
+                <Select value={regionFilter} onValueChange={setRegionFilter}>
                   <SelectTrigger className="w-[130px]">
                     <div className="flex items-center gap-2">
                       <Filter className="h-4 w-4" />
@@ -234,25 +272,38 @@ export function VoterOverview() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockVoters.map((voter) => (
-                    <TableRow key={voter.id}>
-                      <TableCell className="font-medium">{voter.name}</TableCell>
-                      <TableCell>{voter.vin}</TableCell>
-                      <TableCell>
-                        <Badge variant={voter.status === "active" ? "default" : "outline"} className="capitalize">
-                          {voter.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{voter.pollingUnit}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                  {filteredVoters.length > 0 ? (
+                    filteredVoters.map((voter) => (
+                      <TableRow key={voter.id}>
+                        <TableCell className="font-medium">{voter.name}</TableCell>
+                        <TableCell>{voter.vin}</TableCell>
+                        <TableCell>
+                          <Badge variant={voter.status === "active" ? "default" : "outline"} className="capitalize">
+                            {voter.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{voter.pollingUnit}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No voters found matching your search criteria
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
+            </div>
+            
+            {/* Results summary */}
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredVoters.length} of {mockVoters.length} voters
             </div>
           </div>
         </CardContent>

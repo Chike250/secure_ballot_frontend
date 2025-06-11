@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAdminStore, useUIStore, useAuthStore } from '@/store/useStore';
 import { adminAPI } from '@/services/api';
 
@@ -141,10 +141,19 @@ export const useAdminData = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await adminAPI.getPollingUnits(state, lga, page, limit);
-      if (response.success) {
-        setPollingUnits(response.data);
-        return response.data;
+      if (state) {
+        const response = await adminAPI.getRegionalPollingUnits(state, page, limit, undefined, lga);
+        if (response.success) {
+          setPollingUnits(response.data);
+          return response.data;
+        }
+      } else {
+        // If no state provided, get from dashboard data
+        const response = await adminAPI.getDashboardData();
+        if (response.success && response.data.pollingUnits) {
+          setPollingUnits(response.data.pollingUnits);
+          return response.data.pollingUnits;
+        }
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to fetch polling units';
@@ -239,12 +248,12 @@ export const useAdminData = () => {
     }
   };
 
-  // Verification Management
-  const fetchVerificationRequests = async (status?: string, page = 1, limit = 50) => {
+  // Verification Management - wrap with useCallback
+  const fetchVerificationRequests = useCallback(async (status?: string, page = 1, limit = 50) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await adminAPI.getVerificationRequests(status, page, limit);
+      const response = await adminAPI.getPendingVerifications(page, limit);
       if (response.success) {
         setVerificationRequests(response.data);
         return response.data;
@@ -259,7 +268,7 @@ export const useAdminData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setError, addNotification, setVerificationRequests]);
 
   const approveVerification = async (id: string) => {
     try {
@@ -315,8 +324,8 @@ export const useAdminData = () => {
     }
   };
 
-  // Audit Logs
-  const fetchAuditLogs = async (userId?: string, actionType?: string, page = 1, limit = 50) => {
+  // Audit Logs - wrap with useCallback
+  const fetchAuditLogs = useCallback(async (userId?: string, actionType?: string, page = 1, limit = 50) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -335,17 +344,18 @@ export const useAdminData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setError, addNotification, setAuditLogs]);
 
-  // System Statistics
-  const fetchSystemStatistics = async () => {
+  // System Statistics - wrap with useCallback to prevent infinite loops
+  const fetchSystemStatistics = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await adminAPI.getSystemStatistics();
-      if (response.success) {
-        setSystemStatistics(response.data);
-        return response.data;
+      // Get statistics from dashboard API instead
+      const response = await adminAPI.getDashboardData();
+      if (response.success && response.data.systemStatistics) {
+        setSystemStatistics(response.data.systemStatistics);
+        return response.data.systemStatistics;
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to fetch system statistics';
@@ -357,17 +367,18 @@ export const useAdminData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setError, addNotification, setSystemStatistics]);
 
-  // Security
-  const fetchSuspiciousActivities = async (page = 1, limit = 50) => {
+  // Security - wrap with useCallback
+  const fetchSuspiciousActivities = useCallback(async (page = 1, limit = 50) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await adminAPI.getSuspiciousActivities(page, limit);
-      if (response.success) {
-        setSuspiciousActivities(response.data);
-        return response.data;
+      // Get suspicious activities from dashboard API or security logs
+      const response = await adminAPI.getDashboardData();
+      if (response.success && response.data.suspiciousActivities) {
+        setSuspiciousActivities(response.data.suspiciousActivities);
+        return response.data.suspiciousActivities;
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to fetch suspicious activities';
@@ -379,66 +390,26 @@ export const useAdminData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setError, addNotification, setSuspiciousActivities]);
 
+  // User blocking functionality not available in current API
   const blockUser = async (userId: string, reason: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await adminAPI.blockUser(userId, reason);
-      if (response.success) {
-        addNotification({
-          type: 'success',
-          message: 'User blocked successfully!',
-        });
-        return response.data;
-      }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to block user';
-      setError(errorMessage);
-      addNotification({
-        type: 'error',
-        message: errorMessage,
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+    console.warn('Block user functionality not available in current API');
+    throw new Error('Block user functionality not available');
   };
 
   const unblockUser = async (userId: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await adminAPI.unblockUser(userId);
-      if (response.success) {
-        addNotification({
-          type: 'success',
-          message: 'User unblocked successfully!',
-        });
-        return response.data;
-      }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to unblock user';
-      setError(errorMessage);
-      addNotification({
-        type: 'error',
-        message: errorMessage,
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+    console.warn('Unblock user functionality not available in current API');
+    throw new Error('Unblock user functionality not available');
   };
 
-  // System Settings Management
+  // System Settings Management (Local Storage Only - No API Available)
   const updateSystemSettings = async (settings: any) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      // For now, store in localStorage as fallback
-      // In production, this would call an actual API
+      // Store in localStorage since no API endpoint exists for system settings
       localStorage.setItem('admin-system-settings', JSON.stringify(settings));
       
       addNotification({
@@ -461,8 +432,7 @@ export const useAdminData = () => {
 
   const getSystemSettings = async () => {
     try {
-      // For now, get from localStorage as fallback
-      // In production, this would call an actual API
+      // Get from localStorage since no API endpoint exists for system settings
       const settings = localStorage.getItem('admin-system-settings');
       return settings ? JSON.parse(settings) : null;
     } catch (error: any) {
@@ -471,8 +441,8 @@ export const useAdminData = () => {
     }
   };
 
-  // Combined Dashboard Data Fetch
-  const fetchDashboardData = async () => {
+  // Combined Dashboard Data Fetch - wrap with useCallback
+  const fetchDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -504,7 +474,7 @@ export const useAdminData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setError, addNotification, setAdminUsers, setPollingUnits, setVerificationRequests, setAuditLogs, setSystemStatistics, setSuspiciousActivities]);
 
   // Lightweight refresh for real-time data
   const refreshCriticalData = async () => {
@@ -645,9 +615,9 @@ export const useAdminData = () => {
     clearAdminData,
 
     // Computed values
-    totalAdminUsers: adminUsers.length,
-    totalPollingUnits: pollingUnits.length,
-    pendingVerifications: verificationRequests.filter(req => req.status === 'pending').length,
-    totalSuspiciousActivities: suspiciousActivities.length,
+    totalAdminUsers: adminUsers?.length || 0,
+    totalPollingUnits: pollingUnits?.length || 0,
+    pendingVerifications: Array.isArray(verificationRequests) ? verificationRequests.filter(req => req.status === 'pending').length : 0,
+    totalSuspiciousActivities: suspiciousActivities?.length || 0,
   };
 }; 

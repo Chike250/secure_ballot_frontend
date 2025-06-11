@@ -1,4 +1,6 @@
 "use client"
+
+import { useState } from "react"
 import { Filter, Search } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -55,6 +57,38 @@ const auditLogs = [
 ]
 
 export function AuditLogs() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [actionFilter, setActionFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
+
+  // Filter audit logs based on search and filters
+  const filteredLogs = auditLogs.filter((log) => {
+    const matchesSearch = 
+      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.ipAddress.includes(searchTerm) ||
+      (log.details && log.details.toLowerCase().includes(searchTerm.toLowerCase()))
+    
+    const matchesAction = actionFilter === "all" || (() => {
+      switch (actionFilter) {
+        case "login":
+          return log.action.toLowerCase().includes("login")
+        case "election":
+          return log.action.toLowerCase().includes("election")
+        case "config":
+          return log.action.toLowerCase().includes("configuration")
+        case "export":
+          return log.action.toLowerCase().includes("export")
+        default:
+          return true
+      }
+    })()
+    
+    const matchesStatus = statusFilter === "all" || log.status === statusFilter
+    
+    return matchesSearch && matchesAction && matchesStatus
+  })
+
   return (
     <Card>
       <CardHeader>
@@ -66,10 +100,15 @@ export function AuditLogs() {
           <div className="flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search logs..." className="pl-8" />
+              <Input 
+                placeholder="Search logs by action, user, IP, or details..." 
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
             <div className="flex gap-2">
-              <Select defaultValue="all">
+              <Select value={actionFilter} onValueChange={setActionFilter}>
                 <SelectTrigger className="w-[130px]">
                   <div className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
@@ -85,7 +124,7 @@ export function AuditLogs() {
                 </SelectContent>
               </Select>
 
-              <Select defaultValue="all">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[130px]">
                   <div className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
@@ -114,21 +153,41 @@ export function AuditLogs() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {auditLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="font-medium">{log.action}</TableCell>
-                    <TableCell>{log.user}</TableCell>
-                    <TableCell>{log.timestamp}</TableCell>
-                    <TableCell>{log.ipAddress}</TableCell>
-                    <TableCell>
-                      <Badge variant={log.status === "success" ? "default" : "destructive"} className="capitalize">
-                        {log.status}
-                      </Badge>
+                {filteredLogs.length > 0 ? (
+                  filteredLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-medium">
+                        <div>
+                          <div>{log.action}</div>
+                          {log.details && (
+                            <div className="text-xs text-muted-foreground mt-1">{log.details}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{log.user}</TableCell>
+                      <TableCell>{log.timestamp}</TableCell>
+                      <TableCell>{log.ipAddress}</TableCell>
+                      <TableCell>
+                        <Badge variant={log.status === "success" ? "default" : "destructive"} className="capitalize">
+                          {log.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No logs found matching your search criteria
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
+          </div>
+          
+          {/* Results summary */}
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredLogs.length} of {auditLogs.length} log entries
           </div>
         </div>
       </CardContent>
