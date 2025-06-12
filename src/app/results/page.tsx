@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   BarChart3,
   ChevronDown,
@@ -18,19 +18,44 @@ import {
   Share2,
   RefreshCw,
   AlertCircle,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { ElectionCharts } from "@/components/election-charts"
+  Vote,
+  Check,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ElectionCharts } from "@/components/election-charts";
 import {
   Sidebar,
   SidebarContent,
@@ -44,10 +69,11 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { useAuthStore, useUIStore } from "@/store/useStore"
-import { useElectionData } from "@/hooks/useElectionData"
-import { useResults } from "@/hooks/useResults"
+} from "@/components/ui/sidebar";
+import { useAuthStore, useUIStore } from "@/store/useStore";
+import { useElectionData } from "@/hooks/useElectionData";
+import { useResults } from "@/hooks/useResults";
+import { resultsAPI } from "@/services/api";
 
 // Election types
 const ELECTION_TYPES = {
@@ -55,7 +81,7 @@ const ELECTION_TYPES = {
   gubernatorial: "Gubernatorial Election",
   "house-of-reps": "House of Representatives Election",
   senatorial: "Senatorial Election",
-}
+};
 
 // Candidate data by election type
 const candidatesByElection = {
@@ -220,33 +246,139 @@ const candidatesByElection = {
       color: "#a855f7",
     },
   ],
-}
+};
 
 // Regional data
 const regionalData = [
-  { region: "North Central", apc: 2100000, pdp: 1800000, lp: 1200000, nnpp: 400000, others: 200000 },
-  { region: "North East", apc: 2400000, pdp: 1500000, lp: 800000, nnpp: 300000, others: 150000 },
-  { region: "North West", apc: 3200000, pdp: 1900000, lp: 1000000, nnpp: 600000, others: 250000 },
-  { region: "South East", apc: 500000, pdp: 800000, lp: 2500000, nnpp: 100000, others: 150000 },
-  { region: "South South", apc: 900000, pdp: 1800000, lp: 1600000, nnpp: 100000, others: 150000 },
-  { region: "South West", apc: 2400000, pdp: 1100000, lp: 1500000, nnpp: 200000, others: 100000 },
-]
+  {
+    region: "North Central",
+    apc: 2100000,
+    pdp: 1800000,
+    lp: 1200000,
+    nnpp: 400000,
+    others: 200000,
+  },
+  {
+    region: "North East",
+    apc: 2400000,
+    pdp: 1500000,
+    lp: 800000,
+    nnpp: 300000,
+    others: 150000,
+  },
+  {
+    region: "North West",
+    apc: 3200000,
+    pdp: 1900000,
+    lp: 1000000,
+    nnpp: 600000,
+    others: 250000,
+  },
+  {
+    region: "South East",
+    apc: 500000,
+    pdp: 800000,
+    lp: 2500000,
+    nnpp: 100000,
+    others: 150000,
+  },
+  {
+    region: "South South",
+    apc: 900000,
+    pdp: 1800000,
+    lp: 1600000,
+    nnpp: 100000,
+    others: 150000,
+  },
+  {
+    region: "South West",
+    apc: 2400000,
+    pdp: 1100000,
+    lp: 1500000,
+    nnpp: 200000,
+    others: 100000,
+  },
+];
 
 // State data
 const stateData = [
-  { state: "Lagos", apc: 450000, pdp: 220000, lp: 380000, nnpp: 50000, others: 30000 },
-  { state: "Kano", apc: 380000, pdp: 320000, lp: 150000, nnpp: 280000, others: 40000 },
-  { state: "Rivers", apc: 180000, pdp: 350000, lp: 320000, nnpp: 20000, others: 30000 },
-  { state: "FCT", apc: 120000, pdp: 150000, lp: 220000, nnpp: 30000, others: 20000 },
-  { state: "Kaduna", apc: 350000, pdp: 280000, lp: 180000, nnpp: 70000, others: 30000 },
-]
+  {
+    state: "Lagos",
+    apc: 450000,
+    pdp: 220000,
+    lp: 380000,
+    nnpp: 50000,
+    others: 30000,
+  },
+  {
+    state: "Kano",
+    apc: 380000,
+    pdp: 320000,
+    lp: 150000,
+    nnpp: 280000,
+    others: 40000,
+  },
+  {
+    state: "Rivers",
+    apc: 180000,
+    pdp: 350000,
+    lp: 320000,
+    nnpp: 20000,
+    others: 30000,
+  },
+  {
+    state: "FCT",
+    apc: 120000,
+    pdp: 150000,
+    lp: 220000,
+    nnpp: 30000,
+    others: 20000,
+  },
+  {
+    state: "Kaduna",
+    apc: 350000,
+    pdp: 280000,
+    lp: 180000,
+    nnpp: 70000,
+    others: 30000,
+  },
+];
 
 // Time-based voting data
 const timeData = [
-  { time: "Day 1", apc: 1200000, pdp: 900000, lp: 800000, nnpp: 200000, others: 100000, milestone: "Voting Begins" },
-  { time: "Day 2", apc: 2100000, pdp: 1700000, lp: 1500000, nnpp: 400000, others: 200000 },
-  { time: "Day 3", apc: 2800000, pdp: 2300000, lp: 2100000, nnpp: 600000, others: 300000 },
-  { time: "Day 4", apc: 3400000, pdp: 2800000, lp: 2600000, nnpp: 700000, others: 400000 },
+  {
+    time: "Day 1",
+    apc: 1200000,
+    pdp: 900000,
+    lp: 800000,
+    nnpp: 200000,
+    others: 100000,
+    milestone: "Voting Begins",
+  },
+  {
+    time: "Day 2",
+    apc: 2100000,
+    pdp: 1700000,
+    lp: 1500000,
+    nnpp: 400000,
+    others: 200000,
+  },
+  {
+    time: "Day 3",
+    apc: 2800000,
+    pdp: 2300000,
+    lp: 2100000,
+    nnpp: 600000,
+    others: 300000,
+  },
+  {
+    time: "Day 4",
+    apc: 3400000,
+    pdp: 2800000,
+    lp: 2600000,
+    nnpp: 700000,
+    others: 400000,
+  },
   {
     time: "Day 5",
     apc: 4000000,
@@ -256,7 +388,14 @@ const timeData = [
     others: 500000,
     milestone: "25% Turnout Reached",
   },
-  { time: "Day 6", apc: 4500000, pdp: 3700000, lp: 3400000, nnpp: 900000, others: 600000 },
+  {
+    time: "Day 6",
+    apc: 4500000,
+    pdp: 3700000,
+    lp: 3400000,
+    nnpp: 900000,
+    others: 600000,
+  },
   {
     time: "Day 7",
     apc: 5000000,
@@ -266,12 +405,54 @@ const timeData = [
     others: 650000,
     milestone: "Week 1 Complete",
   },
-  { time: "Day 8", apc: 5400000, pdp: 4400000, lp: 4000000, nnpp: 1100000, others: 700000 },
-  { time: "Day 9", apc: 5800000, pdp: 4700000, lp: 4300000, nnpp: 1150000, others: 750000 },
-  { time: "Day 10", apc: 6200000, pdp: 5000000, lp: 4600000, nnpp: 1200000, others: 800000 },
-  { time: "Day 11", apc: 6600000, pdp: 5300000, lp: 4800000, nnpp: 1250000, others: 850000 },
-  { time: "Day 12", apc: 7000000, pdp: 5600000, lp: 5000000, nnpp: 1300000, others: 900000 },
-  { time: "Day 13", apc: 7300000, pdp: 5900000, lp: 5200000, nnpp: 1350000, others: 920000 },
+  {
+    time: "Day 8",
+    apc: 5400000,
+    pdp: 4400000,
+    lp: 4000000,
+    nnpp: 1100000,
+    others: 700000,
+  },
+  {
+    time: "Day 9",
+    apc: 5800000,
+    pdp: 4700000,
+    lp: 4300000,
+    nnpp: 1150000,
+    others: 750000,
+  },
+  {
+    time: "Day 10",
+    apc: 6200000,
+    pdp: 5000000,
+    lp: 4600000,
+    nnpp: 1200000,
+    others: 800000,
+  },
+  {
+    time: "Day 11",
+    apc: 6600000,
+    pdp: 5300000,
+    lp: 4800000,
+    nnpp: 1250000,
+    others: 850000,
+  },
+  {
+    time: "Day 12",
+    apc: 7000000,
+    pdp: 5600000,
+    lp: 5000000,
+    nnpp: 1300000,
+    others: 900000,
+  },
+  {
+    time: "Day 13",
+    apc: 7300000,
+    pdp: 5900000,
+    lp: 5200000,
+    nnpp: 1350000,
+    others: 920000,
+  },
   {
     time: "Day 14",
     apc: 7600000,
@@ -281,14 +462,64 @@ const timeData = [
     others: 940000,
     milestone: "Week 2 Complete",
   },
-  { time: "Day 15", apc: 7900000, pdp: 6300000, lp: 5600000, nnpp: 1420000, others: 950000 },
-  { time: "Day 16", apc: 8100000, pdp: 6500000, lp: 5800000, nnpp: 1440000, others: 960000 },
-  { time: "Day 17", apc: 8200000, pdp: 6600000, lp: 5900000, nnpp: 1460000, others: 970000 },
-  { time: "Day 18", apc: 8300000, pdp: 6700000, lp: 6000000, nnpp: 1480000, others: 980000 },
-  { time: "Day 19", apc: 8400000, pdp: 6800000, lp: 6050000, nnpp: 1490000, others: 990000 },
-  { time: "Day 20", apc: 8450000, pdp: 6850000, lp: 6080000, nnpp: 1495000, others: 995000 },
-  { time: "Day 21", apc: 8500000, pdp: 6900000, lp: 6100000, nnpp: 1500000, others: 1000000, milestone: "Voting Ends" },
-]
+  {
+    time: "Day 15",
+    apc: 7900000,
+    pdp: 6300000,
+    lp: 5600000,
+    nnpp: 1420000,
+    others: 950000,
+  },
+  {
+    time: "Day 16",
+    apc: 8100000,
+    pdp: 6500000,
+    lp: 5800000,
+    nnpp: 1440000,
+    others: 960000,
+  },
+  {
+    time: "Day 17",
+    apc: 8200000,
+    pdp: 6600000,
+    lp: 5900000,
+    nnpp: 1460000,
+    others: 970000,
+  },
+  {
+    time: "Day 18",
+    apc: 8300000,
+    pdp: 6700000,
+    lp: 6000000,
+    nnpp: 1480000,
+    others: 980000,
+  },
+  {
+    time: "Day 19",
+    apc: 8400000,
+    pdp: 6800000,
+    lp: 6050000,
+    nnpp: 1490000,
+    others: 990000,
+  },
+  {
+    time: "Day 20",
+    apc: 8450000,
+    pdp: 6850000,
+    lp: 6080000,
+    nnpp: 1495000,
+    others: 995000,
+  },
+  {
+    time: "Day 21",
+    apc: 8500000,
+    pdp: 6900000,
+    lp: 6100000,
+    nnpp: 1500000,
+    others: 1000000,
+    milestone: "Voting Ends",
+  },
+];
 
 // Hourly data for a single day
 const hourlyData = [
@@ -307,7 +538,7 @@ const hourlyData = [
   { hour: "6 PM", votes: 980000 },
   { hour: "7 PM", votes: 1020000 },
   { hour: "8 PM", votes: 1050000, milestone: "Polls Close" },
-]
+];
 
 const AiAssistantPreview = () => {
   return (
@@ -315,142 +546,332 @@ const AiAssistantPreview = () => {
       <span className="animate-pulse mr-2 h-3 w-3 rounded-full bg-primary-foreground"></span>
       <span className="text-sm font-medium">AI Results Analysis Available</span>
     </div>
-  )
-}
+  );
+};
 
 export default function ResultsDashboardPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { isAuthenticated, user } = useAuthStore()
-  const { isLoading, error, setError } = useUIStore()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { isAuthenticated, user } = useAuthStore();
+  const { isLoading, error, setError } = useUIStore();
 
-  const initialElectionType = searchParams.get("type") || "presidential"
-  const [electionType, setElectionType] = useState(initialElectionType)
-  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null)
-  const [viewMode, setViewMode] = useState<"map" | "chart">("chart")
-  const [showRealTime, setShowRealTime] = useState(true)
-  const [dataLevel, setDataLevel] = useState<"national" | "regional" | "state">("national")
-  const [selectedRegion, setSelectedRegion] = useState("all")
-  const [selectedTimeRange, setSelectedTimeRange] = useState("all")
-  const [showLegend, setShowLegend] = useState(true)
-  const [refreshInterval, setRefreshInterval] = useState(0) // 0 means no auto-refresh
+  const initialElectionType = searchParams.get("type") || "presidential";
+  const [electionType, setElectionType] = useState(initialElectionType);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(
+    null
+  );
+  const [viewMode, setViewMode] = useState<"map" | "chart">("chart");
+  const [showRealTime, setShowRealTime] = useState(true);
+  const [dataLevel, setDataLevel] = useState<"national" | "regional" | "state">(
+    "national"
+  );
+  const [selectedRegion, setSelectedRegion] = useState("all");
+  const [selectedTimeRange, setSelectedTimeRange] = useState("all");
+  const [showLegend, setShowLegend] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(0); // 0 means no auto-refresh
 
   // Use the hooks for data
   const {
-    currentElectionTypeKey,
-    currentElectionDetails: electionDetails,
-    candidates,
-    electionResults,
-    fetchElectionDetailsAndCandidates,
+    currentElection,
+    elections,
+    candidates: hookCandidates,
+    results: electionResults,
+    fetchElections,
+    fetchElectionDetails,
+    fetchCandidates,
     fetchResults,
-    ELECTION_TYPES_MAP
-  } = useElectionData(initialElectionType)
-  
-  // Additional results hook for more detailed data
-  const { 
-    getStatistics, 
-    getLiveResults, 
-    getRegionalResults, 
-    getHistoricalData 
-  } = useResults()
+    setCurrentElection,
+    isLoading: electionLoading,
+  } = useElectionData();
 
-  // Setup data states for statistics views
-  const [regionalData, setRegionalData] = useState<any[]>([])
-  const [stateData, setStateData] = useState<any[]>([])
-  const [timeData, setTimeData] = useState<any[]>([])
+  // Additional results hook for more detailed data
+  const {
+    getStatistics,
+    getLiveResults,
+    getRegionalResults,
+    getHistoricalData,
+  } = useResults();
+
+  // State for live results data
+  const [liveResultsData, setLiveResultsData] = useState<any>(null);
+  const [detailedResultsData, setDetailedResultsData] = useState<any>(null);
+  const [includePollingUnitBreakdown, setIncludePollingUnitBreakdown] =
+    useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
+
+  // Fallback to static data if hook data is not available
+  const candidates =
+    hookCandidates && hookCandidates.length > 0
+      ? hookCandidates
+      : candidatesByElection[
+          electionType as keyof typeof candidatesByElection
+        ] || [];
+
+  // Setup data states for statistics views with fallback data
+  const [regionalDataState, setRegionalData] = useState<any[]>(regionalData);
+  const [stateDataState, setStateData] = useState<any[]>(stateData);
+  const [timeDataState, setTimeData] = useState<any[]>(timeData);
+
+  // Function to fetch live results using election ID
+  const fetchLiveResultsData = useCallback(
+    async (electionId: string) => {
+      try {
+        setResultsLoading(true);
+        setError(null);
+
+        // Fetch detailed results using the new API
+        const detailedResponse = await resultsAPI.getDetailedResults(
+          electionId,
+          includePollingUnitBreakdown
+        );
+
+        if (detailedResponse.success) {
+          setDetailedResultsData(detailedResponse.data);
+
+          // Also fetch live results for real-time updates
+          const liveResponse = await resultsAPI.getLiveResults(electionId);
+          if (liveResponse.success) {
+            setLiveResultsData(liveResponse.data);
+          }
+        }
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.message || "Failed to fetch live results";
+        setError(errorMessage);
+        console.error("Failed to fetch live results:", error);
+      } finally {
+        setResultsLoading(false);
+      }
+    },
+    [includePollingUnitBreakdown, setError]
+  );
+
+  // Function to find election by type
+  const findElectionByType = useCallback(
+    (type: string) => {
+      if (!elections || elections.length === 0) return null;
+
+      return elections.find((election) => {
+        const electionTypeNormalized = election.type?.toLowerCase() || "";
+        const searchType = type.toLowerCase();
+
+        return (
+          electionTypeNormalized.includes(searchType) ||
+          electionTypeNormalized === searchType ||
+          (searchType === "presidential" &&
+            electionTypeNormalized.includes("president")) ||
+          (searchType === "gubernatorial" &&
+            (electionTypeNormalized.includes("governor") ||
+              electionTypeNormalized.includes("gubernatorial"))) ||
+          (searchType === "house-of-reps" &&
+            (electionTypeNormalized.includes("house") ||
+              electionTypeNormalized.includes("representative"))) ||
+          (searchType === "senatorial" &&
+            (electionTypeNormalized.includes("senate") ||
+              electionTypeNormalized.includes("senator")))
+        );
+      });
+    },
+    [elections]
+  );
 
   useEffect(() => {
-    if (electionType) {
-      fetchElectionDetailsAndCandidates(electionType)
-      fetchResults(electionType)
+    const initializeElectionData = async () => {
+      try {
+        // First, ensure we have elections loaded
+        if (!elections || elections.length === 0) {
+          await fetchElections();
+        }
+      } catch (error) {
+        console.error("Failed to fetch elections:", error);
+      }
+    };
+
+    initializeElectionData();
+  }, [elections, fetchElections]);
+
+  useEffect(() => {
+    if (electionType && elections && elections.length > 0) {
+      // Find the election by type
+      const election = findElectionByType(electionType);
+
+      if (election) {
+        // Set as current election if different
+        if (!currentElection || currentElection.id !== election.id) {
+          setCurrentElection(election);
+        }
+
+        // Fetch detailed data for this election
+        fetchElectionDetails(election.id);
+        fetchCandidates(election.id);
+        fetchResults(election.id);
+
+        // Fetch live results using the new API
+        fetchLiveResultsData(election.id);
+      } else {
+        setError(
+          `No ${
+            ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] ||
+            electionType
+          } election found`
+        );
+      }
     }
-  }, [electionType, fetchElectionDetailsAndCandidates, fetchResults])
+  }, [
+    electionType,
+    elections,
+    currentElection,
+    findElectionByType,
+    setCurrentElection,
+    fetchElectionDetails,
+    fetchCandidates,
+    fetchResults,
+    fetchLiveResultsData,
+    setError,
+  ]);
 
   useEffect(() => {
     // Set up refresh interval if enabled
-    if (refreshInterval > 0) {
+    if (refreshInterval > 0 && currentElection?.id) {
       const intervalId = setInterval(() => {
-        handleRefresh()
-      }, refreshInterval * 1000)
-      
-      return () => clearInterval(intervalId)
+        handleRefresh();
+      }, refreshInterval * 1000);
+
+      return () => clearInterval(intervalId);
     }
-  }, [refreshInterval, electionType])
+  }, [refreshInterval, currentElection?.id]);
 
   // Load regional data when needed
   useEffect(() => {
     const loadRegionalData = async () => {
-      if (dataLevel === 'regional' || dataLevel === 'state') {
+      if (
+        (dataLevel === "regional" || dataLevel === "state") &&
+        currentElection?.id
+      ) {
         try {
-          const data = await getRegionalResults(electionType)
-          if (dataLevel === 'regional') {
-            setRegionalData(data.regions || [])
+          const data = await getRegionalResults(currentElection.id);
+          if (dataLevel === "regional") {
+            setRegionalData(data.regions || regionalData);
           } else {
-            setStateData(data.states || [])
+            setStateData(data.states || stateData);
           }
         } catch (err: any) {
-          setError(err.message || "Failed to load regional data")
+          setError(err.message || "Failed to load regional data");
         }
       }
-    }
-    
-    loadRegionalData()
-  }, [dataLevel, electionType, getRegionalResults, setError])
+    };
+
+    loadRegionalData();
+  }, [dataLevel, currentElection?.id, getRegionalResults, setError]);
 
   // Load historical time data when needed
   useEffect(() => {
     const loadTimeData = async () => {
-      if (selectedTimeRange !== 'all') {
+      if (selectedTimeRange !== "all" && currentElection?.id) {
         try {
-          const data = await getHistoricalData(electionType, selectedTimeRange)
-          setTimeData(data.timePoints || [])
+          const data = await getHistoricalData(
+            currentElection.id,
+            selectedTimeRange
+          );
+          setTimeData(data.timePoints || timeData);
         } catch (err: any) {
-          setError(err.message || "Failed to load historical data")
+          setError(err.message || "Failed to load historical data");
         }
       }
-    }
-    
-    loadTimeData()
-  }, [selectedTimeRange, electionType, getHistoricalData, setError])
+    };
+
+    loadTimeData();
+  }, [selectedTimeRange, currentElection?.id, getHistoricalData, setError]);
 
   const handleCandidateSelect = (candidateId: number | string) => {
-    const id = typeof candidateId === 'string' ? parseInt(candidateId, 10) : candidateId
-    setSelectedCandidateId(id === selectedCandidateId ? null : id)
-  }
+    const id =
+      typeof candidateId === "string" ? parseInt(candidateId, 10) : candidateId;
+    setSelectedCandidateId(id === selectedCandidateId ? null : id);
+  };
 
   const changeElectionType = (type: string) => {
-    setElectionType(type)
-    router.push(`/results?type=${type}`, { scroll: false })
-  }
+    setElectionType(type);
+    router.push(`/results?type=${type}`, { scroll: false });
+  };
 
   const handleRefresh = () => {
-    fetchResults(electionType)
-    if (dataLevel === 'regional') {
-      getRegionalResults(electionType).then(data => setRegionalData(data.regions || []))
-    } else if (dataLevel === 'state') {
-      getRegionalResults(electionType).then(data => setStateData(data.states || []))
+    if (currentElection?.id) {
+      // Refresh using election ID
+      fetchResults(currentElection.id);
+      fetchLiveResultsData(currentElection.id);
+
+      if (dataLevel === "regional") {
+        getRegionalResults(currentElection.id).then((data) =>
+          setRegionalData(data.regions || regionalData)
+        );
+      } else if (dataLevel === "state") {
+        getRegionalResults(currentElection.id).then((data) =>
+          setStateData(data.states || stateData)
+        );
+      }
+      if (selectedTimeRange !== "all") {
+        getHistoricalData(currentElection.id, selectedTimeRange).then((data) =>
+          setTimeData(data.timePoints || timeData)
+        );
+      }
     }
-    if (selectedTimeRange !== 'all') {
-      getHistoricalData(electionType, selectedTimeRange).then(data => setTimeData(data.timePoints || []))
-    }
-  }
+  };
 
   const handleDownloadResults = () => {
     // Implementation would create and trigger download of results data
-    alert("This would download the results in CSV format.")
-  }
+    alert("This would download the results in CSV format.");
+  };
 
   const handleShareResults = () => {
     // Implementation would create a shareable link
-    alert("This would create a shareable link to these results.")
-  }
+    alert("This would create a shareable link to these results.");
+  };
 
   const getTotalVotes = () => {
-    if (electionResults) {
-      return electionResults.totalVotes
+    // First check detailed results data (API response format)
+    if (detailedResultsData?.totalVotesCast) {
+      return detailedResultsData.totalVotesCast;
     }
-    return 0
-  }
+    // Then check live results data (API response format)
+    if (liveResultsData?.totalVotesCast) {
+      return liveResultsData.totalVotesCast;
+    }
+    // Then check election results from hook
+    if (electionResults && electionResults.totalVotes) {
+      return electionResults.totalVotes;
+    }
+    // Fallback: calculate from API results array
+    if (
+      detailedResultsData?.results &&
+      Array.isArray(detailedResultsData.results)
+    ) {
+      return detailedResultsData.results.reduce(
+        (total: number, candidate: any) => total + (candidate.totalVotes || 0),
+        0
+      );
+    }
+    if (liveResultsData?.results && Array.isArray(liveResultsData.results)) {
+      return liveResultsData.results.reduce(
+        (total: number, candidate: any) => total + (candidate.totalVotes || 0),
+        0
+      );
+    }
+    // Fallback: calculate from candidates data
+    if (candidates && candidates.length > 0) {
+      return candidates.reduce(
+        (total, candidate) => total + (candidate.votes || 0),
+        0
+      );
+    }
+    return 0;
+  };
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <SidebarProvider>
@@ -473,7 +894,7 @@ export default function ResultsDashboardPage() {
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -485,13 +906,61 @@ export default function ResultsDashboardPage() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive>
-                      <Link href="/results">
-                        <BarChart3 />
-                        <span>Results</span>
+                    <SidebarMenuButton asChild>
+                      <Link href="/vote" className="flex items-center justify-between w-full">
+                        <div className="flex items-center">
+                          <Vote className="mr-2 h-4 w-4" />
+                          <span>Vote</span>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="ml-2 bg-blue-500/10 text-blue-500 border-blue-500/20"
+                        >
+                          Available
+                        </Badge>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive>
+                      <Link href="/results" className="flex items-center justify-between w-full">
+                        <div className="flex items-center">
+                          <BarChart3 className="mr-2 h-4 w-4" />
+                          <span>Results</span>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
+                        >
+                          Live
+                        </Badge>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/dashboard/profile">
+                        <User />
+                        <span>Profile</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/dashboard/settings">
+                        <Settings />
+                        <span>Settings</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Quick Access</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link href="/map">
@@ -536,18 +1005,28 @@ export default function ResultsDashboardPage() {
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton>
                       <User />
-                      <span>Oluwaseun Adeyemi</span>
+                      <span>{user?.fullName || user?.email || "User"}</span>
                       <ChevronDown className="ml-auto h-4 w-4" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/profile">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>View Profile</span>
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/settings">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Account Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/help">
+                        <Info className="mr-2 h-4 w-4" />
+                        <span>Help & Support</span>
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/">
@@ -567,11 +1046,21 @@ export default function ResultsDashboardPage() {
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <h1 className="text-lg font-semibold md:text-xl">
-                {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES]} Results
+                {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] ||
+                  "Election"}{" "}
+                Results
               </h1>
-              <Badge variant="outline" className="ml-2 bg-green-500/10 text-green-500 border-green-500/20">
+              <Badge
+                variant="outline"
+                className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
+              >
                 Live
               </Badge>
+              {currentElection?.id && (
+                <Badge variant="outline" className="ml-2">
+                  ID: {currentElection.id}
+                </Badge>
+              )}
             </div>
 
             <div className="flex items-center gap-4">
@@ -579,21 +1068,47 @@ export default function ResultsDashboardPage() {
                 <Label htmlFor="realtime-toggle" className="text-sm">
                   Real-time
                 </Label>
-                <Switch id="realtime-toggle" checked={showRealTime} onCheckedChange={setShowRealTime} />
+                <Switch
+                  id="realtime-toggle"
+                  checked={showRealTime}
+                  onCheckedChange={setShowRealTime}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="polling-breakdown-toggle" className="text-sm">
+                  Polling Units
+                </Label>
+                <Switch
+                  id="polling-breakdown-toggle"
+                  checked={includePollingUnitBreakdown}
+                  onCheckedChange={(checked) => {
+                    setIncludePollingUnitBreakdown(checked);
+                    // Refetch data with new breakdown setting
+                    if (currentElection?.id) {
+                      fetchLiveResultsData(currentElection.id);
+                    }
+                  }}
+                />
               </div>
               <Button
                 variant="outline"
                 size="icon"
-                className={`rounded-full ${refreshInterval > 0 ? "animate-spin" : ""}`}
+                className={`rounded-full ${
+                  refreshInterval > 0 || resultsLoading ? "animate-spin" : ""
+                }`}
                 onClick={handleRefresh}
-                disabled={refreshInterval > 0}
+                disabled={refreshInterval > 0 || resultsLoading}
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="hidden md:flex">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="hidden md:flex"
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Export
                   </Button>
@@ -614,31 +1129,79 @@ export default function ResultsDashboardPage() {
           </header>
 
           <main className="flex-1 p-4 md:p-6">
+            {/* Error State */}
+            {error && (
+              <Alert className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Loading State */}
+            {(resultsLoading || electionLoading) && (
+              <Alert className="mb-6">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <AlertTitle>Loading Results</AlertTitle>
+                <AlertDescription>
+                  Fetching live election results
+                  {includePollingUnitBreakdown
+                    ? " with polling unit breakdown"
+                    : ""}
+                  ...
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Loading State */}
+            {(isLoading || electionLoading) && (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p className="text-muted-foreground">
+                    Loading election results...
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Results Summary */}
             <div className="grid gap-6 md:grid-cols-4 mb-6">
               <Card className="transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Total Votes Cast</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Votes Cast
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{getTotalVotes().toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">+2.5% from last hour</p>
+                  <div className="text-2xl font-bold">
+                    {getTotalVotes().toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    +2.5% from last hour
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Voter Turnout</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Voter Turnout
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">62.5%</div>
-                  <p className="text-xs text-muted-foreground">Of registered voters</p>
+                  <p className="text-xs text-muted-foreground">
+                    Of registered voters
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">States Reporting</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    States Reporting
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">36/37</div>
@@ -648,32 +1211,240 @@ export default function ResultsDashboardPage() {
 
               <Card className="transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Leading Candidate</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Leading Candidate
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{candidates[0].name.split(" ")[0]}</div>
-                  <p className="text-xs text-muted-foreground">{candidates[0].percentage}% of votes</p>
+                  <div className="text-2xl font-bold">
+                    {(() => {
+                      // Check API results first
+                      if (
+                        detailedResultsData?.results &&
+                        Array.isArray(detailedResultsData.results) &&
+                        detailedResultsData.results.length > 0
+                      ) {
+                        const leader = detailedResultsData.results[0];
+                        return leader.candidateName?.split(" ")[0] || "N/A";
+                      }
+                      if (
+                        liveResultsData?.results &&
+                        Array.isArray(liveResultsData.results) &&
+                        liveResultsData.results.length > 0
+                      ) {
+                        const leader = liveResultsData.results[0];
+                        return leader.candidateName?.split(" ")[0] || "N/A";
+                      }
+                      // Fallback to hook candidates
+                      if (candidates && candidates.length > 0) {
+                        return candidates[0].name?.split(" ")[0] || "N/A";
+                      }
+                      return "N/A";
+                    })()}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {(() => {
+                      // Check API results first
+                      if (
+                        detailedResultsData?.results &&
+                        Array.isArray(detailedResultsData.results) &&
+                        detailedResultsData.results.length > 0
+                      ) {
+                        const leader = detailedResultsData.results[0];
+                        return `${
+                          leader.percentage?.toFixed(1) || 0
+                        }% of votes`;
+                      }
+                      if (
+                        liveResultsData?.results &&
+                        Array.isArray(liveResultsData.results) &&
+                        liveResultsData.results.length > 0
+                      ) {
+                        const leader = liveResultsData.results[0];
+                        return `${
+                          leader.percentage?.toFixed(1) || 0
+                        }% of votes`;
+                      }
+                      // Fallback to hook candidates
+                      if (candidates && candidates.length > 0) {
+                        return `${candidates[0].percentage || 0}% of votes`;
+                      }
+                      return "No data available";
+                    })()}
+                  </p>
                 </CardContent>
               </Card>
             </div>
 
+            {/* Detailed Results Information */}
+            {detailedResultsData && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Live Results Data
+                    <Badge
+                      variant="outline"
+                      className="bg-green-500/10 text-green-500 border-green-500/20"
+                    >
+                      Election ID: {currentElection?.id}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time results from the live API
+                    {includePollingUnitBreakdown
+                      ? " with polling unit breakdown"
+                      : ""}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Total Votes Cast
+                      </div>
+                      <div className="text-2xl font-bold">
+                        {detailedResultsData.totalVotesCast?.toLocaleString() ||
+                          "N/A"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Election Status
+                      </div>
+                      <div className="text-2xl font-bold capitalize">
+                        {detailedResultsData.status || "N/A"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Candidates
+                      </div>
+                      <div className="text-2xl font-bold">
+                        {detailedResultsData.results?.length || "N/A"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Election Type
+                      </div>
+                      <div className="text-sm">
+                        {detailedResultsData.electionType || "N/A"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Candidate Results from API */}
+                  {detailedResultsData.results &&
+                    Array.isArray(detailedResultsData.results) && (
+                      <div className="mt-6">
+                        <h4 className="text-lg font-semibold mb-4">
+                          Live Candidate Results
+                        </h4>
+                        <div className="space-y-3">
+                          {detailedResultsData.results.map(
+                            (candidate: any, index: number) => (
+                              <div
+                                key={candidate.candidateId}
+                                className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="text-lg font-bold text-muted-foreground">
+                                    #{index + 1}
+                                  </div>
+                                  <div>
+                                    <div className="font-semibold">
+                                      {candidate.candidateName}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {candidate.partyAffiliation}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-lg font-bold">
+                                    {candidate.totalVotes?.toLocaleString()}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {candidate.percentage?.toFixed(2)}%
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {includePollingUnitBreakdown &&
+                    detailedResultsData.pollingUnitBreakdown && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium mb-2">
+                          Polling Unit Breakdown
+                        </h4>
+                        <div className="text-sm text-muted-foreground">
+                          {detailedResultsData.pollingUnitBreakdown.length}{" "}
+                          polling units reported
+                        </div>
+                      </div>
+                    )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Candidate Selection */}
             <div className="mb-6 flex flex-wrap gap-2">
-              <div className="text-sm font-medium mr-2 flex items-center">Highlight Candidate:</div>
-              {candidates.map((candidate) => (
-                <button
-                  key={candidate.id}
-                  onClick={() => handleCandidateSelect(candidate.id)}
-                  className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm transition-all ${
-                    selectedCandidateId === candidate.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted hover:bg-muted/80"
-                  }`}
-                >
-                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: candidate.color }}></div>
-                  <span>{candidate.party}</span>
-                </button>
-              ))}
+              <div className="text-sm font-medium mr-2 flex items-center">
+                Highlight Candidate:
+              </div>
+              {(() => {
+                // Use API results if available
+                let candidateList = [];
+                if (
+                  detailedResultsData?.results &&
+                  Array.isArray(detailedResultsData.results)
+                ) {
+                  candidateList = detailedResultsData.results.map((c: any) => ({
+                    id: c.candidateId,
+                    party: c.partyAffiliation,
+                    color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+                  }));
+                } else if (
+                  liveResultsData?.results &&
+                  Array.isArray(liveResultsData.results)
+                ) {
+                  candidateList = liveResultsData.results.map((c: any) => ({
+                    id: c.candidateId,
+                    party: c.partyAffiliation,
+                    color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+                  }));
+                } else if (candidates && candidates.length > 0) {
+                  candidateList = candidates;
+                }
+
+                return candidateList.length > 0 ? (
+                  candidateList.map((candidate: any) => (
+                    <button
+                      key={candidate.id}
+                      onClick={() => handleCandidateSelect(candidate.id)}
+                      className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm transition-all ${
+                        selectedCandidateId === candidate.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80"
+                      }`}
+                    >
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: candidate.color }}
+                      ></div>
+                      <span>{candidate.party}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No candidates available
+                  </div>
+                );
+              })()}
               {selectedCandidateId && (
                 <button
                   onClick={() => setSelectedCandidateId(null)}
@@ -691,7 +1462,9 @@ export default function ResultsDashboardPage() {
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div>
                     <CardTitle>Vote Share</CardTitle>
-                    <CardDescription>Percentage distribution by candidate</CardDescription>
+                    <CardDescription>
+                      Percentage distribution by candidate
+                    </CardDescription>
                   </div>
                   <TooltipProvider>
                     <Tooltip>
@@ -702,8 +1475,9 @@ export default function ResultsDashboardPage() {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
-                          This pie chart shows the percentage of votes received by each candidate. Hover over slices to
-                          see detailed information.
+                          This pie chart shows the percentage of votes received
+                          by each candidate. Hover over slices to see detailed
+                          information.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -712,17 +1486,50 @@ export default function ResultsDashboardPage() {
                 <CardContent className="pt-4">
                   <ElectionCharts
                     type="pie"
-                    data={candidates.map((c) => ({
-                      id: c.id,
-                      name: c.name,
-                      party: c.party,
-                      value: c.percentage,
-                      votes: c.votes,
-                      color: c.color,
-                    }))}
+                    data={(() => {
+                      // Use API results if available
+                      if (
+                        detailedResultsData?.results &&
+                        Array.isArray(detailedResultsData.results)
+                      ) {
+                        return detailedResultsData.results.map((c: any) => ({
+                          id: c.candidateId,
+                          name: c.candidateName,
+                          party: c.partyAffiliation,
+                          value: c.percentage,
+                          votes: c.totalVotes,
+                          color: `hsl(${Math.random() * 360}, 70%, 50%)`, // Generate random colors for now
+                        }));
+                      }
+                      if (
+                        liveResultsData?.results &&
+                        Array.isArray(liveResultsData.results)
+                      ) {
+                        return liveResultsData.results.map((c: any) => ({
+                          id: c.candidateId,
+                          name: c.candidateName,
+                          party: c.partyAffiliation,
+                          value: c.percentage,
+                          votes: c.totalVotes,
+                          color: `hsl(${Math.random() * 360}, 70%, 50%)`, // Generate random colors for now
+                        }));
+                      }
+                      // Fallback to hook candidates
+                      if (candidates && candidates.length > 0) {
+                        return candidates.map((c) => ({
+                          id: c.id,
+                          name: c.name,
+                          party: c.party,
+                          value: c.percentage,
+                          votes: c.votes,
+                          color: c.color,
+                        }));
+                      }
+                      return [];
+                    })()}
                     selectedCandidate={selectedCandidateId}
                     onSelectCandidate={handleCandidateSelect}
-                    isLoading={isLoading}
+                    isLoading={resultsLoading || electionLoading}
                   />
                 </CardContent>
               </Card>
@@ -732,18 +1539,24 @@ export default function ResultsDashboardPage() {
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div>
                     <CardTitle>Regional Distribution</CardTitle>
-                    <CardDescription>Vote counts across regions</CardDescription>
+                    <CardDescription>
+                      Vote counts across regions
+                    </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Select 
-                      value={dataLevel} 
-                      onValueChange={(value: string) => setDataLevel(value as "national" | "regional" | "state")}
+                    <Select
+                      value={dataLevel}
+                      onValueChange={(value: string) =>
+                        setDataLevel(value as "national" | "regional" | "state")
+                      }
                     >
                       <SelectTrigger className="w-[130px]">
                         <SelectValue placeholder="View" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="national">Geopolitical Zones</SelectItem>
+                        <SelectItem value="national">
+                          Geopolitical Zones
+                        </SelectItem>
                         <SelectItem value="state">Top States</SelectItem>
                       </SelectContent>
                     </Select>
@@ -757,8 +1570,10 @@ export default function ResultsDashboardPage() {
                         <TooltipContent>
                           <p className="max-w-xs">
                             This bar chart shows vote distribution across{" "}
-                            {dataLevel === "national" ? "geopolitical zones" : "states"}. Toggle between views using
-                            the dropdown.
+                            {dataLevel === "national"
+                              ? "geopolitical zones"
+                              : "states"}
+                            . Toggle between views using the dropdown.
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -768,7 +1583,11 @@ export default function ResultsDashboardPage() {
                 <CardContent className="pt-4">
                   <ElectionCharts
                     type="bar"
-                    data={dataLevel === "national" ? regionalData : stateData}
+                    data={
+                      dataLevel === "national"
+                        ? regionalDataState
+                        : stateDataState
+                    }
                     selectedCandidate={selectedCandidateId}
                     onSelectCandidate={handleCandidateSelect}
                     isLoading={isLoading}
@@ -781,10 +1600,15 @@ export default function ResultsDashboardPage() {
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div>
                     <CardTitle>Voting Trends</CardTitle>
-                    <CardDescription>Vote progression over time</CardDescription>
+                    <CardDescription>
+                      Vote progression over time
+                    </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Select value={selectedTimeRange} onValueChange={setSelectedTimeRange}>
+                    <Select
+                      value={selectedTimeRange}
+                      onValueChange={setSelectedTimeRange}
+                    >
                       <SelectTrigger className="w-[130px]">
                         <SelectValue placeholder="View" />
                       </SelectTrigger>
@@ -803,7 +1627,8 @@ export default function ResultsDashboardPage() {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
-                            This line chart shows voting trends over time. Toggle between daily and hourly views.
+                            This line chart shows voting trends over time.
+                            Toggle between daily and hourly views.
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -813,7 +1638,11 @@ export default function ResultsDashboardPage() {
                 <CardContent className="pt-4">
                   <ElectionCharts
                     type="line"
-                    data={selectedTimeRange === "all" ? timeData : timeData.slice(0, 21)}
+                    data={
+                      selectedTimeRange === "all"
+                        ? timeDataState
+                        : timeDataState.slice(0, 21)
+                    }
                     selectedCandidate={selectedCandidateId}
                     onSelectCandidate={handleCandidateSelect}
                     isLoading={isLoading}
@@ -821,10 +1650,16 @@ export default function ResultsDashboardPage() {
                   {selectedTimeRange === "daily" && (
                     <div className="mt-4">
                       <Label className="text-xs mb-2 block">Time Range</Label>
-                      <Slider value={[0, 100]} onValueChange={([start, end]) => {
-                        setSelectedTimeRange("custom")
-                        setSelectedTimeRange(end.toString())
-                      }} max={100} step={5} className="my-4" />
+                      <Slider
+                        value={[0, 100]}
+                        onValueChange={([start, end]) => {
+                          setSelectedTimeRange("custom");
+                          setSelectedTimeRange(end.toString());
+                        }}
+                        max={100}
+                        step={5}
+                        className="my-4"
+                      />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Day 1</span>
                         <span>Day 21</span>
@@ -839,7 +1674,9 @@ export default function ResultsDashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Detailed Results</CardTitle>
-                <CardDescription>Complete breakdown of votes by candidate</CardDescription>
+                <CardDescription>
+                  Complete breakdown of votes by candidate
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -854,64 +1691,95 @@ export default function ResultsDashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {candidates.map((candidate) => (
-                        <tr
-                          key={candidate.id}
-                          className={`border-b hover:bg-muted/30 transition-colors cursor-pointer ${
-                            selectedCandidateId === candidate.id ? "bg-primary/5" : ""
-                          }`}
-                          onClick={() => handleCandidateSelect(candidate.id)}
-                        >
-                          <td className="p-2 flex items-center gap-2">
-                            <div className="relative h-8 w-8 overflow-hidden">
-                              <img
-                                src={candidate.image || "/placeholder.svg"}
-                                alt={candidate.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <span>{candidate.name}</span>
-                          </td>
-                          <td className="p-2">
-                            <Badge
-                              variant="outline"
-                              className="font-medium"
-                              style={{
-                                backgroundColor: `${candidate.color}20`,
-                                color: candidate.color,
-                                borderColor: `${candidate.color}40`,
-                              }}
-                            >
-                              {candidate.party}
-                            </Badge>
-                          </td>
-                          <td className="p-2 text-right font-medium">{candidate.votes.toLocaleString()}</td>
-                          <td className="p-2 text-right">{candidate.percentage}%</td>
-                          <td className="p-2 text-right">
-                            {candidate.id === 1
-                              ? "12"
-                              : candidate.id === 2
+                      {candidates && candidates.length > 0 ? (
+                        candidates.map((candidate) => (
+                          <tr
+                            key={candidate.id}
+                            className={`border-b hover:bg-muted/30 transition-colors cursor-pointer ${
+                              selectedCandidateId === candidate.id
+                                ? "bg-primary/5"
+                                : ""
+                            }`}
+                            onClick={() => handleCandidateSelect(candidate.id)}
+                          >
+                            <td className="p-2 flex items-center gap-2">
+                              <div className="relative h-8 w-8 overflow-hidden">
+                                <img
+                                  src={candidate.image || "/placeholder.svg"}
+                                  alt={candidate.name || "Candidate"}
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              <span>{candidate.name || "Unknown"}</span>
+                            </td>
+                            <td className="p-2">
+                              <Badge
+                                variant="outline"
+                                className="font-medium"
+                                style={{
+                                  backgroundColor: `${
+                                    candidate.color || "#gray"
+                                  }20`,
+                                  color: candidate.color || "#gray",
+                                  borderColor: `${
+                                    candidate.color || "#gray"
+                                  }40`,
+                                }}
+                              >
+                                {candidate.party || "N/A"}
+                              </Badge>
+                            </td>
+                            <td className="p-2 text-right font-medium">
+                              {(candidate.votes || 0).toLocaleString()}
+                            </td>
+                            <td className="p-2 text-right">
+                              {candidate.percentage || 0}%
+                            </td>
+                            <td className="p-2 text-right">
+                              {candidate.id === 1
+                                ? "12"
+                                : candidate.id === 2
                                 ? "10"
                                 : candidate.id === 3
-                                  ? "9"
-                                  : candidate.id === 4
-                                    ? "2"
-                                    : "0"}
+                                ? "9"
+                                : candidate.id === 4
+                                ? "2"
+                                : "0"}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            className="p-4 text-center text-muted-foreground"
+                          >
+                            No candidate data available
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <div className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleString()}</div>
+                <div className="text-sm text-muted-foreground">
+                  Last updated: {new Date().toLocaleString()}
+                </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleShareResults}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShareResults}
+                  >
                     <Share2 className="mr-2 h-4 w-4" />
                     Share Results
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleDownloadResults}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadResults}
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Download
                   </Button>
@@ -925,5 +1793,5 @@ export default function ResultsDashboardPage() {
       {/* AI Assistant */}
       <AiAssistantPreview />
     </SidebarProvider>
-  )
+  );
 }

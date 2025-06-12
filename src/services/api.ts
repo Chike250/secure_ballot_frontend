@@ -607,9 +607,9 @@ export const adminAPI = {
     return response.data;
   },
 
-  addCandidateToElection: async (
+  addCandidatesToElection: async (
     electionId: string,
-    data: {
+    candidates: {
       fullName: string;
       partyCode: string;
       partyName: string;
@@ -617,12 +617,11 @@ export const adminAPI = {
       photoUrl?: string;
       position?: string;
       manifesto?: string;
-    }
+    }[]
   ) => {
-    const response = await api.post(
-      `/admin/elections/${electionId}/candidates`,
-      data
-    );
+    const response = await api.post(`/elections/${electionId}/candidates`, {
+      candidates,
+    });
     return response.data;
   },
 
@@ -759,6 +758,15 @@ export const adminAPI = {
   // Admin logout
   logout: async () => {
     const response = await api.post("/admin/logout");
+    return response.data;
+  },
+
+  // Publish election results
+  publishElectionResults: async (data: {
+    electionId: string;
+    publishLevel?: "preliminary" | "final";
+  }) => {
+    const response = await api.post("/admin/results/publish", data);
     return response.data;
   },
 };

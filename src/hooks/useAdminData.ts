@@ -576,9 +576,50 @@ export const useAdminData = () => {
     }
   };
 
+  const addCandidatesToElection = async (
+    electionId: string,
+    candidates: {
+      fullName: string;
+      partyCode: string;
+      partyName: string;
+      bio?: string;
+      photoUrl?: string;
+      position?: string;
+      manifesto?: string;
+    }[]
+  ) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await adminAPI.addCandidatesToElection(
+        electionId,
+        candidates
+      );
+      if (response.success) {
+        addNotification({
+          type: "success",
+          message: `${candidates.length} candidate(s) added successfully!`,
+        });
+        return response.data;
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to add candidates";
+      setError(errorMessage);
+      addNotification({
+        type: "error",
+        message: errorMessage,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Legacy function for backward compatibility - adds a single candidate
   const addCandidateToElection = async (
     electionId: string,
-    data: {
+    candidate: {
       fullName: string;
       partyCode: string;
       partyName: string;
@@ -588,20 +629,30 @@ export const useAdminData = () => {
       manifesto?: string;
     }
   ) => {
+    return addCandidatesToElection(electionId, [candidate]);
+  };
+
+  const publishElectionResults = async (
+    electionId: string,
+    publishLevel: "preliminary" | "final" = "preliminary"
+  ) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await adminAPI.addCandidateToElection(electionId, data);
+      const response = await adminAPI.publishElectionResults({
+        electionId,
+        publishLevel,
+      });
       if (response.success) {
         addNotification({
           type: "success",
-          message: "Candidate added successfully!",
+          message: `Election results published as ${publishLevel}!`,
         });
         return response.data;
       }
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.message || "Failed to add candidate";
+        error.response?.data?.message || "Failed to publish election results";
       setError(errorMessage);
       addNotification({
         type: "error",
@@ -664,6 +715,8 @@ export const useAdminData = () => {
     // Election Management
     createElection,
     addCandidateToElection,
+    addCandidatesToElection,
+    publishElectionResults,
 
     // Combined Data Loading
     fetchDashboardData,

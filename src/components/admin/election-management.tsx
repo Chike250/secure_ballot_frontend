@@ -9,6 +9,7 @@ import {
   Users,
   Eye,
   UserPlus,
+  CheckCircle,
 } from "lucide-react";
 import {
   Card,
@@ -76,11 +77,39 @@ interface Candidate {
   manifesto?: string;
 }
 
+// Nigerian Political Parties mapping
+const NIGERIAN_PARTIES = {
+  "All Progressives Congress": "APC",
+  "Peoples Democratic Party": "PDP",
+  "Labour Party": "LP",
+  "New Nigeria Peoples Party": "NNPP",
+  "All Progressives Grand Alliance": "APGA",
+  "Social Democratic Party": "SDP",
+  "Young Progressive Party": "YPP",
+  "Zenith Labour Party": "ZLP",
+  "Action Alliance": "AA",
+  "African Action Congress": "AAC",
+  "Action Democratic Party": "ADP",
+  "Action Peoples Party": "APP",
+  "Accord Party": "A",
+  "Allied Peoples Movement": "APM",
+  "Boot Party": "BP",
+  "National Rescue Movement": "NRM",
+  "Peoples Redemption Party": "PRP",
+  "African Democratic Congress": "ADC",
+  "Young Democrats": "YD",
+  Independent: "IND",
+} as const;
+
 export function ElectionManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCandidateDialogOpen, setIsCandidateDialogOpen] = useState(false);
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
   const [selectedElectionId, setSelectedElectionId] = useState<string>("");
   const [selectedElectionName, setSelectedElectionName] = useState<string>("");
+  const [publishLevel, setPublishLevel] = useState<"preliminary" | "final">(
+    "preliminary"
+  );
   const [elections, setElections] = useState<Election[]>([]);
   const [candidates, setCandidates] = useState<{
     [electionId: string]: Candidate[];
@@ -107,7 +136,13 @@ export function ElectionManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [tempCandidates, setTempCandidates] = useState<any[]>([]);
 
-  const { isAdmin, createElection, addCandidateToElection } = useAdminData();
+  const {
+    isAdmin,
+    createElection,
+    addCandidateToElection,
+    addCandidatesToElection,
+    publishElectionResults,
+  } = useAdminData();
   const {
     elections: electionsData,
     fetchElections: fetchElectionsData,
@@ -150,7 +185,8 @@ export function ElectionManagement() {
           votesCast: 0, // This would need to come from API
           description: election.description || "",
           candidates: election.candidates || [],
-          candidateCount: election.candidateCount || election.candidates?.length || 0,
+          candidateCount:
+            election.candidateCount || election.candidates?.length || 0,
         }));
 
         setElections(convertedElections);
@@ -161,6 +197,14 @@ export function ElectionManagement() {
   };
 
   const handleCreateElection = async () => {
+    // Validate minimum candidates requirement
+    if (tempCandidates.length > 0 && tempCandidates.length < 2) {
+      alert(
+        "At least 2 candidates are required to create an election with candidates."
+      );
+      return;
+    }
+
     try {
       const electionResult = await createElection({
         electionName: newElection.electionName,
@@ -172,13 +216,11 @@ export function ElectionManagement() {
 
       // If election was created successfully and we have candidates to add
       if (electionResult && tempCandidates.length > 0) {
-        // Add all candidates to the newly created election
-        for (const candidate of tempCandidates) {
-          try {
-            await addCandidateToElection(electionResult.id, candidate);
-          } catch (candidateError) {
-            console.error("Error adding candidate:", candidateError);
-          }
+        // Add all candidates to the newly created election in a single request
+        try {
+          await addCandidatesToElection(electionResult.id, tempCandidates);
+        } catch (candidateError) {
+          console.error("Error adding candidates:", candidateError);
         }
       }
 
@@ -200,8 +242,15 @@ export function ElectionManagement() {
   };
 
   const handleAddCandidateToNewElection = () => {
-    if (newCandidate.fullName && newCandidate.partyCode && newCandidate.partyName) {
-      setTempCandidates(prev => [...prev, { ...newCandidate, id: Date.now().toString() }]);
+    if (
+      newCandidate.fullName &&
+      newCandidate.partyCode &&
+      newCandidate.partyName
+    ) {
+      setTempCandidates((prev) => [
+        ...prev,
+        { ...newCandidate, id: Date.now().toString() },
+      ]);
       // Reset candidate form
       setNewCandidate({
         fullName: "",
@@ -216,7 +265,7 @@ export function ElectionManagement() {
   };
 
   const handleRemoveCandidateFromNew = (candidateId: string) => {
-    setTempCandidates(prev => prev.filter(c => c.id !== candidateId));
+    setTempCandidates((prev) => prev.filter((c) => c.id !== candidateId));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,6 +282,17 @@ export function ElectionManagement() {
   ) => {
     const { id, value } = e.target;
     setNewCandidate((prev) => ({ ...prev, [id]: value }));
+  };
+
+  // Handle party selection - automatically set party code when party name is selected
+  const handlePartySelection = (partyName: string) => {
+    const partyCode =
+      NIGERIAN_PARTIES[partyName as keyof typeof NIGERIAN_PARTIES] || "";
+    setNewCandidate((prev) => ({
+      ...prev,
+      partyName,
+      partyCode,
+    }));
   };
 
   const handleAddCandidate = (electionId: string, electionName: string) => {
@@ -282,8 +342,30 @@ export function ElectionManagement() {
     }
   };
 
+  const handlePublishElection = (electionId: string, electionName: string) => {
+    setSelectedElectionId(electionId);
+    setSelectedElectionName(electionName);
+    setIsPublishDialogOpen(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    try {
+      await publishElectionResults(selectedElectionId, publishLevel);
+      setIsPublishDialogOpen(false);
+      fetchElections(); // Refresh the elections list
+      // Reset state
+      setSelectedElectionId("");
+      setSelectedElectionName("");
+      setPublishLevel("preliminary");
+    } catch (error) {
+      console.error("Error publishing election results:", error);
+    }
+  };
+
   const filteredElections = elections.filter((election) =>
-    election.electionName?.toLowerCase().includes(searchQuery?.toLowerCase() || '')
+    election.electionName
+      ?.toLowerCase()
+      .includes(searchQuery?.toLowerCase() || "")
   );
 
   return (
@@ -339,9 +421,7 @@ export function ElectionManagement() {
                         <SelectItem value="Gubernatorial">
                           Gubernatorial
                         </SelectItem>
-                        <SelectItem value="Senatorial">
-                          Senatorial
-                        </SelectItem>
+                        <SelectItem value="Senatorial">Senatorial</SelectItem>
                         <SelectItem value="HouseOfReps">
                           House of Representatives
                         </SelectItem>
@@ -386,45 +466,83 @@ export function ElectionManagement() {
 
                   {/* Candidates Section */}
                   <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3">Add Candidates (Optional)</h4>
-                    
+                    <h4 className="font-medium mb-3">
+                      Add Candidates (Optional)
+                    </h4>
+
                     {/* Candidate Form */}
                     <div className="space-y-3 mb-4">
                       <div className="grid grid-cols-2 gap-3">
                         <Input
                           placeholder="Candidate Full Name"
                           value={newCandidate.fullName}
-                          onChange={(e) => setNewCandidate(prev => ({ ...prev, fullName: e.target.value }))}
+                          onChange={(e) =>
+                            setNewCandidate((prev) => ({
+                              ...prev,
+                              fullName: e.target.value,
+                            }))
+                          }
                         />
                         <Input
                           placeholder="Position (e.g., President)"
                           value={newCandidate.position}
-                          onChange={(e) => setNewCandidate(prev => ({ ...prev, position: e.target.value }))}
+                          onChange={(e) =>
+                            setNewCandidate((prev) => ({
+                              ...prev,
+                              position: e.target.value,
+                            }))
+                          }
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <Input
-                          placeholder="Party Code (e.g., APC)"
+                          placeholder="Party Code (Auto-filled)"
                           value={newCandidate.partyCode}
-                          onChange={(e) => setNewCandidate(prev => ({ ...prev, partyCode: e.target.value }))}
+                          readOnly
+                          className="bg-muted"
                         />
-                        <Input
-                          placeholder="Party Name"
+                        <Select
                           value={newCandidate.partyName}
-                          onChange={(e) => setNewCandidate(prev => ({ ...prev, partyName: e.target.value }))}
-                        />
+                          onValueChange={handlePartySelection}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Political Party" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.keys(NIGERIAN_PARTIES).map((partyName) => (
+                              <SelectItem key={partyName} value={partyName}>
+                                {partyName} (
+                                {
+                                  NIGERIAN_PARTIES[
+                                    partyName as keyof typeof NIGERIAN_PARTIES
+                                  ]
+                                }
+                                )
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <Input
                         placeholder="Manifesto (Optional)"
                         value={newCandidate.manifesto}
-                        onChange={(e) => setNewCandidate(prev => ({ ...prev, manifesto: e.target.value }))}
+                        onChange={(e) =>
+                          setNewCandidate((prev) => ({
+                            ...prev,
+                            manifesto: e.target.value,
+                          }))
+                        }
                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={handleAddCandidateToNewElection}
-                        disabled={!newCandidate.fullName || !newCandidate.partyCode || !newCandidate.partyName}
+                        disabled={
+                          !newCandidate.fullName ||
+                          !newCandidate.partyCode ||
+                          !newCandidate.partyName
+                        }
                       >
                         <Plus className="mr-2 h-3 w-3" />
                         Add Candidate
@@ -434,19 +552,37 @@ export function ElectionManagement() {
                     {/* Added Candidates List */}
                     {tempCandidates.length > 0 && (
                       <div className="space-y-2">
-                        <h5 className="text-sm font-medium">Added Candidates ({tempCandidates.length})</h5>
+                        <h5 className="text-sm font-medium">
+                          Added Candidates ({tempCandidates.length})
+                        </h5>
+                        {tempCandidates.length === 1 && (
+                          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded text-sm">
+                            ⚠️ Add at least one more candidate to create the
+                            election
+                          </div>
+                        )}
                         <div className="max-h-32 overflow-y-auto space-y-1">
                           {tempCandidates.map((candidate) => (
-                            <div key={candidate.id} className="flex items-center justify-between bg-muted p-2 rounded text-sm">
+                            <div
+                              key={candidate.id}
+                              className="flex items-center justify-between bg-muted p-2 rounded text-sm"
+                            >
                               <div>
-                                <span className="font-medium">{candidate.fullName}</span> 
-                                <span className="text-muted-foreground"> - {candidate.partyCode}</span>
+                                <span className="font-medium">
+                                  {candidate.fullName}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  - {candidate.partyCode}
+                                </span>
                               </div>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRemoveCandidateFromNew(candidate.id)}
+                                onClick={() =>
+                                  handleRemoveCandidateFromNew(candidate.id)
+                                }
                               >
                                 ×
                               </Button>
@@ -464,17 +600,22 @@ export function ElectionManagement() {
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    onClick={handleCreateElection} 
+                  <Button
+                    onClick={handleCreateElection}
                     disabled={
                       isLoading ||
                       !newElection.electionName ||
                       !newElection.electionType ||
                       !newElection.startDate ||
-                      !newElection.endDate
+                      !newElection.endDate ||
+                      tempCandidates.length === 1
                     }
                   >
-                    {isLoading ? "Creating..." : "Create"}
+                    {isLoading
+                      ? "Creating..."
+                      : tempCandidates.length === 1
+                      ? "Need at least 2 candidates"
+                      : "Create"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -520,19 +661,35 @@ export function ElectionManagement() {
                       <Label htmlFor="partyCode">Party Code *</Label>
                       <Input
                         id="partyCode"
-                        placeholder="e.g., APC, PDP"
+                        placeholder="Auto-filled from party selection"
                         value={newCandidate.partyCode}
-                        onChange={handleCandidateInputChange}
+                        readOnly
+                        className="bg-muted"
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="partyName">Party Name *</Label>
-                      <Input
-                        id="partyName"
-                        placeholder="e.g., All Progressives Congress"
+                      <Select
                         value={newCandidate.partyName}
-                        onChange={handleCandidateInputChange}
-                      />
+                        onValueChange={handlePartySelection}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Political Party" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(NIGERIAN_PARTIES).map((partyName) => (
+                            <SelectItem key={partyName} value={partyName}>
+                              {partyName} (
+                              {
+                                NIGERIAN_PARTIES[
+                                  partyName as keyof typeof NIGERIAN_PARTIES
+                                ]
+                              }
+                              )
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="grid gap-2">
@@ -584,6 +741,65 @@ export function ElectionManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* Publish Election Results Dialog */}
+            <Dialog
+              open={isPublishDialogOpen}
+              onOpenChange={setIsPublishDialogOpen}
+            >
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Verify & Publish Election Results</DialogTitle>
+                  <DialogDescription>
+                    Publish the results for "{selectedElectionName}". Choose the
+                    publication level.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="publishLevel">Publication Level</Label>
+                    <Select
+                      value={publishLevel}
+                      onValueChange={(value: "preliminary" | "final") =>
+                        setPublishLevel(value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select publication level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="preliminary">
+                          Preliminary Results
+                        </SelectItem>
+                        <SelectItem value="final">Final Results</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 text-blue-800 px-3 py-2 rounded text-sm">
+                    <strong>Note:</strong> Publishing results will make them
+                    visible to all users. Preliminary results can be updated,
+                    while final results are permanent.
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsPublishDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleConfirmPublish} disabled={isLoading}>
+                    {isLoading
+                      ? "Publishing..."
+                      : `Publish ${
+                          publishLevel === "preliminary"
+                            ? "Preliminary"
+                            : "Final"
+                        } Results`}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -628,9 +844,15 @@ export function ElectionManagement() {
                     <SelectItem value="presidential">Presidential</SelectItem>
                     <SelectItem value="gubernatorial">Gubernatorial</SelectItem>
                     <SelectItem value="senatorial">Senatorial</SelectItem>
-                    <SelectItem value="houseofreps">House of Representatives</SelectItem>
-                    <SelectItem value="stateassembly">State Assembly</SelectItem>
-                    <SelectItem value="localgovernment">Local Government</SelectItem>
+                    <SelectItem value="houseofreps">
+                      House of Representatives
+                    </SelectItem>
+                    <SelectItem value="stateassembly">
+                      State Assembly
+                    </SelectItem>
+                    <SelectItem value="localgovernment">
+                      Local Government
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -701,7 +923,9 @@ export function ElectionManagement() {
                         <TableCell>
                           <div className="flex items-center">
                             <Users className="mr-2 h-4 w-4 text-muted-foreground" />
-                            {election.candidateCount || election.candidates?.length || 0}
+                            {election.candidateCount ||
+                              election.candidates?.length ||
+                              0}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -725,6 +949,22 @@ export function ElectionManagement() {
                               <UserPlus className="mr-1 h-3 w-3" />
                               Add Candidate
                             </Button>
+                            {(election.status === "completed" ||
+                              election.status === "active") && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() =>
+                                  handlePublishElection(
+                                    election.id,
+                                    election.electionName
+                                  )
+                                }
+                              >
+                                <CheckCircle className="mr-1 h-3 w-3" />
+                                Verify & Publish
+                              </Button>
+                            )}
                             {election.status === "published" && (
                               <Button size="sm" variant="default">
                                 Start

@@ -33,6 +33,8 @@ import {
   Shield,
   RefreshCw,
   Info,
+  Vote,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -382,35 +384,34 @@ export default function DashboardPage() {
   const getTotalVotes = () => {
     // First check statistics data
     if (electionStatistics?.votingStatistics?.totalVotesCast) {
-      return electionStatistics.votingStatistics.totalVotesCast;
+      return Number(electionStatistics.votingStatistics.totalVotesCast) || 0;
     }
 
     // Fallback to election results
-    if (electionResults) {
-      return electionResults.totalVotes;
+    if (electionResults?.totalVotes) {
+      return Number(electionResults.totalVotes) || 0;
     }
 
     // Calculate from candidates as fallback
     const candidatesArray = Array.isArray(candidates) ? candidates : [];
     const candidateVotes = candidatesArray.reduce(
-      (total, candidate) => total + (candidate.votes || 0),
+      (total, candidate) => total + (Number(candidate.votes) || 0),
       0
     );
-    if (candidateVotes > 0) {
-      return candidateVotes;
-    }
-    return 0;
+    return candidateVotes || 0;
   };
 
   const getVoterTurnout = () => {
     // First check statistics data
     if (electionStatistics?.votingStatistics?.voterTurnoutPercentage) {
-      return electionStatistics.votingStatistics.voterTurnoutPercentage;
+      return (
+        Number(electionStatistics.votingStatistics.voterTurnoutPercentage) || 0
+      );
     }
 
     // Fallback to election results
-    if (electionResults && electionResults.turnout) {
-      return electionResults.turnout;
+    if (electionResults?.turnout) {
+      return Number(electionResults.turnout) || 0;
     }
     return 0; // Default fallback
   };
@@ -418,46 +419,46 @@ export default function DashboardPage() {
   const getValidVotes = () => {
     // First check statistics data
     if (electionStatistics?.votingStatistics?.validVotes) {
-      return electionStatistics.votingStatistics.validVotes;
+      return Number(electionStatistics.votingStatistics.validVotes) || 0;
     }
 
     // Fallback to calculating from candidates
-    if (electionResults) {
-      const candidatesArray = Array.isArray(candidates) ? candidates : [];
-      return candidatesArray.reduce(
-        (total, candidate) => total + (candidate.votes || 0),
-        0
-      );
-    }
-    return 0;
+    const candidatesArray = Array.isArray(candidates) ? candidates : [];
+    const candidateVotes = candidatesArray.reduce(
+      (total, candidate) => total + (Number(candidate.votes) || 0),
+      0
+    );
+    return candidateVotes || 0;
   };
 
   const getInvalidVotes = () => {
     // First check statistics data
     if (electionStatistics?.votingStatistics?.invalidVotes) {
-      return electionStatistics.votingStatistics.invalidVotes;
+      return Number(electionStatistics.votingStatistics.invalidVotes) || 0;
     }
 
     // Fallback to election results
     if (electionResults && (electionResults as any).invalidVotes) {
-      return (electionResults as any).invalidVotes;
+      return Number((electionResults as any).invalidVotes) || 0;
     }
 
     // Calculate from total and valid votes
-    const total = getTotalVotes();
-    const valid = getValidVotes();
-    return total - valid;
+    const total = getTotalVotes() || 0;
+    const valid = getValidVotes() || 0;
+    return Math.max(0, total - valid);
   };
 
   const getRegisteredVoters = () => {
     // First check statistics data
     if (electionStatistics?.votingStatistics?.totalRegisteredVoters) {
-      return electionStatistics.votingStatistics.totalRegisteredVoters;
+      return (
+        Number(electionStatistics.votingStatistics.totalRegisteredVoters) || 0
+      );
     }
 
     // Fallback to current election
     if (currentElection && (currentElection as any).totalRegisteredVoters) {
-      return (currentElection as any).totalRegisteredVoters;
+      return Number((currentElection as any).totalRegisteredVoters) || 0;
     }
     return 0;
   };
@@ -465,12 +466,15 @@ export default function DashboardPage() {
   const getPollingUnitsReported = () => {
     // First check statistics data
     if (electionStatistics?.pollingUnitStatistics?.pollingUnitsReported) {
-      return electionStatistics.pollingUnitStatistics.pollingUnitsReported;
+      return (
+        Number(electionStatistics.pollingUnitStatistics.pollingUnitsReported) ||
+        0
+      );
     }
 
     // Fallback to election results
     if (electionResults && (electionResults as any).pollingUnitsReported) {
-      return (electionResults as any).pollingUnitsReported;
+      return Number((electionResults as any).pollingUnitsReported) || 0;
     }
     return 0;
   };
@@ -478,12 +482,14 @@ export default function DashboardPage() {
   const getTotalPollingUnits = () => {
     // First check statistics data
     if (electionStatistics?.pollingUnitStatistics?.totalPollingUnits) {
-      return electionStatistics.pollingUnitStatistics.totalPollingUnits;
+      return (
+        Number(electionStatistics.pollingUnitStatistics.totalPollingUnits) || 0
+      );
     }
 
     // Fallback to current election
     if (currentElection && (currentElection as any).totalPollingUnits) {
-      return (currentElection as any).totalPollingUnits;
+      return Number((currentElection as any).totalPollingUnits) || 0;
     }
     return 0;
   };
@@ -491,17 +497,20 @@ export default function DashboardPage() {
   const getReportingPercentage = () => {
     // First check statistics data
     if (electionStatistics?.pollingUnitStatistics?.reportingPercentage) {
-      return electionStatistics.pollingUnitStatistics.reportingPercentage;
+      return (
+        Number(electionStatistics.pollingUnitStatistics.reportingPercentage) ||
+        0
+      );
     }
 
     // Fallback to election results
     if (electionResults && (electionResults as any).reportingPercentage) {
-      return (electionResults as any).reportingPercentage;
+      return Number((electionResults as any).reportingPercentage) || 0;
     }
 
     // Calculate from reported and total polling units
-    const reported = getPollingUnitsReported();
-    const total = getTotalPollingUnits();
+    const reported = getPollingUnitsReported() || 0;
+    const total = getTotalPollingUnits() || 0;
     return total > 0 ? Math.round((reported / total) * 100) : 0;
   };
 
@@ -655,7 +664,79 @@ export default function DashboardPage() {
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/dashboard">
+                        <Home />
+                        <span>Dashboard</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        href="/vote"
+                        className="flex items-center justify-between w-full"
+                      >
+                        <div className="flex items-center">
+                          <Vote className="mr-2 h-4 w-4" />
+                          <span>Vote</span>
+                        </div>
+                        {Object.values(hasVoted).some((voted) => voted) && (
+                          <Badge
+                            variant="outline"
+                            className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
+                          >
+                            <Check className="mr-1 h-3 w-3" /> Voted
+                          </Badge>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        href="/results"
+                        className="flex items-center justify-between w-full"
+                      >
+                        <div className="flex items-center">
+                          <BarChart3 className="mr-2 h-4 w-4" />
+                          <span>Results</span>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="ml-2 bg-blue-500/10 text-blue-500 border-blue-500/20"
+                        >
+                          Live
+                        </Badge>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/dashboard/profile">
+                        <User />
+                        <span>Profile</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/dashboard/settings">
+                        <Settings />
+                        <span>Settings</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Dashboard Views</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -771,13 +852,19 @@ export default function DashboardPage() {
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard/profile">
                         <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
+                        <span>View Profile</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard/settings">
                         <Settings className="mr-2 h-4 w-4" />
-                        <span>Settings</span>
+                        <span>Account Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/help">
+                        <Info className="mr-2 h-4 w-4" />
+                        <span>Help & Support</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -1123,12 +1210,13 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {getTotalVotes().toLocaleString()}
+                        {(getTotalVotes() || 0).toLocaleString()}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {getRegisteredVoters() > 0
                           ? `${(
-                              (getTotalVotes() / getRegisteredVoters()) *
+                              ((getTotalVotes() || 0) /
+                                (getRegisteredVoters() || 1)) *
                               100
                             ).toFixed(1)}% of registered voters`
                           : "Real-time updates"}
@@ -1144,11 +1232,11 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {getVoterTurnout().toFixed(1)}%
+                        {(getVoterTurnout() || 0).toFixed(1)}%
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {getRegisteredVoters().toLocaleString()} registered
-                        voters
+                        {(getRegisteredVoters() || 0).toLocaleString()}{" "}
+                        registered voters
                       </p>
                     </CardContent>
                   </Card>
@@ -1161,11 +1249,11 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {getPollingUnitsReported().toLocaleString()}/
-                        {getTotalPollingUnits().toLocaleString()}
+                        {(getPollingUnitsReported() || 0).toLocaleString()}/
+                        {(getTotalPollingUnits() || 0).toLocaleString()}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {getReportingPercentage().toFixed(1)}% reporting
+                        {(getReportingPercentage() || 0).toFixed(1)}% reporting
                       </p>
                     </CardContent>
                   </Card>
@@ -1178,12 +1266,13 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {getValidVotes().toLocaleString()}
+                        {(getValidVotes() || 0).toLocaleString()}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {getTotalVotes() > 0
                           ? `${(
-                              (getValidVotes() / getTotalVotes()) *
+                              ((getValidVotes() || 0) /
+                                (getTotalVotes() || 1)) *
                               100
                             ).toFixed(1)}% valid`
                           : "No votes yet"}
@@ -1860,11 +1949,12 @@ export default function DashboardPage() {
                               </CardHeader>
                               <CardContent>
                                 <div className="text-2xl font-bold">
-                                  {getTotalVotes().toLocaleString()}
+                                  {(getTotalVotes() || 0).toLocaleString()}
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                   <span>
-                                    {getVoterTurnout().toFixed(1)}% turnout rate
+                                    {(getVoterTurnout() || 0).toFixed(1)}%
+                                    turnout rate
                                   </span>
                                 </div>
                               </CardContent>
@@ -1883,13 +1973,18 @@ export default function DashboardPage() {
                               </CardHeader>
                               <CardContent>
                                 <div className="text-2xl font-bold">
-                                  {getPollingUnitsReported().toLocaleString()}/
-                                  {getTotalPollingUnits().toLocaleString()}
+                                  {(
+                                    getPollingUnitsReported() || 0
+                                  ).toLocaleString()}
+                                  /
+                                  {(
+                                    getTotalPollingUnits() || 0
+                                  ).toLocaleString()}
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                   <span>
-                                    {getReportingPercentage().toFixed(1)}%
-                                    reporting
+                                    {(getReportingPercentage() || 0).toFixed(1)}
+                                    % reporting
                                   </span>
                                 </div>
                               </CardContent>
@@ -1908,13 +2003,14 @@ export default function DashboardPage() {
                               </CardHeader>
                               <CardContent>
                                 <div className="text-2xl font-bold">
-                                  {getValidVotes().toLocaleString()}
+                                  {(getValidVotes() || 0).toLocaleString()}
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                   <span>
                                     {getTotalVotes() > 0
                                       ? (
-                                          (getValidVotes() / getTotalVotes()) *
+                                          ((getValidVotes() || 0) /
+                                            (getTotalVotes() || 1)) *
                                           100
                                         ).toFixed(1)
                                       : 0}
@@ -1937,14 +2033,14 @@ export default function DashboardPage() {
                               </CardHeader>
                               <CardContent>
                                 <div className="text-2xl font-bold">
-                                  {getInvalidVotes().toLocaleString()}
+                                  {(getInvalidVotes() || 0).toLocaleString()}
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                   <span>
                                     {getTotalVotes() > 0
                                       ? (
-                                          (getInvalidVotes() /
-                                            getTotalVotes()) *
+                                          ((getInvalidVotes() || 0) /
+                                            (getTotalVotes() || 1)) *
                                           100
                                         ).toFixed(1)
                                       : 0}
@@ -2170,7 +2266,7 @@ export default function DashboardPage() {
                       <div className="space-y-2">
                         <h3 className="font-medium">Total Votes Cast</h3>
                         <div className="text-2xl font-bold">
-                          {getTotalVotes().toLocaleString()}
+                          {(getTotalVotes() || 0).toLocaleString()}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           All votes recorded
@@ -2180,12 +2276,13 @@ export default function DashboardPage() {
                       <div className="space-y-2">
                         <h3 className="font-medium">Valid Votes</h3>
                         <div className="text-2xl font-bold">
-                          {getValidVotes().toLocaleString()}
+                          {(getValidVotes() || 0).toLocaleString()}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {getTotalVotes() > 0
                             ? (
-                                (getValidVotes() / getTotalVotes()) *
+                                ((getValidVotes() || 0) /
+                                  (getTotalVotes() || 1)) *
                                 100
                               ).toFixed(1)
                             : 0}
@@ -2196,12 +2293,13 @@ export default function DashboardPage() {
                       <div className="space-y-2">
                         <h3 className="font-medium">Invalid Votes</h3>
                         <div className="text-2xl font-bold">
-                          {getInvalidVotes().toLocaleString()}
+                          {(getInvalidVotes() || 0).toLocaleString()}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {getTotalVotes() > 0
                             ? (
-                                (getInvalidVotes() / getTotalVotes()) *
+                                ((getInvalidVotes() || 0) /
+                                  (getTotalVotes() || 1)) *
                                 100
                               ).toFixed(1)
                             : 0}
@@ -2440,45 +2538,58 @@ export default function DashboardPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex items-center space-x-4 py-4">
-                    {selectedCandidateId && (
-                      <>
-                        <Avatar className="h-16 w-16">
-                          <AvatarImage
-                            src={
-                              candidates.find(
-                                (c) => c.id === selectedCandidateId
-                              )?.image
-                            }
-                            alt="Selected candidate"
-                          />
-                          <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
-                            {candidates
-                              .find((c) => c.id === selectedCandidateId)
-                              ?.name?.split(" ")
-                              .map((word: string) => word.charAt(0))
-                              .join("")
-                              .toUpperCase()
-                              .slice(0, 2) || "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h4 className="font-medium">
-                            {
-                              candidates.find(
-                                (c) => c.id === selectedCandidateId
-                              )?.name
-                            }
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {
-                              candidates.find(
-                                (c) => c.id === selectedCandidateId
-                              )?.party
-                            }
-                          </p>
-                        </div>
-                      </>
-                    )}
+                    {selectedCandidateId &&
+                      (() => {
+                        const candidatesList = ensureArray(
+                          getCandidateResults()
+                        );
+                        const selectedCandidate = candidatesList.find(
+                          (c) => c.id === selectedCandidateId
+                        );
+
+                        return selectedCandidate ? (
+                          <>
+                            <Avatar className="h-16 w-16">
+                              <AvatarImage
+                                src={selectedCandidate.image}
+                                alt="Selected candidate"
+                              />
+                              <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
+                                {selectedCandidate.name
+                                  ?.split(" ")
+                                  .map((word: string) => word.charAt(0))
+                                  .join("")
+                                  .toUpperCase()
+                                  .slice(0, 2) || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h4 className="font-medium">
+                                {selectedCandidate.name}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {selectedCandidate.party}
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center space-x-4">
+                            <Avatar className="h-16 w-16">
+                              <AvatarFallback className="bg-muted text-muted-foreground">
+                                ?
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h4 className="font-medium">
+                                Candidate not found
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Please try again
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                   </div>
                   <DialogFooter>
                     <Button type="submit" onClick={confirmVoteAction}>
