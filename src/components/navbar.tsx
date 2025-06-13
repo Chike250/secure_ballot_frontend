@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "./theme-toggle"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { LanguageSelector } from "./language-selector"
+import { useAuthStore } from "@/store/useStore"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { t } = useLanguage()
+  const { isAuthenticated } = useAuthStore()
 
   // Memoize toggle function
   const toggleMenu = useCallback(() => {
@@ -47,9 +49,11 @@ export function Navbar() {
           </Link>
           <LanguageSelector />
           <ThemeToggle />
-          <Button asChild>
-            <Link href="/login">{t("nav.login")}</Link>
-          </Button>
+          {!isAuthenticated && (
+            <Button asChild>
+              <Link href="/login">{t("nav.login")}</Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile Navigation Toggle */}
@@ -75,9 +79,11 @@ export function Navbar() {
             <Link href="/contact" className="text-sm font-medium hover:text-primary">
               {t("nav.contact")}
             </Link>
-            <Button asChild>
-              <Link href="/login">{t("nav.login")}</Link>
-            </Button>
+            {!isAuthenticated && (
+              <Button asChild>
+                <Link href="/login">{t("nav.login")}</Link>
+              </Button>
+            )}
           </div>
         </div>
       )}

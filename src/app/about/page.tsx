@@ -139,45 +139,24 @@ export default function AboutPage() {
         </div>
 
         <div className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Our Team</h2>
-          <p className="mb-8 max-w-3xl">
-            Secure Ballot is powered by a diverse team of technology experts, election specialists, and civic leaders
-            committed to strengthening Nigeria's democracy through innovation.
+          <h2 className="text-3xl font-bold mb-8 text-center">Developer</h2>
+          <p className="mb-8 max-w-3xl mx-auto text-center">
+            Secure Ballot is developed by a passionate engineer committed to strengthening Nigeria's democracy through innovative technology solutions.
           </p>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="flex flex-col items-center">
+          <div className="flex justify-center">
+            <div className="flex flex-col items-center text-center">
               <div className="relative h-40 w-40 rounded-full overflow-hidden mb-4">
                 <Image
-                  src="/placeholder.svg?height=160&width=160"
-                  alt="Dr. Oluwaseun Adeyemi"
+                  src="https://media.licdn.com/dms/image/v2/D4E35AQGwwinetMlq2g/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1691412271284?e=1750384800&v=beta&t=kbQa00qyJESg5BHY0QpG9aKC0UFx3ZstP98KrKeHK0I"
+                  alt="Chikeluba A. Okoye"
                   fill
                   className="object-cover"
                 />
               </div>
-              <h3 className="text-xl font-bold">Dr. Oluwaseun Adeyemi</h3>
-              <p className="text-muted-foreground">Chief Executive Officer</p>
-            </div>
-
-            <div className="flex flex-col items-center">
-              <div className="relative h-40 w-40 rounded-full overflow-hidden mb-4">
-                <Image src="/placeholder.svg?height=160&width=160" alt="Amina Ibrahim" fill className="object-cover" />
-              </div>
-              <h3 className="text-xl font-bold">Amina Ibrahim</h3>
-              <p className="text-muted-foreground">Chief Technology Officer</p>
-            </div>
-
-            <div className="flex flex-col items-center">
-              <div className="relative h-40 w-40 rounded-full overflow-hidden mb-4">
-                <Image
-                  src="/placeholder.svg?height=160&width=160"
-                  alt="Chukwudi Okonkwo"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-bold">Chukwudi Okonkwo</h3>
-              <p className="text-muted-foreground">Chief Security Officer</p>
+              <h3 className="text-xl font-bold">Chikeluba A. Okoye</h3>
+              <p className="text-muted-foreground">Information and Communication Engineering Major</p>
+              <p className="text-muted-foreground">Covenant University, Canaanland, Ota, Ogun State, Nigeria</p>
             </div>
           </div>
         </div>
