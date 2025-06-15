@@ -110,6 +110,12 @@ export const useElectionData = () => {
             candidates: election.candidates || [],
             candidateCount:
               election.candidateCount || election.candidates?.length || 0,
+            // Include voter count fields from API
+            registeredVotersCount: election.registeredVotersCount || 0,
+            votesCastCount: election.votesCastCount || 0,
+            // Also include the original API field names for backward compatibility
+            electionName: election.electionName,
+            electionType: election.electionType,
           }));
 
           setElections(mappedElections);

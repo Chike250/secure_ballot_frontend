@@ -60,9 +60,14 @@ interface Election {
   endDate: string;
   registeredVoters?: number;
   votesCast?: number;
+  registeredVotersCount?: number; // New API field
+  votesCastCount?: number; // New API field
   description?: string;
   candidates?: any[];
   candidateCount?: number;
+  // Legacy fields for backward compatibility
+  name?: string;
+  type?: string;
 }
 
 // Interface for candidate data
@@ -135,6 +140,16 @@ export function ElectionManagement() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [tempCandidates, setTempCandidates] = useState<any[]>([]);
+  const [availableElectionTypes, setAvailableElectionTypes] = useState<
+    string[]
+  >([
+    "Presidential",
+    "Gubernatorial",
+    "Senatorial",
+    "HouseOfReps",
+    "StateAssembly",
+    "LocalGovernment",
+  ]);
 
   const {
     isAdmin,
@@ -174,15 +189,15 @@ export function ElectionManagement() {
         }
 
         // Convert from store format to component format
-        const convertedElections = filteredData.map((election) => ({
+        const convertedElections = filteredData.map((election: any) => ({
           id: election.id,
-          electionName: election.name, // Store uses 'name', component expects 'electionName'
-          electionType: election.type, // Store uses 'type', component expects 'electionType'
+          electionName: election.electionName || election.name, // API uses 'electionName'
+          electionType: election.electionType || election.type, // API uses 'electionType'
           status: election.status,
           startDate: election.startDate,
           endDate: election.endDate,
-          registeredVoters: 0, // This would need to come from API
-          votesCast: 0, // This would need to come from API
+          registeredVoters: election.registeredVotersCount || 0, // Use new API field
+          votesCast: election.votesCastCount || 0, // Use new API field
           description: election.description || "",
           candidates: election.candidates || [],
           candidateCount:
@@ -190,6 +205,13 @@ export function ElectionManagement() {
         }));
 
         setElections(convertedElections);
+
+        // Extract available election types from API response if available
+        if (electionsData && (electionsData as any).availableElectionTypes) {
+          setAvailableElectionTypes(
+            (electionsData as any).availableElectionTypes
+          );
+        }
       }
     } catch (error) {
       console.error("Error fetching elections:", error);
@@ -208,7 +230,7 @@ export function ElectionManagement() {
     try {
       const electionResult = await createElection({
         electionName: newElection.electionName,
-        electionType: newElection.electionType.toUpperCase(),
+        electionType: newElection.electionType,
         startDate: newElection.startDate,
         endDate: newElection.endDate,
         description: newElection.description,
@@ -415,22 +437,17 @@ export function ElectionManagement() {
                         <SelectValue placeholder="Select election type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Presidential">
-                          Presidential
-                        </SelectItem>
-                        <SelectItem value="Gubernatorial">
-                          Gubernatorial
-                        </SelectItem>
-                        <SelectItem value="Senatorial">Senatorial</SelectItem>
-                        <SelectItem value="HouseOfReps">
-                          House of Representatives
-                        </SelectItem>
-                        <SelectItem value="StateAssembly">
-                          State Assembly
-                        </SelectItem>
-                        <SelectItem value="LocalGovernment">
-                          Local Government
-                        </SelectItem>
+                        {availableElectionTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type === "HouseOfReps"
+                              ? "House of Representatives"
+                              : type === "StateAssembly"
+                              ? "State Assembly"
+                              : type === "LocalGovernment"
+                              ? "Local Government"
+                              : type}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

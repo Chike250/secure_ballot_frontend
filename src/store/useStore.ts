@@ -140,6 +140,12 @@ interface Election {
   updatedAt?: string;
   candidates?: any[];
   candidateCount?: number;
+  // Voter count fields from API
+  registeredVotersCount?: number;
+  votesCastCount?: number;
+  // Original API field names for backward compatibility
+  electionName?: string;
+  electionType?: string;
 }
 
 interface Candidate {

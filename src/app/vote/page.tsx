@@ -63,21 +63,14 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Election types mapping
 const ELECTION_TYPES_MAP: Record<string, string> = {
   presidential: "Presidential Election",
   gubernatorial: "Gubernatorial Election",
-  house: "House of Representatives Election",
-  senate: "Senatorial Election",
+  houseOfReps: "House of Representatives Election",
+  senatorial: "Senatorial Election",
   local: "Local Election",
-};
-
-// Also support the old naming for backward compatibility
-const ELECTION_TYPE_ALIASES: Record<string, string> = {
-  "house-of-reps": "house",
-  senatorial: "senate",
 };
 
 export default function VotePage() {
@@ -145,6 +138,53 @@ export default function VotePage() {
     return candidates.find((c) => c.id === candidateId);
   };
 
+  // Get available election types based on actual elections from API
+  const getAvailableElectionTypes = () => {
+    if (!electionList || electionList.length === 0) {
+      return {};
+    }
+
+    const availableTypes: Record<string, string> = {};
+
+    electionList.forEach((election) => {
+      const eType = (election as any).electionType || election.type;
+      if (!eType) return;
+
+      const normalizedType = eType.toLowerCase();
+      // Map API election types to our type keys
+      if (
+        normalizedType.includes("president") ||
+        normalizedType.includes("presidential")
+      ) {
+        availableTypes.presidential = ELECTION_TYPES_MAP.presidential;
+      } else if (
+        normalizedType.includes("governor") ||
+        normalizedType.includes("gubernatorial")
+      ) {
+        availableTypes.gubernatorial = ELECTION_TYPES_MAP.gubernatorial;
+      } else if (
+        normalizedType.includes("house") ||
+        normalizedType.includes("representative") ||
+        normalizedType.includes("houseofreps")
+      ) {
+        availableTypes.houseOfReps = ELECTION_TYPES_MAP.houseOfReps;
+      } else if (
+        normalizedType.includes("senate") ||
+        normalizedType.includes("senator") ||
+        normalizedType.includes("senatorial")
+      ) {
+        availableTypes.senatorial = ELECTION_TYPES_MAP.senatorial;
+      } else if (
+        normalizedType.includes("local") ||
+        normalizedType.includes("localgovernment")
+      ) {
+        availableTypes.local = ELECTION_TYPES_MAP.local;
+      }
+    });
+
+    return availableTypes;
+  };
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
@@ -184,21 +224,15 @@ export default function VotePage() {
       electionList.forEach((election: any, index) => {});
 
       // Find election by type
-      const normalizedElectionType =
-        ELECTION_TYPE_ALIASES[electionType] || electionType;
-
       const election = electionList.find((e: any) => {
         const apiElectionType = e.electionType?.toLowerCase(); // API uses electionType
         const apiElectionName = e.electionName?.toLowerCase(); // API uses electionName
-        const searchType = normalizedElectionType.toLowerCase();
-        const originalType = electionType.toLowerCase();
+        const searchType = electionType.toLowerCase();
 
         return (
           apiElectionType === searchType ||
-          apiElectionType === originalType ||
           apiElectionType?.includes(searchType) ||
           apiElectionName?.includes(searchType) ||
-          apiElectionName?.includes(originalType) ||
           e.description?.toLowerCase().includes(searchType)
         );
       });
@@ -442,34 +476,50 @@ export default function VotePage() {
                   className="bg-green-500/10 text-green-500 border-green-500/20 w-fit"
                 >
                   <User className="mr-1 h-3 w-3" />
-                  <span className="truncate">{voterProfile?.fullName || user?.fullName}</span>
+                  <span className="truncate">
+                    {voterProfile?.fullName || user?.fullName}
+                  </span>
                 </Badge>
                 {pollingUnit && (
                   <Badge variant="outline" className="w-fit">
                     <MapPin className="mr-1 h-3 w-3" />
-                    <span className="truncate">{pollingUnit.pollingUnitName}</span>
+                    <span className="truncate">
+                      {pollingUnit.pollingUnitName}
+                    </span>
                   </Badge>
                 )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 mb-6">
-              {Object.entries(ELECTION_TYPES_MAP).map(([type, title]) => (
-                <Button
-                  key={type}
-                  variant={electionType === type ? "default" : "outline"}
-                  onClick={() => changeElectionType(type)}
-                  className="relative text-sm"
-                  size="sm"
-                >
-                  <span className="truncate">{title}</span>
-                  {votedElections[type] && (
-                    <Badge className="absolute -top-2 -right-2 bg-green-500 text-xs h-5 w-5 p-0 flex items-center justify-center">
-                      <Check className="h-3 w-3" />
-                    </Badge>
-                  )}
-                </Button>
-              ))}
+              {Object.entries(getAvailableElectionTypes()).length > 0 ? (
+                Object.entries(getAvailableElectionTypes()).map(
+                  ([type, title]) => (
+                    <Button
+                      key={type}
+                      variant={electionType === type ? "default" : "outline"}
+                      onClick={() => changeElectionType(type)}
+                      className="relative text-sm"
+                      size="sm"
+                    >
+                      <span className="truncate">{title}</span>
+                      {votedElections[type] && (
+                        <Badge className="absolute -top-2 -right-2 bg-green-500 text-xs h-5 w-5 p-0 flex items-center justify-center">
+                          <Check className="h-3 w-3" />
+                        </Badge>
+                      )}
+                    </Button>
+                  )
+                )
+              ) : (
+                <div className="col-span-full text-center py-4">
+                  <p className="text-muted-foreground">
+                    {isLoading
+                      ? "Loading elections..."
+                      : "No elections available at this time."}
+                  </p>
+                </div>
+              )}
             </div>
 
             <Tabs
@@ -628,7 +678,9 @@ export default function VotePage() {
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <RadioGroup
-                                      value={selectedCandidate?.toString() || ""}
+                                      value={
+                                        selectedCandidate?.toString() || ""
+                                      }
                                       onValueChange={(value) => {
                                         handleCandidateSelect(value);
                                       }}
@@ -722,7 +774,8 @@ export default function VotePage() {
                                   <div
                                     className="w-full h-full flex items-center justify-center text-white font-semibold text-sm"
                                     style={{
-                                      backgroundColor: candidate.color || "#6B7280",
+                                      backgroundColor:
+                                        candidate.color || "#6B7280",
                                     }}
                                   >
                                     {getInitials(candidate.name)}
@@ -735,8 +788,10 @@ export default function VotePage() {
                                 {candidate.name || "Unknown Candidate"}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                {candidate.bio?.split(" ").slice(0, 3).join(" ") ||
-                                  "No bio available"}
+                                {candidate.bio
+                                  ?.split(" ")
+                                  .slice(0, 3)
+                                  .join(" ") || "No bio available"}
                                 ...
                               </span>
                             </div>
@@ -807,7 +862,9 @@ export default function VotePage() {
                     <Button
                       size="lg"
                       disabled={
-                        !selectedCandidate || !eligibility?.isEligible || isLoading
+                        !selectedCandidate ||
+                        !eligibility?.isEligible ||
+                        isLoading
                       }
                       onClick={() => setShowConfirmDialog(true)}
                     >
@@ -821,8 +878,8 @@ export default function VotePage() {
                     <BadgeCheck className="h-4 w-4" />
                     <AlertTitle>Thank you for voting!</AlertTitle>
                     <AlertDescription>
-                      Your vote has been securely recorded and will be counted in
-                      the final tally.
+                      Your vote has been securely recorded and will be counted
+                      in the final tally.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -865,7 +922,8 @@ export default function VotePage() {
                                 <div className="relative h-8 w-8 rounded-full overflow-hidden">
                                   <Image
                                     src={
-                                      resultCandidate.image || "/placeholder.svg"
+                                      resultCandidate.image ||
+                                      "/placeholder.svg"
                                     }
                                     alt={resultCandidate.name}
                                     fill
@@ -883,7 +941,9 @@ export default function VotePage() {
                               </div>
                               <div className="text-right">
                                 <span className="font-medium">
-                                  {(resultCandidate.votes || 0).toLocaleString()}{" "}
+                                  {(
+                                    resultCandidate.votes || 0
+                                  ).toLocaleString()}{" "}
                                   votes
                                 </span>
                                 <span className="ml-2 text-sm text-muted-foreground">
@@ -938,7 +998,9 @@ export default function VotePage() {
                     Choose your preferred candidate by clicking on their card or
                     selecting the radio button
                   </li>
-                  <li>Click on the "Confirm Vote Selection" button to proceed</li>
+                  <li>
+                    Click on the "Confirm Vote Selection" button to proceed
+                  </li>
                   <li>Review your selection in the confirmation dialog</li>
                   <li>Confirm your vote to cast it securely</li>
                 </ol>
@@ -946,49 +1008,57 @@ export default function VotePage() {
             </Card>
 
             {/* Other Elections Section */}
-            <h2 className="text-xl font-bold mt-8 mb-4">Other Elections</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {Object.entries(ELECTION_TYPES_MAP)
-                .filter(([type]) => type !== electionType)
-                .map(([type, title]) => (
-                  <Card
-                    key={type}
-                    className="hover:shadow-md transition-all duration-300"
-                  >
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <p className="text-sm text-muted-foreground">
-                        {votedElections[type]
-                          ? "You have already cast your vote in this election."
-                          : "You haven't voted in this election yet."}
-                      </p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button
-                        variant={votedElections[type] ? "outline" : "default"}
-                        size="sm"
-                        asChild
+            {Object.entries(getAvailableElectionTypes()).filter(
+              ([type]) => type !== electionType
+            ).length > 0 && (
+              <>
+                <h2 className="text-xl font-bold mt-8 mb-4">Other Elections</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Object.entries(getAvailableElectionTypes())
+                    .filter(([type]) => type !== electionType)
+                    .map(([type, title]) => (
+                      <Card
+                        key={type}
+                        className="hover:shadow-md transition-all duration-300"
                       >
-                        <Link href={`/vote?type=${type}`}>
-                          {votedElections[type] ? (
-                            <>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Results
-                            </>
-                          ) : (
-                            <>
-                              Vote Now
-                              <ChevronRight className="ml-2 h-4 w-4" />
-                            </>
-                          )}
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-            </div>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">{title}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pb-2">
+                          <p className="text-sm text-muted-foreground">
+                            {votedElections[type]
+                              ? "You have already cast your vote in this election."
+                              : "You haven't voted in this election yet."}
+                          </p>
+                        </CardContent>
+                        <CardFooter>
+                          <Button
+                            variant={
+                              votedElections[type] ? "outline" : "default"
+                            }
+                            size="sm"
+                            asChild
+                          >
+                            <Link href={`/vote?type=${type}`}>
+                              {votedElections[type] ? (
+                                <>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Results
+                                </>
+                              ) : (
+                                <>
+                                  Vote Now
+                                  <ChevronRight className="ml-2 h-4 w-4" />
+                                </>
+                              )}
+                            </Link>
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                </div>
+              </>
+            )}
           </main>
         </div>
 
@@ -998,8 +1068,8 @@ export default function VotePage() {
             <DialogHeader>
               <DialogTitle>Confirm Your Vote</DialogTitle>
               <DialogDescription>
-                Please review your selection carefully. Once submitted, your vote
-                cannot be changed.
+                Please review your selection carefully. Once submitted, your
+                vote cannot be changed.
               </DialogDescription>
             </DialogHeader>
             {selectedCandidate && (candidates || []).length > 0 && (
@@ -1035,7 +1105,9 @@ export default function VotePage() {
                         findCandidate(selectedCandidate)?.color
                       }20`,
                       color: findCandidate(selectedCandidate)?.color,
-                      borderColor: `${findCandidate(selectedCandidate)?.color}40`,
+                      borderColor: `${
+                        findCandidate(selectedCandidate)?.color
+                      }40`,
                     }}
                   >
                     {findCandidate(selectedCandidate)?.party}
