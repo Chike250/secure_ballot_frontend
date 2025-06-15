@@ -47,7 +47,7 @@ export function CountdownTimer() {
         // Fetch active elections from public API
         const response = await publicAPI.getElections(
           "active",
-          "PRESIDENTIAL",
+          "Presidential",
           1,
           10
         );
