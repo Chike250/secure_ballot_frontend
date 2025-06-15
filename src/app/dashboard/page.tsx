@@ -882,15 +882,15 @@ export default function DashboardPage() {
         </Sidebar>
 
         <div className="flex-1">
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
-            <div className="flex items-center gap-2">
+          <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background px-2 md:px-6">
+            <div className="flex items-center gap-2 min-w-0">
               <SidebarTrigger />
-              <h1 className="text-lg font-semibold md:text-xl">
+              <h1 className="truncate text-sm font-semibold md:text-xl">
                 {ELECTION_TYPES_MAP[currentElectionTypeKey]} Dashboard
               </h1>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="icon"
@@ -1191,12 +1191,12 @@ export default function DashboardPage() {
               onValueChange={setActiveTab}
               className="space-y-6"
             >
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="candidates">Candidates</TabsTrigger>
-                <TabsTrigger value="statistics">Statistics</TabsTrigger>
-                <TabsTrigger value="map">Map</TabsTrigger>
-              </TabsList>
+                              <TabsList className="grid w-full grid-cols-4 md:grid-cols-4 overflow-x-auto">
+                  <TabsTrigger value="overview" className="whitespace-nowrap">Overview</TabsTrigger>
+                  <TabsTrigger value="candidates" className="whitespace-nowrap">Candidates</TabsTrigger>
+                  <TabsTrigger value="statistics" className="whitespace-nowrap">Statistics</TabsTrigger>
+                  <TabsTrigger value="map" className="whitespace-nowrap">Map</TabsTrigger>
+                </TabsList>
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
@@ -1906,11 +1906,11 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                       <Tabs defaultValue="overview">
-                        <TabsList className="grid w-full grid-cols-4">
-                          <TabsTrigger value="overview">Overview</TabsTrigger>
-                          <TabsTrigger value="state">By State</TabsTrigger>
-                          <TabsTrigger value="demographic">By Age</TabsTrigger>
-                          <TabsTrigger value="gender">By Gender</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-4 md:grid-cols-4 overflow-x-auto">
+                          <TabsTrigger value="overview" className="whitespace-nowrap">Overview</TabsTrigger>
+                          <TabsTrigger value="state" className="whitespace-nowrap">By State</TabsTrigger>
+                          <TabsTrigger value="demographic" className="whitespace-nowrap">By Age</TabsTrigger>
+                          <TabsTrigger value="gender" className="whitespace-nowrap">By Gender</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="overview" className="pt-4">

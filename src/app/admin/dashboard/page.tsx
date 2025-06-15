@@ -139,29 +139,29 @@ export default function AdminDashboardPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8 p-6 md:p-8">
-        <div className="flex items-center justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-bold tracking-tight">
+      <div className="space-y-6 md:space-y-8 p-4 md:p-6 lg:p-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2 md:space-y-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                 Admin Dashboard
               </h1>
               <Badge
                 variant="outline"
-                className="bg-green-500/10 text-green-500 border-green-500/20"
+                className="bg-green-500/10 text-green-500 border-green-500/20 w-fit"
               >
                 {user?.fullName || "Administrator"}
               </Badge>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-sm md:text-base text-muted-foreground">
               Manage elections, monitor voter activity, and ensure system
               security.
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
             {systemStatistics && (
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex flex-col gap-2 text-sm md:flex-row md:items-center md:gap-4">
                 <div className="flex items-center gap-1">
                   <BarChart3 className="h-4 w-4 text-blue-500" />
                   <span className="text-muted-foreground">

@@ -17,12 +17,12 @@ export function TranslatedHomePage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="hero-gradient relative overflow-hidden py-16">
+      <section className="hero-gradient relative overflow-hidden py-12 md:py-16 z-0">
         <div className="container mx-auto px-4">
-          <div className="grid gap-12 md:grid-cols-2 md:items-center">
+          <div className="grid gap-8 md:gap-12 md:grid-cols-2 md:items-center">
             <div className="text-center md:text-left">
-              <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">{t("home.hero.title")}</h1>
-              <p className="mb-6 text-lg text-muted-foreground md:text-xl">{t("home.hero.subtitle")}</p>
+              <h1 className="mb-4 text-3xl font-bold tracking-tight md:text-5xl lg:text-6xl z-0">{t("home.hero.title")}</h1>
+              <p className="mb-6 text-base md:text-xl text-muted-foreground">{t("home.hero.subtitle")}</p>
               <div className="flex flex-col gap-4 sm:flex-row sm:justify-center md:justify-start">
                 <Button asChild size="lg" className="gap-2">
                   <Link href="/login">
@@ -53,18 +53,18 @@ export function TranslatedHomePage() {
       </section>
 
       {/* Countdown Section */}
-      <section className="py-12">
+      <section className="py-8 md:py-12">
         <div className="container mx-auto px-4">
-          <div className="glassmorphism mx-auto max-w-md rounded-xl p-6 text-center">
+          <div className="glassmorphism mx-auto max-w-md rounded-xl p-4 md:p-6 text-center">
             <CountdownTimer />
           </div>
         </div>
       </section>
 
       {/* Elections Section */}
-      <section className="py-12 bg-muted/30">
+      <section className="py-8 md:py-12 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="mb-8 text-center text-3xl font-bold">{t("home.elections.title")}</h2>
+          <h2 className="mb-6 md:mb-8 text-center text-2xl md:text-3xl font-bold">{t("home.elections.title")}</h2>
           <ElectionCards />
         </div>
       </section>
@@ -73,26 +73,26 @@ export function TranslatedHomePage() {
       <RealTimeMonitoring />
 
       {/* Testimonials Section */}
-      <section className="py-12">
+      <section className="py-8 md:py-12">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h2 className="mb-4 text-3xl font-bold">{t("home.testimonials.title")}</h2>
-            <p className="mx-auto mb-8 max-w-2xl text-muted-foreground">{t("home.testimonials.subtitle")}</p>
+            <h2 className="mb-4 text-2xl md:text-3xl font-bold">{t("home.testimonials.title")}</h2>
+            <p className="mx-auto mb-6 md:mb-8 max-w-2xl text-sm md:text-base text-muted-foreground">{t("home.testimonials.subtitle")}</p>
           </div>
           <ReviewCarousel />
         </div>
       </section>
 
       {/* Security Features Section */}
-      <section className="py-12 bg-muted/30">
+      <section className="py-8 md:py-12 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h2 className="mb-4 text-3xl font-bold">{t("home.security.title")}</h2>
-            <p className="mx-auto mb-8 max-w-2xl text-muted-foreground">{t("home.security.subtitle")}</p>
+            <h2 className="mb-4 text-2xl md:text-3xl font-bold">{t("home.security.title")}</h2>
+            <p className="mx-auto mb-6 md:mb-8 max-w-2xl text-sm md:text-base text-muted-foreground">{t("home.security.subtitle")}</p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="glassmorphism rounded-xl p-6">
+          <div className="grid gap-4 md:gap-6 md:grid-cols-3">
+            <div className="glassmorphism rounded-xl p-4 md:p-6">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                 <ShieldCheck className="h-6 w-6 text-primary" />
               </div>
@@ -100,7 +100,7 @@ export function TranslatedHomePage() {
               <p className="text-muted-foreground">{t("home.security.mfa.description")}</p>
             </div>
 
-            <div className="glassmorphism rounded-xl p-6">
+            <div className="glassmorphism rounded-xl p-4 md:p-6">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                 <ShieldCheck className="h-6 w-6 text-primary" />
               </div>
@@ -108,7 +108,7 @@ export function TranslatedHomePage() {
               <p className="text-muted-foreground">{t("home.security.encryption.description")}</p>
             </div>
 
-            <div className="glassmorphism rounded-xl p-6">
+            <div className="glassmorphism rounded-xl p-4 md:p-6">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                 <ShieldCheck className="h-6 w-6 text-primary" />
               </div>

@@ -1042,28 +1042,28 @@ export default function ResultsDashboardPage() {
         </Sidebar>
 
         <div className="flex-1">
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
-            <div className="flex items-center gap-2">
+          <header className="sticky top-0 z-30 flex flex-col gap-3 md:flex-row md:h-16 md:items-center md:justify-between border-b bg-background px-4 md:px-6 py-3 md:py-0">
+            <div className="flex items-center gap-2 min-w-0">
               <SidebarTrigger />
-              <h1 className="text-lg font-semibold md:text-xl">
+              <h1 className="text-base md:text-lg font-semibold truncate">
                 {ELECTION_TYPES[electionType as keyof typeof ELECTION_TYPES] ||
                   "Election"}{" "}
                 Results
               </h1>
               <Badge
                 variant="outline"
-                className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
+                className="bg-green-500/10 text-green-500 border-green-500/20 text-xs"
               >
                 Live
               </Badge>
               {currentElection?.id && (
-                <Badge variant="outline" className="ml-2">
+                <Badge variant="outline" className="text-xs hidden sm:inline-flex">
                   ID: {currentElection.id}
                 </Badge>
               )}
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2 md:gap-4">
               <div className="flex items-center gap-2">
                 <Label htmlFor="realtime-toggle" className="text-sm">
                   Real-time
@@ -1166,7 +1166,7 @@ export default function ResultsDashboardPage() {
             )}
 
             {/* Results Summary */}
-            <div className="grid gap-6 md:grid-cols-4 mb-6">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
               <Card className="transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -1174,7 +1174,7 @@ export default function ResultsDashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-xl md:text-2xl font-bold">
                     {getTotalVotes().toLocaleString()}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -1190,7 +1190,7 @@ export default function ResultsDashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">62.5%</div>
+                  <div className="text-xl md:text-2xl font-bold">62.5%</div>
                   <p className="text-xs text-muted-foreground">
                     Of registered voters
                   </p>
@@ -1204,7 +1204,7 @@ export default function ResultsDashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">36/37</div>
+                  <div className="text-xl md:text-2xl font-bold">36/37</div>
                   <p className="text-xs text-muted-foreground">Including FCT</p>
                 </CardContent>
               </Card>
@@ -1216,7 +1216,7 @@ export default function ResultsDashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-xl md:text-2xl font-bold">
                     {(() => {
                       // Check API results first
                       if (
@@ -1297,12 +1297,12 @@ export default function ResultsDashboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
                       <div className="text-sm font-medium text-muted-foreground">
                         Total Votes Cast
                       </div>
-                      <div className="text-2xl font-bold">
+                      <div className="text-xl md:text-2xl font-bold">
                         {detailedResultsData.totalVotesCast?.toLocaleString() ||
                           "N/A"}
                       </div>
@@ -1311,7 +1311,7 @@ export default function ResultsDashboardPage() {
                       <div className="text-sm font-medium text-muted-foreground">
                         Election Status
                       </div>
-                      <div className="text-2xl font-bold capitalize">
+                      <div className="text-xl md:text-2xl font-bold capitalize">
                         {detailedResultsData.status || "N/A"}
                       </div>
                     </div>
@@ -1319,7 +1319,7 @@ export default function ResultsDashboardPage() {
                       <div className="text-sm font-medium text-muted-foreground">
                         Candidates
                       </div>
-                      <div className="text-2xl font-bold">
+                      <div className="text-xl md:text-2xl font-bold">
                         {detailedResultsData.results?.length || "N/A"}
                       </div>
                     </div>

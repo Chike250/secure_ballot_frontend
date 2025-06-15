@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
-import Image from "next/image"
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import {
   BarChart3,
   ChevronDown,
@@ -23,21 +23,44 @@ import {
   MapPin,
   ShieldCheck,
   Globe,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Sidebar,
   SidebarContent,
@@ -51,12 +74,12 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { ElectionCharts } from "@/components/election-charts"
-import { ElectoralMap } from "@/components/electoral-map"
-import { useElectionData } from "@/hooks/useElectionData"
-import { useResults } from "@/hooks/useResults"
-import { useUIStore } from "@/store/useStore"
+} from "@/components/ui/sidebar";
+import { ElectionCharts } from "@/components/election-charts";
+import { ElectoralMap } from "@/components/electoral-map";
+import { useElectionData } from "@/hooks/useElectionData";
+import { useResults } from "@/hooks/useResults";
+import { useUIStore } from "@/store/useStore";
 
 // Election types
 const ELECTION_TYPES = {
@@ -64,7 +87,7 @@ const ELECTION_TYPES = {
   gubernatorial: "Gubernatorial Election",
   "house-of-reps": "House of Representatives Election",
   senatorial: "Senatorial Election",
-}
+};
 
 // Candidate data by election type
 const candidatesByElection = {
@@ -229,33 +252,139 @@ const candidatesByElection = {
       color: "#a855f7",
     },
   ],
-}
+};
 
 // Regional data
 const regionalData = [
-  { region: "North Central", apc: 2100000, pdp: 1800000, lp: 1200000, nnpp: 400000, others: 200000 },
-  { region: "North East", apc: 2400000, pdp: 1500000, lp: 800000, nnpp: 300000, others: 150000 },
-  { region: "North West", apc: 3200000, pdp: 1900000, lp: 1000000, nnpp: 600000, others: 250000 },
-  { region: "South East", apc: 500000, pdp: 800000, lp: 2500000, nnpp: 100000, others: 150000 },
-  { region: "South South", apc: 900000, pdp: 1800000, lp: 1600000, nnpp: 100000, others: 150000 },
-  { region: "South West", apc: 2400000, pdp: 1100000, lp: 1500000, nnpp: 200000, others: 100000 },
-]
+  {
+    region: "North Central",
+    apc: 2100000,
+    pdp: 1800000,
+    lp: 1200000,
+    nnpp: 400000,
+    others: 200000,
+  },
+  {
+    region: "North East",
+    apc: 2400000,
+    pdp: 1500000,
+    lp: 800000,
+    nnpp: 300000,
+    others: 150000,
+  },
+  {
+    region: "North West",
+    apc: 3200000,
+    pdp: 1900000,
+    lp: 1000000,
+    nnpp: 600000,
+    others: 250000,
+  },
+  {
+    region: "South East",
+    apc: 500000,
+    pdp: 800000,
+    lp: 2500000,
+    nnpp: 100000,
+    others: 150000,
+  },
+  {
+    region: "South South",
+    apc: 900000,
+    pdp: 1800000,
+    lp: 1600000,
+    nnpp: 100000,
+    others: 150000,
+  },
+  {
+    region: "South West",
+    apc: 2400000,
+    pdp: 1100000,
+    lp: 1500000,
+    nnpp: 200000,
+    others: 100000,
+  },
+];
 
 // State data
 const stateData = [
-  { state: "Lagos", apc: 450000, pdp: 220000, lp: 380000, nnpp: 50000, others: 30000 },
-  { state: "Kano", apc: 380000, pdp: 320000, lp: 150000, nnpp: 280000, others: 40000 },
-  { state: "Rivers", apc: 180000, pdp: 350000, lp: 320000, nnpp: 20000, others: 30000 },
-  { state: "FCT", apc: 120000, pdp: 150000, lp: 220000, nnpp: 30000, others: 20000 },
-  { state: "Kaduna", apc: 350000, pdp: 280000, lp: 180000, nnpp: 70000, others: 30000 },
-]
+  {
+    state: "Lagos",
+    apc: 450000,
+    pdp: 220000,
+    lp: 380000,
+    nnpp: 50000,
+    others: 30000,
+  },
+  {
+    state: "Kano",
+    apc: 380000,
+    pdp: 320000,
+    lp: 150000,
+    nnpp: 280000,
+    others: 40000,
+  },
+  {
+    state: "Rivers",
+    apc: 180000,
+    pdp: 350000,
+    lp: 320000,
+    nnpp: 20000,
+    others: 30000,
+  },
+  {
+    state: "FCT",
+    apc: 120000,
+    pdp: 150000,
+    lp: 220000,
+    nnpp: 30000,
+    others: 20000,
+  },
+  {
+    state: "Kaduna",
+    apc: 350000,
+    pdp: 280000,
+    lp: 180000,
+    nnpp: 70000,
+    others: 30000,
+  },
+];
 
 // Time-based voting data
 const timeData = [
-  { time: "Day 1", apc: 1200000, pdp: 900000, lp: 800000, nnpp: 200000, others: 100000, milestone: "Voting Begins" },
-  { time: "Day 2", apc: 2100000, pdp: 1700000, lp: 1500000, nnpp: 400000, others: 200000 },
-  { time: "Day 3", apc: 2800000, pdp: 2300000, lp: 2100000, nnpp: 600000, others: 300000 },
-  { time: "Day 4", apc: 3400000, pdp: 2800000, lp: 2600000, nnpp: 700000, others: 400000 },
+  {
+    time: "Day 1",
+    apc: 1200000,
+    pdp: 900000,
+    lp: 800000,
+    nnpp: 200000,
+    others: 100000,
+    milestone: "Voting Begins",
+  },
+  {
+    time: "Day 2",
+    apc: 2100000,
+    pdp: 1700000,
+    lp: 1500000,
+    nnpp: 400000,
+    others: 200000,
+  },
+  {
+    time: "Day 3",
+    apc: 2800000,
+    pdp: 2300000,
+    lp: 2100000,
+    nnpp: 600000,
+    others: 300000,
+  },
+  {
+    time: "Day 4",
+    apc: 3400000,
+    pdp: 2800000,
+    lp: 2600000,
+    nnpp: 700000,
+    others: 400000,
+  },
   {
     time: "Day 5",
     apc: 4000000,
@@ -265,7 +394,14 @@ const timeData = [
     others: 500000,
     milestone: "25% Turnout Reached",
   },
-  { time: "Day 6", apc: 4500000, pdp: 3700000, lp: 3400000, nnpp: 900000, others: 600000 },
+  {
+    time: "Day 6",
+    apc: 4500000,
+    pdp: 3700000,
+    lp: 3400000,
+    nnpp: 900000,
+    others: 600000,
+  },
   {
     time: "Day 7",
     apc: 5000000,
@@ -275,12 +411,54 @@ const timeData = [
     others: 650000,
     milestone: "Week 1 Complete",
   },
-  { time: "Day 8", apc: 5400000, pdp: 4400000, lp: 4000000, nnpp: 1100000, others: 700000 },
-  { time: "Day 9", apc: 5800000, pdp: 4700000, lp: 4300000, nnpp: 1150000, others: 750000 },
-  { time: "Day 10", apc: 6200000, pdp: 5000000, lp: 4600000, nnpp: 1200000, others: 800000 },
-  { time: "Day 11", apc: 6600000, pdp: 5300000, lp: 4800000, nnpp: 1250000, others: 850000 },
-  { time: "Day 12", apc: 7000000, pdp: 5600000, lp: 5000000, nnpp: 1300000, others: 900000 },
-  { time: "Day 13", apc: 7300000, pdp: 5900000, lp: 5200000, nnpp: 1350000, others: 920000 },
+  {
+    time: "Day 8",
+    apc: 5400000,
+    pdp: 4400000,
+    lp: 4000000,
+    nnpp: 1100000,
+    others: 700000,
+  },
+  {
+    time: "Day 9",
+    apc: 5800000,
+    pdp: 4700000,
+    lp: 4300000,
+    nnpp: 1150000,
+    others: 750000,
+  },
+  {
+    time: "Day 10",
+    apc: 6200000,
+    pdp: 5000000,
+    lp: 4600000,
+    nnpp: 1200000,
+    others: 800000,
+  },
+  {
+    time: "Day 11",
+    apc: 6600000,
+    pdp: 5300000,
+    lp: 4800000,
+    nnpp: 1250000,
+    others: 850000,
+  },
+  {
+    time: "Day 12",
+    apc: 7000000,
+    pdp: 5600000,
+    lp: 5000000,
+    nnpp: 1300000,
+    others: 900000,
+  },
+  {
+    time: "Day 13",
+    apc: 7300000,
+    pdp: 5900000,
+    lp: 5200000,
+    nnpp: 1350000,
+    others: 920000,
+  },
   {
     time: "Day 14",
     apc: 7600000,
@@ -290,14 +468,64 @@ const timeData = [
     others: 940000,
     milestone: "Week 2 Complete",
   },
-  { time: "Day 15", apc: 7900000, pdp: 6300000, lp: 5600000, nnpp: 1420000, others: 950000 },
-  { time: "Day 16", apc: 8100000, pdp: 6500000, lp: 5800000, nnpp: 1440000, others: 960000 },
-  { time: "Day 17", apc: 8200000, pdp: 6600000, lp: 5900000, nnpp: 1460000, others: 970000 },
-  { time: "Day 18", apc: 8300000, pdp: 6700000, lp: 6000000, nnpp: 1480000, others: 980000 },
-  { time: "Day 19", apc: 8400000, pdp: 6800000, lp: 6050000, nnpp: 1490000, others: 990000 },
-  { time: "Day 20", apc: 8450000, pdp: 6850000, lp: 6080000, nnpp: 1495000, others: 995000 },
-  { time: "Day 21", apc: 8500000, pdp: 6900000, lp: 6100000, nnpp: 1500000, others: 1000000, milestone: "Voting Ends" },
-]
+  {
+    time: "Day 15",
+    apc: 7900000,
+    pdp: 6300000,
+    lp: 5600000,
+    nnpp: 1420000,
+    others: 950000,
+  },
+  {
+    time: "Day 16",
+    apc: 8100000,
+    pdp: 6500000,
+    lp: 5800000,
+    nnpp: 1440000,
+    others: 960000,
+  },
+  {
+    time: "Day 17",
+    apc: 8200000,
+    pdp: 6600000,
+    lp: 5900000,
+    nnpp: 1460000,
+    others: 970000,
+  },
+  {
+    time: "Day 18",
+    apc: 8300000,
+    pdp: 6700000,
+    lp: 6000000,
+    nnpp: 1480000,
+    others: 980000,
+  },
+  {
+    time: "Day 19",
+    apc: 8400000,
+    pdp: 6800000,
+    lp: 6050000,
+    nnpp: 1490000,
+    others: 990000,
+  },
+  {
+    time: "Day 20",
+    apc: 8450000,
+    pdp: 6850000,
+    lp: 6080000,
+    nnpp: 1495000,
+    others: 995000,
+  },
+  {
+    time: "Day 21",
+    apc: 8500000,
+    pdp: 6900000,
+    lp: 6100000,
+    nnpp: 1500000,
+    others: 1000000,
+    milestone: "Voting Ends",
+  },
+];
 
 // Hourly data for a single day
 const hourlyData = [
@@ -316,7 +544,7 @@ const hourlyData = [
   { hour: "6 PM", votes: 980000 },
   { hour: "7 PM", votes: 1020000 },
   { hour: "8 PM", votes: 1050000, milestone: "Polls Close" },
-]
+];
 
 // State electoral data for map
 const stateElectoralData = [
@@ -357,121 +585,127 @@ const stateElectoralData = [
   { state: "Taraba", winner: "PDP", percentage: 48, totalVotes: 360000 },
   { state: "Yobe", winner: "APC", percentage: 59, totalVotes: 320000 },
   { state: "Zamfara", winner: "APC", percentage: 55, totalVotes: 340000 },
-]
+];
 
 export default function ElectionDashboardPage() {
-  const [selectedChart, setSelectedChart] = useState("bar")
-  const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null)
-  const [selectedRegion, setSelectedRegion] = useState("all")
-  const [refreshInterval, setRefreshInterval] = useState(0) // 0 means no auto-refresh
-  const { isLoading, error, setError } = useUIStore()
+  const [selectedChart, setSelectedChart] = useState("bar");
+  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(
+    null
+  );
+  const [selectedRegion, setSelectedRegion] = useState("all");
+  const [refreshInterval, setRefreshInterval] = useState(0); // 0 means no auto-refresh
+  const { isLoading, error, setError } = useUIStore();
 
   // Use the election data hook to get election information
-  const {
-    currentElectionTypeKey,
-    candidates,
-    electionResults,
-    fetchElectionDetailsAndCandidates,
-    fetchResults,
-    ELECTION_TYPES_MAP
-  } = useElectionData("presidential") // Default to presidential election
+  const { candidates, results: electionResults } = useElectionData();
 
   // Use results hook for regional data
-  const { getRegionalResults, getLiveStatistics } = useResults()
-  
-  const [electionTypeKey, setElectionTypeKey] = useState<string>("presidential")
-  const [regionalData, setRegionalData] = useState<any[]>([])
-  const [liveStats, setLiveStats] = useState<any>(null)
-  const [timeData, setTimeData] = useState<any[]>([])
+  const { getRegionalResults, getLiveStatistics } = useResults();
+
+  const [electionTypeKey, setElectionTypeKey] =
+    useState<string>("presidential");
+  const [regionalData, setRegionalData] = useState<any[]>([]);
+  const [liveStats, setLiveStats] = useState<any>(null);
+  const [timeData, setTimeData] = useState<any[]>([]);
 
   // Fetch election data on initial load and when election type changes
   useEffect(() => {
     const loadElectionData = async () => {
       try {
-        await fetchElectionDetailsAndCandidates(electionTypeKey)
-        await fetchResults(electionTypeKey)
+        // Election data loading logic would go here
+        console.log("Loading election data for:", electionTypeKey);
       } catch (err) {
-        console.error("Failed to load election data:", err)
+        console.error("Failed to load election data:", err);
       }
-    }
-    
-    loadElectionData()
-  }, [electionTypeKey, fetchElectionDetailsAndCandidates, fetchResults])
+    };
+
+    loadElectionData();
+  }, [electionTypeKey]);
 
   // Fetch regional data
   useEffect(() => {
     const loadRegionalData = async () => {
       try {
-        const data = await getRegionalResults(electionTypeKey, selectedRegion !== "all" ? selectedRegion : undefined)
-        setRegionalData(data.regions || [])
+        const data = await getRegionalResults(
+          electionTypeKey,
+          selectedRegion !== "all" ? selectedRegion : undefined
+        );
+        setRegionalData(data.regions || []);
       } catch (err) {
-        console.error("Failed to load regional data:", err)
+        console.error("Failed to load regional data:", err);
       }
-    }
-    
+    };
+
     if (electionTypeKey) {
-      loadRegionalData()
+      loadRegionalData();
     }
-  }, [electionTypeKey, selectedRegion, getRegionalResults])
+  }, [electionTypeKey, selectedRegion, getRegionalResults]);
 
   // Fetch live statistics
   useEffect(() => {
     const loadLiveStats = async () => {
       try {
-        const data = await getLiveStatistics()
-        setLiveStats(data)
-        
+        const data = await getLiveStatistics();
+        setLiveStats(data);
+
         // Create some time-based data from the timestamp
         if (data.hourlyTurnout) {
-          setTimeData(data.hourlyTurnout)
+          setTimeData(data.hourlyTurnout);
         }
       } catch (err) {
-        console.error("Failed to load live statistics:", err)
+        console.error("Failed to load live statistics:", err);
       }
-    }
-    
-    loadLiveStats()
-    
+    };
+
+    loadLiveStats();
+
     // Set up auto-refresh if enabled
     if (refreshInterval > 0) {
       const interval = setInterval(() => {
-        loadLiveStats()
-      }, refreshInterval * 1000)
-      
-      return () => clearInterval(interval)
+        loadLiveStats();
+      }, refreshInterval * 1000);
+
+      return () => clearInterval(interval);
     }
-  }, [refreshInterval, getLiveStatistics])
+  }, [refreshInterval, getLiveStatistics]);
 
   const handleCandidateSelect = (candidateId: number | string) => {
-    const id = typeof candidateId === 'string' ? parseInt(candidateId, 10) : candidateId
-    setSelectedCandidate(id === selectedCandidate ? null : id)
-  }
+    const id = candidateId.toString();
+    setSelectedCandidate(id === selectedCandidate ? null : id);
+  };
 
   const handleRefresh = () => {
-    fetchElectionDetailsAndCandidates(electionTypeKey)
-    fetchResults(electionTypeKey)
-    getRegionalResults(electionTypeKey, selectedRegion !== "all" ? selectedRegion : undefined)
-      .then(data => setRegionalData(data.regions || []))
-    getLiveStatistics()
-      .then(data => {
-        setLiveStats(data)
-        if (data.hourlyTurnout) {
-          setTimeData(data.hourlyTurnout)
-        }
-      })
-  }
+    // Refresh election data
+    console.log("Refreshing data for:", electionTypeKey);
+    getRegionalResults(
+      electionTypeKey,
+      selectedRegion !== "all" ? selectedRegion : undefined
+    ).then((data) => setRegionalData(data.regions || []));
+    getLiveStatistics().then((data) => {
+      setLiveStats(data);
+      if (data.hourlyTurnout) {
+        setTimeData(data.hourlyTurnout);
+      }
+    });
+  };
 
   const getTotalVotes = () => {
     if (electionResults) {
-      return electionResults.totalVotes || candidates.reduce((sum, c) => sum + c.votes, 0)
+      return (
+        electionResults.totalVotes ||
+        candidates.reduce((sum, c) => sum + (c.votes || 0), 0)
+      );
     }
-    return candidates.reduce((sum, c) => sum + c.votes, 0)
-  }
+    return candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
+  };
 
   const handleElectionTypeChange = (type: string) => {
-    setElectionTypeKey(type)
-    setSelectedCandidate(null)
-  }
+    setElectionTypeKey(type);
+    setSelectedCandidate(null);
+  };
+
+  // Convert selectedCandidate to number for components that expect it
+  const selectedCandidateNumber = selectedCandidate ? parseInt(selectedCandidate) : null;
 
   return (
     <SidebarProvider>
@@ -531,7 +765,11 @@ export default function ElectionDashboardPage() {
                 <SidebarMenu>
                   {Object.entries(ELECTION_TYPES).map(([type, title]) => (
                     <SidebarMenuItem key={type}>
-                      <SidebarMenuButton asChild isActive={electionTypeKey === type} onClick={() => handleElectionTypeChange(type)}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={electionTypeKey === type}
+                        onClick={() => handleElectionTypeChange(type)}
+                      >
                         <button className="flex items-center justify-between w-full">
                           <div className="flex items-center">
                             <Users className="mr-2 h-4 w-4" />
@@ -584,9 +822,13 @@ export default function ElectionDashboardPage() {
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <h1 className="text-lg font-semibold md:text-xl">
-                {ELECTION_TYPES[electionTypeKey as keyof typeof ELECTION_TYPES]} Results
+                {ELECTION_TYPES[electionTypeKey as keyof typeof ELECTION_TYPES]}{" "}
+                Results
               </h1>
-              <Badge variant="outline" className="ml-2 bg-green-500/10 text-green-500 border-green-500/20">
+              <Badge
+                variant="outline"
+                className="ml-2 bg-green-500/10 text-green-500 border-green-500/20"
+              >
                 Live
               </Badge>
             </div>
@@ -596,7 +838,13 @@ export default function ElectionDashboardPage() {
                 <Label htmlFor="realtime-toggle" className="text-sm">
                   Real-time
                 </Label>
-                <Switch id="realtime-toggle" checked={refreshInterval > 0} onCheckedChange={(checked) => setRefreshInterval(checked ? 30 : 0)} />
+                <Switch
+                  id="realtime-toggle"
+                  checked={refreshInterval > 0}
+                  onCheckedChange={(checked) =>
+                    setRefreshInterval(checked ? 30 : 0)
+                  }
+                />
               </div>
               <Button
                 variant="outline"
@@ -610,7 +858,11 @@ export default function ElectionDashboardPage() {
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="hidden md:flex">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="hidden md:flex"
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Export
                   </Button>
@@ -645,48 +897,74 @@ export default function ElectionDashboardPage() {
                 <div className="grid gap-6 md:grid-cols-4 mb-6">
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Total Votes Cast</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Total Votes Cast
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{getTotalVotes().toLocaleString()}</div>
-                      <p className="text-xs text-muted-foreground">+2.5% from last hour</p>
+                      <div className="text-2xl font-bold">
+                        {getTotalVotes().toLocaleString()}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        +2.5% from last hour
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Voter Turnout</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Voter Turnout
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">62.5%</div>
-                      <p className="text-xs text-muted-foreground">Of registered voters</p>
+                      <p className="text-xs text-muted-foreground">
+                        Of registered voters
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">States Reporting</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        States Reporting
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">36/37</div>
-                      <p className="text-xs text-muted-foreground">Including FCT</p>
+                      <p className="text-xs text-muted-foreground">
+                        Including FCT
+                      </p>
                     </CardContent>
                   </Card>
 
                   <Card className="transition-all duration-300 hover:shadow-md">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Leading Candidate</CardTitle>
+                      <CardTitle className="text-sm font-medium">
+                        Leading Candidate
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{candidates.length > 0 ? candidates[0].name.split(" ")[0] : "N/A"}</div>
-                      <p className="text-xs text-muted-foreground">{candidates.length > 0 ? `${candidates[0].percentage}% of votes` : "No data"}</p>
+                      <div className="text-2xl font-bold">
+                        {candidates.length > 0
+                          ? candidates[0].name.split(" ")[0]
+                          : "N/A"}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {candidates.length > 0
+                          ? `${candidates[0].percentage}% of votes`
+                          : "No data"}
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
 
                 {/* Candidate Selection */}
                 <div className="mb-6 flex flex-wrap gap-2">
-                  <div className="text-sm font-medium mr-2 flex items-center">Highlight Candidate:</div>
+                  <div className="text-sm font-medium mr-2 flex items-center">
+                    Highlight Candidate:
+                  </div>
                   {candidates.map((candidate) => (
                     <button
                       key={candidate.id}
@@ -697,7 +975,10 @@ export default function ElectionDashboardPage() {
                           : "bg-muted hover:bg-muted/80"
                       }`}
                     >
-                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: candidate.color }}></div>
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: candidate.color }}
+                      ></div>
                       <span>{candidate.party}</span>
                     </button>
                   ))}
@@ -718,7 +999,9 @@ export default function ElectionDashboardPage() {
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <div>
                         <CardTitle>Vote Share</CardTitle>
-                        <CardDescription>Percentage distribution by candidate</CardDescription>
+                        <CardDescription>
+                          Percentage distribution by candidate
+                        </CardDescription>
                       </div>
                       <TooltipProvider>
                         <Tooltip>
@@ -729,8 +1012,9 @@ export default function ElectionDashboardPage() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
-                              This pie chart shows the percentage of votes received by each candidate. Hover over slices
-                              to see detailed information.
+                              This pie chart shows the percentage of votes
+                              received by each candidate. Hover over slices to
+                              see detailed information.
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -747,7 +1031,7 @@ export default function ElectionDashboardPage() {
                           votes: c.votes,
                           color: c.color,
                         }))}
-                        selectedCandidate={selectedCandidate}
+                        selectedCandidate={selectedCandidate ? parseInt(selectedCandidate) : null}
                         onSelectCandidate={handleCandidateSelect}
                         isLoading={isLoading}
                       />
@@ -759,16 +1043,23 @@ export default function ElectionDashboardPage() {
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <div>
                         <CardTitle>Regional Distribution</CardTitle>
-                        <CardDescription>Vote counts across regions</CardDescription>
+                        <CardDescription>
+                          Vote counts across regions
+                        </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                        <Select
+                          value={selectedRegion}
+                          onValueChange={setSelectedRegion}
+                        >
                           <SelectTrigger className="w-[130px]">
                             <SelectValue placeholder="View" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Regions</SelectItem>
-                            <SelectItem value="national">Geopolitical Zones</SelectItem>
+                            <SelectItem value="national">
+                              Geopolitical Zones
+                            </SelectItem>
                             <SelectItem value="state">Top States</SelectItem>
                           </SelectContent>
                         </Select>
@@ -782,7 +1073,12 @@ export default function ElectionDashboardPage() {
                             <TooltipContent>
                               <p className="max-w-xs">
                                 This bar chart shows vote distribution across{" "}
-                                {selectedRegion === "national" ? "geopolitical zones" : selectedRegion === "state" ? "top states" : "selected region"}.
+                                {selectedRegion === "national"
+                                  ? "geopolitical zones"
+                                  : selectedRegion === "state"
+                                  ? "top states"
+                                  : "selected region"}
+                                .
                               </p>
                             </TooltipContent>
                           </Tooltip>
@@ -808,7 +1104,10 @@ export default function ElectionDashboardPage() {
                         <CardDescription>Turnout over time</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                        <Select
+                          value={selectedRegion}
+                          onValueChange={setSelectedRegion}
+                        >
                           <SelectTrigger className="w-[130px]">
                             <SelectValue placeholder="View" />
                           </SelectTrigger>
@@ -827,7 +1126,9 @@ export default function ElectionDashboardPage() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
-                                This line chart shows voting trends over time. Toggle between all regions, national, or top states.
+                                This line chart shows voting trends over time.
+                                Toggle between all regions, national, or top
+                                states.
                               </p>
                             </TooltipContent>
                           </Tooltip>
@@ -851,9 +1152,15 @@ export default function ElectionDashboardPage() {
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                       <CardTitle>Electoral Map</CardTitle>
-                      <CardDescription>Geographic distribution of election results</CardDescription>
+                      <CardDescription>
+                        Geographic distribution of election results
+                      </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setSelectedRegion("all")}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedRegion("all")}
+                    >
                       View Full Map
                     </Button>
                   </CardHeader>
@@ -871,7 +1178,9 @@ export default function ElectionDashboardPage() {
                   <CardHeader className="flex flex-row items-center">
                     <div className="flex-1">
                       <CardTitle>Live Updates</CardTitle>
-                      <CardDescription>Real-time election news and announcements</CardDescription>
+                      <CardDescription>
+                        Real-time election news and announcements
+                      </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="h-3 w-3 rounded-full bg-green-500 pulse-animation"></div>
@@ -887,11 +1196,16 @@ export default function ElectionDashboardPage() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold">INEC Announcement</h4>
-                              <span className="text-xs text-muted-foreground">2 minutes ago</span>
+                              <h4 className="font-semibold">
+                                INEC Announcement
+                              </h4>
+                              <span className="text-xs text-muted-foreground">
+                                2 minutes ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              Polls will remain open for the full 3-week period to accommodate all voters.
+                              Polls will remain open for the full 3-week period
+                              to accommodate all voters.
                             </p>
                           </div>
                         </div>
@@ -903,10 +1217,13 @@ export default function ElectionDashboardPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold">Results Update</h4>
-                              <span className="text-xs text-muted-foreground">15 minutes ago</span>
+                              <span className="text-xs text-muted-foreground">
+                                15 minutes ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              Lagos State has reported 85% of polling units. Current turnout at 68%.
+                              Lagos State has reported 85% of polling units.
+                              Current turnout at 68%.
                             </p>
                           </div>
                         </div>
@@ -918,11 +1235,14 @@ export default function ElectionDashboardPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold">Security Alert</h4>
-                              <span className="text-xs text-muted-foreground">30 minutes ago</span>
+                              <span className="text-xs text-muted-foreground">
+                                30 minutes ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              Secure Ballot has detected and blocked several unauthorized access attempts. All votes
-                              remain secure and uncompromised.
+                              Secure Ballot has detected and blocked several
+                              unauthorized access attempts. All votes remain
+                              secure and uncompromised.
                             </p>
                           </div>
                         </div>
@@ -933,11 +1253,16 @@ export default function ElectionDashboardPage() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold">Candidate Statement</h4>
-                              <span className="text-xs text-muted-foreground">45 minutes ago</span>
+                              <h4 className="font-semibold">
+                                Candidate Statement
+                              </h4>
+                              <span className="text-xs text-muted-foreground">
+                                45 minutes ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              Bola Ahmed Tinubu urges supporters to remain calm as results continue to come in.
+                              Bola Ahmed Tinubu urges supporters to remain calm
+                              as results continue to come in.
                             </p>
                           </div>
                         </div>
@@ -948,12 +1273,17 @@ export default function ElectionDashboardPage() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold">Turnout Milestone</h4>
-                              <span className="text-xs text-muted-foreground">1 hour ago</span>
+                              <h4 className="font-semibold">
+                                Turnout Milestone
+                              </h4>
+                              <span className="text-xs text-muted-foreground">
+                                1 hour ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              National voter turnout has reached 50% - the highest in Nigeria's electoral history at
-                              this stage.
+                              National voter turnout has reached 50% - the
+                              highest in Nigeria's electoral history at this
+                              stage.
                             </p>
                           </div>
                         </div>
@@ -965,11 +1295,13 @@ export default function ElectionDashboardPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold">Regional Update</h4>
-                              <span className="text-xs text-muted-foreground">1.5 hours ago</span>
+                              <span className="text-xs text-muted-foreground">
+                                1.5 hours ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              South East region reports record-breaking 72% turnout with LP leading in 4 out of 5
-                              states.
+                              South East region reports record-breaking 72%
+                              turnout with LP leading in 4 out of 5 states.
                             </p>
                           </div>
                         </div>
@@ -981,10 +1313,13 @@ export default function ElectionDashboardPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold">System Update</h4>
-                              <span className="text-xs text-muted-foreground">2 hours ago</span>
+                              <span className="text-xs text-muted-foreground">
+                                2 hours ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              Secure Ballot has successfully processed over 20 million votes with zero system downtime.
+                              Secure Ballot has successfully processed over 20
+                              million votes with zero system downtime.
                             </p>
                           </div>
                         </div>
@@ -995,11 +1330,16 @@ export default function ElectionDashboardPage() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold">Candidate Statement</h4>
-                              <span className="text-xs text-muted-foreground">2.5 hours ago</span>
+                              <h4 className="font-semibold">
+                                Candidate Statement
+                              </h4>
+                              <span className="text-xs text-muted-foreground">
+                                2.5 hours ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              Peter Obi thanks supporters and emphasizes the importance of peaceful democratic process.
+                              Peter Obi thanks supporters and emphasizes the
+                              importance of peaceful democratic process.
                             </p>
                           </div>
                         </div>
@@ -1010,11 +1350,16 @@ export default function ElectionDashboardPage() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold">Demographic Insight</h4>
-                              <span className="text-xs text-muted-foreground">3 hours ago</span>
+                              <h4 className="font-semibold">
+                                Demographic Insight
+                              </h4>
+                              <span className="text-xs text-muted-foreground">
+                                3 hours ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              Youth voter participation (18-35) has increased by 27% compared to the 2023 elections.
+                              Youth voter participation (18-35) has increased by
+                              27% compared to the 2023 elections.
                             </p>
                           </div>
                         </div>
@@ -1025,12 +1370,17 @@ export default function ElectionDashboardPage() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold">International Observers</h4>
-                              <span className="text-xs text-muted-foreground">3.5 hours ago</span>
+                              <h4 className="font-semibold">
+                                International Observers
+                              </h4>
+                              <span className="text-xs text-muted-foreground">
+                                3.5 hours ago
+                              </span>
                             </div>
                             <p className="text-sm">
-                              EU Election Observation Mission praises Nigeria's digital voting system for transparency
-                              and security.
+                              EU Election Observation Mission praises Nigeria's
+                              digital voting system for transparency and
+                              security.
                             </p>
                           </div>
                         </div>
@@ -1051,7 +1401,9 @@ export default function ElectionDashboardPage() {
                   <Card className="flex-1">
                     <CardHeader>
                       <CardTitle>Detailed Charts</CardTitle>
-                      <CardDescription>Interactive visualizations of election data</CardDescription>
+                      <CardDescription>
+                        Interactive visualizations of election data
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Tabs defaultValue="pie">
@@ -1063,10 +1415,18 @@ export default function ElectionDashboardPage() {
 
                         <TabsContent value="pie" className="pt-4">
                           <div className="mb-4">
-                            <h3 className="text-sm font-medium mb-2">Vote Share Distribution</h3>
+                            <h3 className="text-sm font-medium mb-2">
+                              Vote Share Distribution
+                            </h3>
                             <p className="text-sm text-muted-foreground mb-4">
-                              This pie chart shows the percentage of votes received by each candidate in the{" "}
-                              {ELECTION_TYPES[electionTypeKey as keyof typeof ELECTION_TYPES]}.
+                              This pie chart shows the percentage of votes
+                              received by each candidate in the{" "}
+                              {
+                                ELECTION_TYPES[
+                                  electionTypeKey as keyof typeof ELECTION_TYPES
+                                ]
+                              }
+                              .
                             </p>
                             <div className="h-[500px]">
                               <ElectionCharts
@@ -1091,21 +1451,37 @@ export default function ElectionDashboardPage() {
                         <TabsContent value="bar" className="pt-4">
                           <div className="mb-4">
                             <div className="flex items-center justify-between mb-2">
-                              <h3 className="text-sm font-medium">Regional Vote Distribution</h3>
-                              <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                              <h3 className="text-sm font-medium">
+                                Regional Vote Distribution
+                              </h3>
+                              <Select
+                                value={selectedRegion}
+                                onValueChange={setSelectedRegion}
+                              >
                                 <SelectTrigger className="w-[180px]">
                                   <SelectValue placeholder="Select view" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="all">All Regions</SelectItem>
-                                  <SelectItem value="national">Geopolitical Zones</SelectItem>
-                                  <SelectItem value="state">Top States</SelectItem>
+                                  <SelectItem value="all">
+                                    All Regions
+                                  </SelectItem>
+                                  <SelectItem value="national">
+                                    Geopolitical Zones
+                                  </SelectItem>
+                                  <SelectItem value="state">
+                                    Top States
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
                             <p className="text-sm text-muted-foreground mb-4">
                               This bar chart shows vote distribution across{" "}
-                              {selectedRegion === "national" ? "geopolitical zones" : selectedRegion === "state" ? "top states" : "selected region"}.
+                              {selectedRegion === "national"
+                                ? "geopolitical zones"
+                                : selectedRegion === "state"
+                                ? "top states"
+                                : "selected region"}
+                              .
                             </p>
                             <div className="h-[500px]">
                               <ElectionCharts
@@ -1123,21 +1499,38 @@ export default function ElectionDashboardPage() {
                         <TabsContent value="line" className="pt-4">
                           <div className="mb-4">
                             <div className="flex items-center justify-between mb-2">
-                              <h3 className="text-sm font-medium">Voting Trends Over Time</h3>
-                              <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                              <h3 className="text-sm font-medium">
+                                Voting Trends Over Time
+                              </h3>
+                              <Select
+                                value={selectedRegion}
+                                onValueChange={setSelectedRegion}
+                              >
                                 <SelectTrigger className="w-[180px]">
                                   <SelectValue placeholder="Select view" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="all">All Regions</SelectItem>
-                                  <SelectItem value="national">National</SelectItem>
-                                  <SelectItem value="state">Top States</SelectItem>
+                                  <SelectItem value="all">
+                                    All Regions
+                                  </SelectItem>
+                                  <SelectItem value="national">
+                                    National
+                                  </SelectItem>
+                                  <SelectItem value="state">
+                                    Top States
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
                             <p className="text-sm text-muted-foreground mb-4">
-                              This line chart shows how votes accumulated over the{" "}
-                              {selectedRegion === "national" ? "21-day voting period" : selectedRegion === "state" ? "election day" : "selected region"}.
+                              This line chart shows how votes accumulated over
+                              the{" "}
+                              {selectedRegion === "national"
+                                ? "21-day voting period"
+                                : selectedRegion === "state"
+                                ? "election day"
+                                : "selected region"}
+                              .
                             </p>
                             <div className="h-[500px]">
                               <ElectionCharts
@@ -1164,16 +1557,23 @@ export default function ElectionDashboardPage() {
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                       <div>
                         <CardTitle>Electoral Map</CardTitle>
-                        <CardDescription>Geographic distribution of election results</CardDescription>
+                        <CardDescription>
+                          Geographic distribution of election results
+                        </CardDescription>
                       </div>
                       <div className="flex items-center gap-2 mt-2 md:mt-0">
-                        <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                        <Select
+                          value={selectedRegion}
+                          onValueChange={setSelectedRegion}
+                        >
                           <SelectTrigger className="w-[130px]">
                             <SelectValue placeholder="View" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Regions</SelectItem>
-                            <SelectItem value="national">Geopolitical Zones</SelectItem>
+                            <SelectItem value="national">
+                              Geopolitical Zones
+                            </SelectItem>
                             <SelectItem value="state">Top States</SelectItem>
                           </SelectContent>
                         </Select>
@@ -1194,8 +1594,14 @@ export default function ElectionDashboardPage() {
                       <h3 className="text-sm font-medium mb-2">Legend</h3>
                       <div className="flex flex-wrap gap-3">
                         {candidates.map((candidate) => (
-                          <div key={candidate.id} className="flex items-center gap-2">
-                            <div className="h-4 w-4 rounded-sm" style={{ backgroundColor: candidate.color }}></div>
+                          <div
+                            key={candidate.id}
+                            className="flex items-center gap-2"
+                          >
+                            <div
+                              className="h-4 w-4 rounded-sm"
+                              style={{ backgroundColor: candidate.color }}
+                            ></div>
                             <span className="text-sm">{candidate.party}</span>
                           </div>
                         ))}
@@ -1208,29 +1614,39 @@ export default function ElectionDashboardPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>States by Party</CardTitle>
-                      <CardDescription>Number of states won by each party</CardDescription>
+                      <CardDescription>
+                        Number of states won by each party
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
                         {[
                           {
                             party: "APC",
-                            count: stateElectoralData.filter((s) => s.winner === "APC").length,
+                            count: stateElectoralData.filter(
+                              (s) => s.winner === "APC"
+                            ).length,
                             color: "#64748b",
                           },
                           {
                             party: "PDP",
-                            count: stateElectoralData.filter((s) => s.winner === "PDP").length,
+                            count: stateElectoralData.filter(
+                              (s) => s.winner === "PDP"
+                            ).length,
                             color: "#ef4444",
                           },
                           {
                             party: "LP",
-                            count: stateElectoralData.filter((s) => s.winner === "LP").length,
+                            count: stateElectoralData.filter(
+                              (s) => s.winner === "LP"
+                            ).length,
                             color: "#22c55e",
                           },
                           {
                             party: "NNPP",
-                            count: stateElectoralData.filter((s) => s.winner === "NNPP").length,
+                            count: stateElectoralData.filter(
+                              (s) => s.winner === "NNPP"
+                            ).length,
                             color: "#3b82f6",
                           },
                         ].map((item) => (
@@ -1268,18 +1684,50 @@ export default function ElectionDashboardPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Regional Strength</CardTitle>
-                      <CardDescription>Party performance by geopolitical zone</CardDescription>
+                      <CardDescription>
+                        Party performance by geopolitical zone
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-[300px] pr-4">
                         <div className="space-y-6">
                           {[
-                            { region: "North Central", party: "APC", states: 4, totalStates: 7 },
-                            { region: "North East", party: "APC", states: 5, totalStates: 6 },
-                            { region: "North West", party: "APC", states: 6, totalStates: 7 },
-                            { region: "South East", party: "LP", states: 4, totalStates: 5 },
-                            { region: "South South", party: "PDP", states: 4, totalStates: 6 },
-                            { region: "South West", party: "APC", states: 5, totalStates: 6 },
+                            {
+                              region: "North Central",
+                              party: "APC",
+                              states: 4,
+                              totalStates: 7,
+                            },
+                            {
+                              region: "North East",
+                              party: "APC",
+                              states: 5,
+                              totalStates: 6,
+                            },
+                            {
+                              region: "North West",
+                              party: "APC",
+                              states: 6,
+                              totalStates: 7,
+                            },
+                            {
+                              region: "South East",
+                              party: "LP",
+                              states: 4,
+                              totalStates: 5,
+                            },
+                            {
+                              region: "South South",
+                              party: "PDP",
+                              states: 4,
+                              totalStates: 6,
+                            },
+                            {
+                              region: "South West",
+                              party: "APC",
+                              states: 5,
+                              totalStates: 6,
+                            },
                           ].map((item) => (
                             <div key={item.region} className="space-y-2">
                               <h4 className="font-medium">{item.region}</h4>
@@ -1288,10 +1736,26 @@ export default function ElectionDashboardPage() {
                                 <Badge
                                   variant="outline"
                                   className={`
-                                    ${item.party === "APC" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : ""}
-                                    ${item.party === "PDP" ? "bg-red-500/10 text-red-500 border-red-500/20" : ""}
-                                    ${item.party === "LP" ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}
-                                    ${item.party === "NNPP" ? "bg-purple-500/10 text-purple-500 border-purple-500/20" : ""}
+                                    ${
+                                      item.party === "APC"
+                                        ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                        : ""
+                                    }
+                                    ${
+                                      item.party === "PDP"
+                                        ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                        : ""
+                                    }
+                                    ${
+                                      item.party === "LP"
+                                        ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                        : ""
+                                    }
+                                    ${
+                                      item.party === "NNPP"
+                                        ? "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                                        : ""
+                                    }
                                   `}
                                 >
                                   {item.party}
@@ -1309,10 +1773,10 @@ export default function ElectionDashboardPage() {
                                   item.party === "APC"
                                     ? "bg-blue-100 dark:bg-blue-950"
                                     : item.party === "PDP"
-                                      ? "bg-red-100 dark:bg-red-950"
-                                      : item.party === "LP"
-                                        ? "bg-green-100 dark:bg-green-950"
-                                        : "bg-purple-100 dark:bg-purple-950"
+                                    ? "bg-red-100 dark:bg-red-950"
+                                    : item.party === "LP"
+                                    ? "bg-green-100 dark:bg-green-950"
+                                    : "bg-purple-100 dark:bg-purple-950"
                                 }`}
                               />
                             </div>
@@ -1329,7 +1793,9 @@ export default function ElectionDashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Detailed Results</CardTitle>
-                    <CardDescription>Complete breakdown of votes by candidate</CardDescription>
+                    <CardDescription>
+                      Complete breakdown of votes by candidate
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
@@ -1348,9 +1814,13 @@ export default function ElectionDashboardPage() {
                             <tr
                               key={candidate.id}
                               className={`border-b hover:bg-muted/30 transition-colors cursor-pointer ${
-                                selectedCandidate === candidate.id ? "bg-primary/5" : ""
+                                selectedCandidate === candidate.id
+                                  ? "bg-primary/5"
+                                  : ""
                               }`}
-                              onClick={() => handleCandidateSelect(candidate.id)}
+                              onClick={() =>
+                                handleCandidateSelect(candidate.id)
+                              }
                             >
                               <td className="p-2 flex items-center gap-2">
                                 <div className="h-8 w-8 rounded-full overflow-hidden">
@@ -1375,10 +1845,18 @@ export default function ElectionDashboardPage() {
                                   {candidate.party}
                                 </Badge>
                               </td>
-                              <td className="p-2 text-right font-medium">{candidate.votes.toLocaleString()}</td>
-                              <td className="p-2 text-right">{candidate.percentage}%</td>
+                              <td className="p-2 text-right font-medium">
+                                {candidate.votes.toLocaleString()}
+                              </td>
                               <td className="p-2 text-right">
-                                {stateElectoralData.filter((s) => s.winner === candidate.party).length}
+                                {candidate.percentage}%
+                              </td>
+                              <td className="p-2 text-right">
+                                {
+                                  stateElectoralData.filter(
+                                    (s) => s.winner === candidate.party
+                                  ).length
+                                }
                               </td>
                             </tr>
                           ))}
@@ -1387,7 +1865,9 @@ export default function ElectionDashboardPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <div className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Last updated: {new Date().toLocaleString()}
+                    </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm">
                         <Share2 className="mr-2 h-4 w-4" />
@@ -1404,7 +1884,9 @@ export default function ElectionDashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>State-by-State Results</CardTitle>
-                    <CardDescription>Detailed breakdown by state</CardDescription>
+                    <CardDescription>
+                      Detailed breakdown by state
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[400px]">
@@ -1416,10 +1898,26 @@ export default function ElectionDashboardPage() {
                               <Badge
                                 variant="outline"
                                 className={`
-                                  ${state.winner === "APC" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : ""}
-                                  ${state.winner === "PDP" ? "bg-red-500/10 text-red-500 border-red-500/20" : ""}
-                                  ${state.winner === "LP" ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}
-                                  ${state.winner === "NNPP" ? "bg-purple-500/10 text-purple-500 border-purple-500/20" : ""}
+                                  ${
+                                    state.winner === "APC"
+                                      ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                      : ""
+                                  }
+                                  ${
+                                    state.winner === "PDP"
+                                      ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                      : ""
+                                  }
+                                  ${
+                                    state.winner === "LP"
+                                      ? "bg-green-500/10 text-green-500 border-green-500/20"
+                                      : ""
+                                  }
+                                  ${
+                                    state.winner === "NNPP"
+                                      ? "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                                      : ""
+                                  }
                                 `}
                               >
                                 {state.winner} ({state.percentage}%)
@@ -1434,10 +1932,10 @@ export default function ElectionDashboardPage() {
                                 state.winner === "APC"
                                   ? "bg-blue-100 dark:bg-blue-950"
                                   : state.winner === "PDP"
-                                    ? "bg-red-100 dark:bg-red-950"
-                                    : state.winner === "LP"
-                                      ? "bg-green-100 dark:bg-green-950"
-                                      : "bg-purple-100 dark:bg-purple-950"
+                                  ? "bg-red-100 dark:bg-red-950"
+                                  : state.winner === "LP"
+                                  ? "bg-green-100 dark:bg-green-950"
+                                  : "bg-purple-100 dark:bg-purple-950"
                               }`}
                             />
                           </div>
@@ -1452,5 +1950,5 @@ export default function ElectionDashboardPage() {
         </div>
       </div>
     </SidebarProvider>
-  )
+  );
 }

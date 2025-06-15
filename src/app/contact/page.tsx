@@ -1,33 +1,39 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import Link from "next/link"
-import { ArrowLeft, Mail, Phone, MapPin, Send } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Navbar } from "@/components/navbar"
-import { useToast } from "@/hooks/use-toast"
+import Link from "next/link";
+import { ArrowLeft, Mail, Phone, MapPin, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Navbar } from "@/components/navbar";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ContactPage() {
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
     // In a real app, you would send the form data to your backend here
     toast({
       title: "Message Sent Successfully!",
-      description: "Thank you for contacting us. We'll get back to you as soon as possible.",
+      description:
+        "Thank you for contacting us. We'll get back to you as soon as possible.",
       duration: 5000,
-      variant: "success",
-    })
+    });
     // Reset form fields
-    e.currentTarget.reset()
-  }
+    e.currentTarget.reset();
+  };
 
   return (
     <div className="min-h-screen">
@@ -41,77 +47,105 @@ export default function ContactPage() {
               Back to Home
             </Link>
           </Button>
-          <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-          <p className="text-xl text-muted-foreground max-w-3xl">
-            Have questions or need assistance? We're here to help you with any inquiries about Secure Ballot.
+          <h1 className="text-2xl md:text-4xl font-bold mb-4">Contact Us</h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl">
+            Have questions or need assistance? We're here to help you with any
+            inquiries about Secure Ballot.
           </p>
         </div>
 
-        <div className="grid gap-10 md:grid-cols-3 mb-16">
-          <Card className="col-span-2">
-            <CardHeader>
-              <CardTitle>Send Us a Message</CardTitle>
-              <CardDescription>Fill out the form below and we'll get back to you as soon as possible.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-6" onSubmit={handleSubmit}>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="first-name">First Name</Label>
-                    <Input id="first-name" placeholder="Enter your first name" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last-name">Last Name</Label>
-                    <Input id="last-name" placeholder="Enter your last name" required />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" placeholder="Enter your email address" required />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" placeholder="Enter your phone number" required />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Inquiry Type</Label>
-                  <RadioGroup defaultValue="general" required>
-                    <div className="flex flex-wrap gap-6">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="general" id="general" />
-                        <Label htmlFor="general">General Inquiry</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="technical" id="technical" />
-                        <Label htmlFor="technical">Technical Support</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="voting" id="voting" />
-                        <Label htmlFor="voting">Voting Assistance</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="feedback" id="feedback" />
-                        <Label htmlFor="feedback">Feedback</Label>
-                      </div>
+        <div className="grid gap-8 lg:grid-cols-3 mb-12 md:mb-16">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Send Us a Message</CardTitle>
+                <CardDescription>
+                  Fill out the form below and we'll get back to you as soon as
+                  possible.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-6" onSubmit={handleSubmit}>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="first-name">First Name</Label>
+                      <Input
+                        id="first-name"
+                        placeholder="Enter your first name"
+                        required
+                      />
                     </div>
-                  </RadioGroup>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last-name">Last Name</Label>
+                      <Input
+                        id="last-name"
+                        placeholder="Enter your last name"
+                        required
+                      />
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea id="message" placeholder="Please describe your inquiry in detail" rows={5} required />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email address"
+                      required
+                    />
+                  </div>
 
-                <Button type="submit" className="w-full md:w-auto">
-                  <Send className="mr-2 h-4 w-4" />
-                  Send Message
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      placeholder="Enter your phone number"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Inquiry Type</Label>
+                    <RadioGroup defaultValue="general" required>
+                      <div className="flex flex-wrap gap-6">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="general" id="general" />
+                          <Label htmlFor="general">General Inquiry</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="technical" id="technical" />
+                          <Label htmlFor="technical">Technical Support</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="voting" id="voting" />
+                          <Label htmlFor="voting">Voting Assistance</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="feedback" id="feedback" />
+                          <Label htmlFor="feedback">Feedback</Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Message</Label>
+                    <Textarea
+                      id="message"
+                      placeholder="Please describe your inquiry in detail"
+                      rows={5}
+                      required
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full md:w-auto">
+                    <Send className="mr-2 h-4 w-4" />
+                    Send Message
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="space-y-6">
             <Card>
@@ -124,8 +158,12 @@ export default function ContactPage() {
                   <Mail className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="font-medium">Email</h3>
-                    <p className="text-sm text-muted-foreground">support@secureballot.ng</p>
-                    <p className="text-sm text-muted-foreground">info@secureballot.ng</p>
+                    <p className="text-sm text-muted-foreground">
+                      support@secureballot.ng
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      info@secureballot.ng
+                    </p>
                   </div>
                 </div>
 
@@ -133,8 +171,12 @@ export default function ContactPage() {
                   <Phone className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="font-medium">Phone</h3>
-                    <p className="text-sm text-muted-foreground">+234 800 VOTE NOW (8683 669)</p>
-                    <p className="text-sm text-muted-foreground">+234 700 SECURE BALLOT (732873 225568)</p>
+                    <p className="text-sm text-muted-foreground">
+                      +234 800 VOTE NOW (8683 669)
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      +234 700 SECURE BALLOT (732873 225568)
+                    </p>
                   </div>
                 </div>
 
@@ -193,28 +235,36 @@ export default function ContactPage() {
                     <MapPin className="h-4 w-4 text-primary mt-0.5" />
                     <div>
                       <p className="font-medium">Lagos Office</p>
-                      <p className="text-sm text-muted-foreground">Victoria Island, Lagos</p>
+                      <p className="text-sm text-muted-foreground">
+                        Victoria Island, Lagos
+                      </p>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 text-primary mt-0.5" />
                     <div>
                       <p className="font-medium">Kano Office</p>
-                      <p className="text-sm text-muted-foreground">Kano Municipal, Kano</p>
+                      <p className="text-sm text-muted-foreground">
+                        Kano Municipal, Kano
+                      </p>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 text-primary mt-0.5" />
                     <div>
                       <p className="font-medium">Port Harcourt Office</p>
-                      <p className="text-sm text-muted-foreground">GRA, Port Harcourt</p>
+                      <p className="text-sm text-muted-foreground">
+                        GRA, Port Harcourt
+                      </p>
                     </div>
                   </li>
                   <li className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 text-primary mt-0.5" />
                     <div>
                       <p className="font-medium">Enugu Office</p>
-                      <p className="text-sm text-muted-foreground">New Haven, Enugu</p>
+                      <p className="text-sm text-muted-foreground">
+                        New Haven, Enugu
+                      </p>
                     </div>
                   </li>
                 </ul>
@@ -224,7 +274,9 @@ export default function ContactPage() {
         </div>
 
         <div className="mb-16">
-          <h2 className="text-2xl font-bold mb-6">Frequently Asked Support Questions</h2>
+          <h2 className="text-2xl font-bold mb-6">
+            Frequently Asked Support Questions
+          </h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader>
@@ -232,8 +284,9 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  If you're having trouble logging in, make sure you're using the correct NIN and VIN. If you've
-                  forgotten your credentials, you can verify your identity at your local INEC office.
+                  If you're having trouble logging in, make sure you're using
+                  the correct NIN and VIN. If you've forgotten your credentials,
+                  you can verify your identity at your local INEC office.
                 </p>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/faq#technical-issues">Learn More</Link>
@@ -247,8 +300,9 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  If you don't receive your OTP, check that you're using the phone number registered with INEC. You can
-                  request a new OTP after 5 minutes. If issues persist, contact our support team.
+                  If you don't receive your OTP, check that you're using the
+                  phone number registered with INEC. You can request a new OTP
+                  after 5 minutes. If issues persist, contact our support team.
                 </p>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/faq#technical-issues">Learn More</Link>
@@ -262,8 +316,10 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  Personal information updates (address, phone number, etc.) must be made through INEC's voter
-                  registration update process. Visit your local INEC office with your identification documents.
+                  Personal information updates (address, phone number, etc.)
+                  must be made through INEC's voter registration update process.
+                  Visit your local INEC office with your identification
+                  documents.
                 </p>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/faq#voting-process">Learn More</Link>
@@ -286,17 +342,22 @@ export default function ContactPage() {
                   />
                 </div>
                 <h3 className="text-xl font-bold">Okoye Chikeluba Arthur</h3>
-                <p className="text-primary font-medium mb-2">Founder & Chief Innovator</p>
+                <p className="text-primary font-medium mb-2">
+                  Founder & Chief Innovator
+                </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Visionary leader behind Secure Ballot, committed to transforming Nigeria's electoral system through
-                  secure and transparent technology.
+                  Visionary leader behind Secure Ballot, committed to
+                  transforming Nigeria's electoral system through secure and
+                  transparent technology.
                 </p>
                 <div className="flex justify-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => window.open("https://twitter.com/secureballot", "_blank")}
+                    onClick={() =>
+                      window.open("https://twitter.com/secureballot", "_blank")
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -318,7 +379,12 @@ export default function ContactPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => window.open("https://linkedin.com/in/secureballot", "_blank")}
+                    onClick={() =>
+                      window.open(
+                        "https://linkedin.com/in/secureballot",
+                        "_blank"
+                      )
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -342,7 +408,9 @@ export default function ContactPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => (window.location.href = "mailto:arthur@secureballot.ng")}
+                    onClick={() =>
+                      (window.location.href = "mailto:arthur@secureballot.ng")
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -375,17 +443,24 @@ export default function ContactPage() {
                   />
                 </div>
                 <h3 className="text-xl font-bold">Adebayo Oluwaseun</h3>
-                <p className="text-primary font-medium mb-2">Chief Technology Officer</p>
+                <p className="text-primary font-medium mb-2">
+                  Chief Technology Officer
+                </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Leading our technical team to build robust, secure, and scalable voting infrastructure for Nigeria's
-                  future.
+                  Leading our technical team to build robust, secure, and
+                  scalable voting infrastructure for Nigeria's future.
                 </p>
                 <div className="flex justify-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => window.open("https://twitter.com/secureballot_cto", "_blank")}
+                    onClick={() =>
+                      window.open(
+                        "https://twitter.com/secureballot_cto",
+                        "_blank"
+                      )
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -407,7 +482,9 @@ export default function ContactPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => window.open("https://linkedin.com/in/adebayo", "_blank")}
+                    onClick={() =>
+                      window.open("https://linkedin.com/in/adebayo", "_blank")
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -431,7 +508,9 @@ export default function ContactPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => (window.location.href = "mailto:adebayo@secureballot.ng")}
+                    onClick={() =>
+                      (window.location.href = "mailto:adebayo@secureballot.ng")
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -464,17 +543,24 @@ export default function ContactPage() {
                   />
                 </div>
                 <h3 className="text-xl font-bold">Ngozi Chukwu</h3>
-                <p className="text-primary font-medium mb-2">Head of Security</p>
+                <p className="text-primary font-medium mb-2">
+                  Head of Security
+                </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Expert in cybersecurity ensuring that every vote is protected with state-of-the-art encryption and
-                  security protocols.
+                  Expert in cybersecurity ensuring that every vote is protected
+                  with state-of-the-art encryption and security protocols.
                 </p>
                 <div className="flex justify-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => window.open("https://twitter.com/secureballot_sec", "_blank")}
+                    onClick={() =>
+                      window.open(
+                        "https://twitter.com/secureballot_sec",
+                        "_blank"
+                      )
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -496,7 +582,9 @@ export default function ContactPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => window.open("https://linkedin.com/in/ngozi", "_blank")}
+                    onClick={() =>
+                      window.open("https://linkedin.com/in/ngozi", "_blank")
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -520,7 +608,9 @@ export default function ContactPage() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full"
-                    onClick={() => (window.location.href = "mailto:ngozi@secureballot.ng")}
+                    onClick={() =>
+                      (window.location.href = "mailto:ngozi@secureballot.ng")
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -546,9 +636,12 @@ export default function ContactPage() {
         </div>
 
         <div className="text-center mb-12">
-          <h2 className="text-2xl font-bold mb-4">Need Immediate Assistance?</h2>
+          <h2 className="text-2xl font-bold mb-4">
+            Need Immediate Assistance?
+          </h2>
           <p className="mb-6 text-muted-foreground max-w-2xl mx-auto">
-            For urgent matters during the voting period, our support team is available 24/7 via phone or live chat.
+            For urgent matters during the voting period, our support team is
+            available 24/7 via phone or live chat.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -557,7 +650,7 @@ export default function ContactPage() {
                 toast({
                   title: "Support Call Initiated",
                   description: "Connecting you to our support team...",
-                })
+                });
                 // In a real app, this would initiate a call
               }}
             >
@@ -571,7 +664,7 @@ export default function ContactPage() {
                 toast({
                   title: "Live Chat",
                   description: "Opening live chat support...",
-                })
+                });
                 // In a real app, this would open a chat widget
               }}
             >
@@ -588,7 +681,8 @@ export default function ContactPage() {
             <div>
               <h3 className="mb-4 text-lg font-semibold">Secure Ballot</h3>
               <p className="text-sm text-muted-foreground">
-                Nigeria's most secure and transparent voting platform for the 2027 General Elections.
+                Nigeria's most secure and transparent voting platform for the
+                2027 General Elections.
               </p>
             </div>
 
@@ -596,17 +690,26 @@ export default function ContactPage() {
               <h3 className="mb-4 text-lg font-semibold">Quick Links</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/about" className="text-muted-foreground hover:text-primary">
+                  <Link
+                    href="/about"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     About
                   </Link>
                 </li>
                 <li>
-                  <Link href="/faq" className="text-muted-foreground hover:text-primary">
+                  <Link
+                    href="/faq"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     FAQ
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-muted-foreground hover:text-primary">
+                  <Link
+                    href="/contact"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     Contact
                   </Link>
                 </li>
@@ -617,17 +720,26 @@ export default function ContactPage() {
               <h3 className="mb-4 text-lg font-semibold">Legal</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/privacy" className="text-muted-foreground hover:text-primary">
+                  <Link
+                    href="/privacy"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="text-muted-foreground hover:text-primary">
+                  <Link
+                    href="/terms"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     Terms of Service
                   </Link>
                 </li>
                 <li>
-                  <Link href="/security" className="text-muted-foreground hover:text-primary">
+                  <Link
+                    href="/security"
+                    className="text-muted-foreground hover:text-primary"
+                  >
                     Security
                   </Link>
                 </li>
@@ -642,8 +754,8 @@ export default function ContactPage() {
                     href="#"
                     className="text-muted-foreground hover:text-primary"
                     onClick={(e) => {
-                      e.preventDefault()
-                      window.open("https://twitter.com/secureballot", "_blank")
+                      e.preventDefault();
+                      window.open("https://twitter.com/secureballot", "_blank");
                     }}
                   >
                     Twitter
@@ -654,8 +766,11 @@ export default function ContactPage() {
                     href="#"
                     className="text-muted-foreground hover:text-primary"
                     onClick={(e) => {
-                      e.preventDefault()
-                      window.open("https://facebook.com/secureballot", "_blank")
+                      e.preventDefault();
+                      window.open(
+                        "https://facebook.com/secureballot",
+                        "_blank"
+                      );
                     }}
                   >
                     Facebook
@@ -666,8 +781,11 @@ export default function ContactPage() {
                     href="#"
                     className="text-muted-foreground hover:text-primary"
                     onClick={(e) => {
-                      e.preventDefault()
-                      window.open("https://instagram.com/secureballot", "_blank")
+                      e.preventDefault();
+                      window.open(
+                        "https://instagram.com/secureballot",
+                        "_blank"
+                      );
                     }}
                   >
                     Instagram
@@ -683,5 +801,5 @@ export default function ContactPage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }

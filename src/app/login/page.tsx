@@ -219,9 +219,9 @@ export default function LoginPage() {
         />
       </div>
 
-      <div className="container mx-auto flex max-w-md flex-1 items-center justify-center px-4 py-12 relative z-20">
+      <div className="container mx-auto flex max-w-lg flex-1 items-center justify-center px-4 py-8 md:py-12 relative z-20">
         <Card className="w-full bg-background/95 shadow-lg border-opacity-50">
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 pb-4">
             <div className="flex items-center justify-between">
               <Link
                 href="/"
@@ -231,7 +231,7 @@ export default function LoginPage() {
                 Back to Home
               </Link>
             </div>
-            <CardTitle className="text-2xl">Login to Vote</CardTitle>
+            <CardTitle className="text-xl md:text-2xl">Login to Vote</CardTitle>
             <CardDescription className="text-sm font-medium text-foreground/80">
               {step === 1
                 ? "Enter your NIN and VIN to authenticate"

@@ -208,7 +208,7 @@ export function ElectionManagement() {
     try {
       const electionResult = await createElection({
         electionName: newElection.electionName,
-        electionType: newElection.electionType,
+        electionType: newElection.electionType.toUpperCase(),
         startDate: newElection.startDate,
         endDate: newElection.endDate,
         description: newElection.description,
